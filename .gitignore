@@ -1,0 +1,30 @@
+# Node / Vue
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Java / Maven
+target/
+*.log
+*.xml.versionsBackup
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.local
+.DS_Store
+
+# Runtime artifacts
+logs/
+uploadPath/
