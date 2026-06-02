@@ -11,7 +11,7 @@ let downloadLoadingInstance
 // 是否显示重新登录
 export let isRelogin = { show: false }
 
-axios.defaults.headers['Content-Type'] = 'application/json;charset=utf-8'
+// axios.defaults.headers['Content-Type'] = 'application/json;charset=utf-8'
 // 创建axios实例
 const service = axios.create({
   // axios中请求配置有baseURL选项，表示请求URL公共部分
@@ -38,12 +38,14 @@ service.interceptors.request.use(config => {
     config.params = {}
     config.url = url
   }
-  if (!isRepeatSubmit && (config.method === 'post' || config.method === 'put')) {
-    const requestObj = {
-      url: config.url,
-      data: typeof config.data === 'object' ? JSON.stringify(config.data) : config.data,
-      time: new Date().getTime()
-    }
+  // 如果是FormData类型，不进行防重复提交验证，也不设置Content-Type
+  if (!(config.data instanceof FormData)) {
+    if (!isRepeatSubmit && (config.method === 'post' || config.method === 'put')) {
+      const requestObj = {
+        url: config.url,
+        data: typeof config.data === 'object' ? JSON.stringify(config.data) : config.data,
+        time: new Date().getTime()
+      }
     const requestSize = Object.keys(JSON.stringify(requestObj)).length // 请求数据大小
     const limitSize = 5 * 1024 * 1024 // 限制存放数据5M
     if (requestSize >= limitSize) {
@@ -66,6 +68,7 @@ service.interceptors.request.use(config => {
       }
     }
   }
+  }
   return config
 }, error => {
     console.log(error)
@@ -80,6 +83,12 @@ service.interceptors.response.use(res => {
     const msg = errorCode[code] || res.data.msg || errorCode['default']
     // 二进制数据则直接返回
     if (res.request.responseType ===  'blob' || res.request.responseType ===  'arraybuffer') {
+      return res.data
+    }
+    // 检查是否是文件上传请求
+    const isUpload = res.config.url && res.config.url.includes('/avatar')
+    if (isUpload) {
+      // 文件上传请求直接返回数据
       return res.data
     }
     if (code === 401) {

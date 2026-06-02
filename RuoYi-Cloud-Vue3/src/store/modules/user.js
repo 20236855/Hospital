@@ -3,9 +3,27 @@ import cache from '@/plugins/cache'
 import { ElMessageBox, } from 'element-plus'
 import { login, logout, getInfo } from '@/api/login'
 import { getToken, setToken, removeToken } from '@/utils/auth'
-import { isEmpty } from "@/utils/validate"
+import { isEmpty, isExternal } from "@/utils/validate"
 import useLockStore from '@/store/modules/lock'
 import defAva from '@/assets/images/profile.jpg'
+
+function resolveAvatar(avatar) {
+  if (isEmpty(avatar)) {
+    return defAva
+  }
+  const avatarUrl = String(avatar).trim()
+  if (isEmpty(avatarUrl)) {
+    return defAva
+  }
+  if (avatarUrl.startsWith('data:') || isExternal(avatarUrl)) {
+    return avatarUrl
+  }
+  const baseApi = import.meta.env.VITE_APP_BASE_API || ''
+  // 移除可能已有的时间戳参数
+  const cleanAvatar = avatarUrl.split('?')[0]
+  const normalizedAvatar = cleanAvatar.startsWith('/') ? cleanAvatar : `/${cleanAvatar}`
+  return `${baseApi}${normalizedAvatar}`
+}
 
 const useUserStore = defineStore(
   'user',
@@ -43,7 +61,7 @@ const useUserStore = defineStore(
         return new Promise((resolve, reject) => {
           getInfo().then(res => {
             const user = res.user
-            const avatar = (isEmpty(user.avatar)) ? defAva : user.avatar
+            const avatar = resolveAvatar(user.avatar)
             if (res.roles && res.roles.length > 0) { // 验证返回的roles是否是一个非空数组
               this.roles = res.roles
               this.permissions = res.permissions
@@ -86,6 +104,11 @@ const useUserStore = defineStore(
             reject(error)
           })
         })
+      },
+      setAvatar(avatar) {
+        // 保存原始URL（不含时间戳）到store，刷新页面后重新加载
+        const cleanAvatar = avatar ? String(avatar).split('?')[0] : ''
+        this.avatar = resolveAvatar(cleanAvatar)
       }
     }
   })

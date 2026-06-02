@@ -1,42 +1,42 @@
 // base color
-$blue: #324157;
-$light-blue: #333c46;
-$red: #C03639;
-$pink: #E65D6E;
-$green: #30B08F;
-$tiffany: #4AB7BD;
-$yellow: #FEC171;
-$panGreen: #30B08F;
+$blue: #123a5d;
+$light-blue: #2e77a8;
+$red: #b75050;
+$pink: #b66b83;
+$green: #3d9a9a;
+$tiffany: #67b7c8;
+$yellow: #c5a15b;
+$panGreen: #3d9a9a;
 
 // 默认主题变量
-$menuText: #bfcbd9;
-$menuActiveText: #409eff;
-$menuBg: #1a1f2e;
-$menuHover: #263445;
+$menuText: rgba(224, 241, 247, 0.78);
+$menuActiveText: #ffffff;
+$menuBg: #123a5d;
+$menuHover: rgba(126, 204, 222, 0.14);
 
 // 浅色主题theme-light
-$menuLightBg: #ffffff;
-$menuLightHover: #f0f1f5;
-$menuLightText: #303133;
-$menuLightActiveText: #409EFF;
+$menuLightBg: #fbfdfe;
+$menuLightHover: #eef8fb;
+$menuLightText: #315a78;
+$menuLightActiveText: #0b6387;
 
 // 基础变量
-$base-sidebar-width: 200px;
-$sideBarWidth: 200px;
+$base-sidebar-width: 216px;
+$sideBarWidth: 216px;
 
 // 菜单暗色变量
-$base-menu-color: rgba(255,255,255,.65);
+$base-menu-color: rgba(224,241,247,.78);
 $base-menu-color-active: #ffffff;
-$base-menu-background: #1a1f2e;
-$base-sub-menu-background: #141824;
-$base-sub-menu-hover: rgba(255,255,255,.06);
+$base-menu-background: #123a5d;
+$base-sub-menu-background: #0d304e;
+$base-sub-menu-hover: rgba(126,204,222,.14);
 
 // 组件变量
-$--color-primary: #409EFF;
-$--color-success: #67C23A;
-$--color-warning: #E6A23C;
-$--color-danger: #F56C6C;
-$--color-info: #909399;
+$--color-primary: #0b6387;
+$--color-success: #2d8a83;
+$--color-warning: #b7893f;
+$--color-danger: #b75050;
+$--color-info: #6f8394;
 
 :export {
   menuText: $menuText;
@@ -71,9 +71,11 @@ $--color-info: #909399;
   --sidebar-bg: #{$menuBg};
   --sidebar-text: #{$menuText};
   --menu-hover: #{$menuHover};
+  --menu-active-text: #{$menuActiveText};
   
   --navbar-bg: #ffffff;
-  --navbar-text: #303133;
+  --navbar-text: #183a59;
+  --app-bg: #f6fafc;
   
   /* splitpanes default-theme 变量 */
   --splitpanes-default-bg: #ffffff;

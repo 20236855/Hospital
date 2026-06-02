@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.payment.mapper.PaymentItemMapper">
+    
+    <resultMap type="PaymentItem" id="PaymentItemResult">
+        <result property="itemId"    column="item_id"    />
+        <result property="paymentId"    column="payment_id"    />
+        <result property="bizType"    column="biz_type"    />
+        <result property="bizId"    column="biz_id"    />
+        <result property="itemName"    column="item_name"    />
+        <result property="unitPrice"    column="unit_price"    />
+        <result property="quantity"    column="quantity"    />
+        <result property="subtotal"    column="subtotal"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectPaymentItemVo">
+        select item_id, payment_id, biz_type, biz_id, item_name, unit_price, quantity, subtotal, create_time from payment_item
+    </sql>
+
+    <select id="selectPaymentItemList" parameterType="PaymentItem" resultMap="PaymentItemResult">
+        <include refid="selectPaymentItemVo"/>
+        <where>  
+            <if test="paymentId != null "> and payment_id = #{paymentId}</if>
+            <if test="bizType != null  and bizType != ''"> and biz_type = #{bizType}</if>
+            <if test="bizId != null "> and biz_id = #{bizId}</if>
+            <if test="itemName != null  and itemName != ''"> and item_name like concat('%', #{itemName}, '%')</if>
+            <if test="unitPrice != null "> and unit_price = #{unitPrice}</if>
+            <if test="quantity != null "> and quantity = #{quantity}</if>
+            <if test="subtotal != null "> and subtotal = #{subtotal}</if>
+        </where>
+    </select>
+    
+    <select id="selectPaymentItemByItemId" parameterType="Long" resultMap="PaymentItemResult">
+        <include refid="selectPaymentItemVo"/>
+        where item_id = #{itemId}
+    </select>
+
+    <insert id="insertPaymentItem" parameterType="PaymentItem" useGeneratedKeys="true" keyProperty="itemId">
+        insert into payment_item
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="paymentId != null">payment_id,</if>
+            <if test="bizType != null and bizType != ''">biz_type,</if>
+            <if test="bizId != null">biz_id,</if>
+            <if test="itemName != null and itemName != ''">item_name,</if>
+            <if test="unitPrice != null">unit_price,</if>
+            <if test="quantity != null">quantity,</if>
+            <if test="subtotal != null">subtotal,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="paymentId != null">#{paymentId},</if>
+            <if test="bizType != null and bizType != ''">#{bizType},</if>
+            <if test="bizId != null">#{bizId},</if>
+            <if test="itemName != null and itemName != ''">#{itemName},</if>
+            <if test="unitPrice != null">#{unitPrice},</if>
+            <if test="quantity != null">#{quantity},</if>
+            <if test="subtotal != null">#{subtotal},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updatePaymentItem" parameterType="PaymentItem">
+        update payment_item
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="paymentId != null">payment_id = #{paymentId},</if>
+            <if test="bizType != null and bizType != ''">biz_type = #{bizType},</if>
+            <if test="bizId != null">biz_id = #{bizId},</if>
+            <if test="itemName != null and itemName != ''">item_name = #{itemName},</if>
+            <if test="unitPrice != null">unit_price = #{unitPrice},</if>
+            <if test="quantity != null">quantity = #{quantity},</if>
+            <if test="subtotal != null">subtotal = #{subtotal},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where item_id = #{itemId}
+    </update>
+
+    <delete id="deletePaymentItemByItemId" parameterType="Long">
+        delete from payment_item where item_id = #{itemId}
+    </delete>
+
+    <delete id="deletePaymentItemByItemIds" parameterType="String">
+        delete from payment_item where item_id in 
+        <foreach item="itemId" collection="array" open="(" separator="," close=")">
+            #{itemId}
+        </foreach>
+    </delete>
+</mapper>

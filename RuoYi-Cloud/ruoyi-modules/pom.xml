@@ -13,6 +13,10 @@
         <module>ruoyi-gen</module>
         <module>ruoyi-job</module>
         <module>ruoyi-file</module>
+        <module>his-patient</module>
+        <module>his-register</module>
+        <module>his-emr</module>
+        <module>his-payment</module>
     </modules>
 
     <artifactId>ruoyi-modules</artifactId>

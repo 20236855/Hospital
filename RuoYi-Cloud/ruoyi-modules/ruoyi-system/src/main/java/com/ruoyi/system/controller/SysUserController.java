@@ -176,6 +176,12 @@ public class SysUserController extends BaseController
     {
         LoginUser loginUser = SecurityUtils.getLoginUser();
         SysUser user = loginUser.getSysUser();
+        SysUser latestUser = userService.selectUserById(user.getUserId());
+        if (StringUtils.isNotNull(latestUser))
+        {
+            user = latestUser;
+            loginUser.setSysUser(latestUser);
+        }
         // 角色集合
         Set<String> roles = permissionService.getRolePermission(user);
         // 权限集合
@@ -183,8 +189,8 @@ public class SysUserController extends BaseController
         if (!loginUser.getPermissions().equals(permissions))
         {
             loginUser.setPermissions(permissions);
-            tokenService.refreshToken(loginUser);
         }
+        tokenService.setLoginUser(loginUser);
         AjaxResult ajax = AjaxResult.success();
         ajax.put("user", user);
         ajax.put("roles", roles);

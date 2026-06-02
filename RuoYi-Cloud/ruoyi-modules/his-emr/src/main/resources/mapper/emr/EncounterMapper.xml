@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.EncounterMapper">
+    
+    <resultMap type="Encounter" id="EncounterResult">
+        <result property="encounterId"    column="encounter_id"    />
+        <result property="registerId"    column="register_id"    />
+        <result property="patientId"    column="patient_id"    />
+        <result property="doctorId"    column="doctor_id"    />
+        <result property="deptId"    column="dept_id"    />
+        <result property="encounterType"    column="encounter_type"    />
+        <result property="encounterStatus"    column="encounter_status"    />
+        <result property="visitTime"    column="visit_time"    />
+        <result property="finishTime"    column="finish_time"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectEncounterVo">
+        select encounter_id, register_id, patient_id, doctor_id, dept_id, encounter_type, encounter_status, visit_time, finish_time, create_time, update_time from encounter
+    </sql>
+
+    <select id="selectEncounterList" parameterType="Encounter" resultMap="EncounterResult">
+        <include refid="selectEncounterVo"/>
+        <where>  
+            <if test="registerId != null "> and register_id = #{registerId}</if>
+            <if test="patientId != null "> and patient_id = #{patientId}</if>
+            <if test="doctorId != null "> and doctor_id = #{doctorId}</if>
+            <if test="deptId != null "> and dept_id = #{deptId}</if>
+            <if test="encounterType != null  and encounterType != ''"> and encounter_type = #{encounterType}</if>
+            <if test="encounterStatus != null  and encounterStatus != ''"> and encounter_status = #{encounterStatus}</if>
+            <if test="visitTime != null "> and visit_time = #{visitTime}</if>
+            <if test="finishTime != null "> and finish_time = #{finishTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectEncounterByEncounterId" parameterType="Long" resultMap="EncounterResult">
+        <include refid="selectEncounterVo"/>
+        where encounter_id = #{encounterId}
+    </select>
+
+    <insert id="insertEncounter" parameterType="Encounter" useGeneratedKeys="true" keyProperty="encounterId">
+        insert into encounter
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="registerId != null">register_id,</if>
+            <if test="patientId != null">patient_id,</if>
+            <if test="doctorId != null">doctor_id,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="encounterType != null">encounter_type,</if>
+            <if test="encounterStatus != null">encounter_status,</if>
+            <if test="visitTime != null">visit_time,</if>
+            <if test="finishTime != null">finish_time,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="registerId != null">#{registerId},</if>
+            <if test="patientId != null">#{patientId},</if>
+            <if test="doctorId != null">#{doctorId},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="encounterType != null">#{encounterType},</if>
+            <if test="encounterStatus != null">#{encounterStatus},</if>
+            <if test="visitTime != null">#{visitTime},</if>
+            <if test="finishTime != null">#{finishTime},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateEncounter" parameterType="Encounter">
+        update encounter
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="registerId != null">register_id = #{registerId},</if>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="encounterType != null">encounter_type = #{encounterType},</if>
+            <if test="encounterStatus != null">encounter_status = #{encounterStatus},</if>
+            <if test="visitTime != null">visit_time = #{visitTime},</if>
+            <if test="finishTime != null">finish_time = #{finishTime},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where encounter_id = #{encounterId}
+    </update>
+
+    <delete id="deleteEncounterByEncounterId" parameterType="Long">
+        delete from encounter where encounter_id = #{encounterId}
+    </delete>
+
+    <delete id="deleteEncounterByEncounterIds" parameterType="String">
+        delete from encounter where encounter_id in 
+        <foreach item="encounterId" collection="array" open="(" separator="," close=")">
+            #{encounterId}
+        </foreach>
+    </delete>
+</mapper>

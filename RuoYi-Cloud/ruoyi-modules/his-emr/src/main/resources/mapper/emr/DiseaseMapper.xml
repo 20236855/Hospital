@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.DiseaseMapper">
+    
+    <resultMap type="Disease" id="DiseaseResult">
+        <result property="diseaseId"    column="disease_id"    />
+        <result property="diseaseCode"    column="disease_code"    />
+        <result property="diseaseName"    column="disease_name"    />
+        <result property="icdCode"    column="icd_code"    />
+        <result property="description"    column="description"    />
+        <result property="status"    column="status"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectDiseaseVo">
+        select disease_id, disease_code, disease_name, icd_code, description, status, create_time, update_time from disease
+    </sql>
+
+    <select id="selectDiseaseList" parameterType="Disease" resultMap="DiseaseResult">
+        <include refid="selectDiseaseVo"/>
+        <where>  
+            <if test="diseaseCode != null  and diseaseCode != ''"> and disease_code = #{diseaseCode}</if>
+            <if test="diseaseName != null  and diseaseName != ''"> and disease_name like concat('%', #{diseaseName}, '%')</if>
+            <if test="icdCode != null  and icdCode != ''"> and icd_code = #{icdCode}</if>
+            <if test="description != null  and description != ''"> and description = #{description}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectDiseaseByDiseaseId" parameterType="Long" resultMap="DiseaseResult">
+        <include refid="selectDiseaseVo"/>
+        where disease_id = #{diseaseId}
+    </select>
+
+    <insert id="insertDisease" parameterType="Disease" useGeneratedKeys="true" keyProperty="diseaseId">
+        insert into disease
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="diseaseCode != null">disease_code,</if>
+            <if test="diseaseName != null and diseaseName != ''">disease_name,</if>
+            <if test="icdCode != null">icd_code,</if>
+            <if test="description != null">description,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="diseaseCode != null">#{diseaseCode},</if>
+            <if test="diseaseName != null and diseaseName != ''">#{diseaseName},</if>
+            <if test="icdCode != null">#{icdCode},</if>
+            <if test="description != null">#{description},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateDisease" parameterType="Disease">
+        update disease
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="diseaseCode != null">disease_code = #{diseaseCode},</if>
+            <if test="diseaseName != null and diseaseName != ''">disease_name = #{diseaseName},</if>
+            <if test="icdCode != null">icd_code = #{icdCode},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where disease_id = #{diseaseId}
+    </update>
+
+    <delete id="deleteDiseaseByDiseaseId" parameterType="Long">
+        delete from disease where disease_id = #{diseaseId}
+    </delete>
+
+    <delete id="deleteDiseaseByDiseaseIds" parameterType="String">
+        delete from disease where disease_id in 
+        <foreach item="diseaseId" collection="array" open="(" separator="," close=")">
+            #{diseaseId}
+        </foreach>
+    </delete>
+</mapper>

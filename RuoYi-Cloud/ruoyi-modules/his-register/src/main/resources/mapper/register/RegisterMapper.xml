@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.register.mapper.RegisterMapper">
+
+    <resultMap type="Register" id="RegisterResult">
+        <result property="registerId"    column="register_id"    />
+        <result property="registerNo"    column="register_no"    />
+        <result property="patientId"    column="patient_id"    />
+        <result property="scheduleId"    column="schedule_id"    />
+        <result property="doctorId"    column="doctor_id"    />
+        <result property="deptId"    column="dept_id"    />
+        <result property="levelId"    column="level_id"    />
+        <result property="registerType"    column="register_type"    />
+        <result property="registerStatus"    column="register_status"    />
+        <result property="payStatus"    column="pay_status"    />
+        <result property="registerFee"    column="register_fee"    />
+        <result property="registerTime"    column="register_time"    />
+        <result property="idCard"    column="id_card"    />
+        <result property="patientName"    column="patient_name"    />
+        <result property="doctorName"    column="doctor_name"    />
+        <result property="deptName"    column="dept_name"    />
+        <result property="levelName"    column="level_name"    />
+        <result property="remark"    column="remark"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectRegisterVo">
+        select r.register_id, r.register_no, r.patient_id, r.schedule_id, r.doctor_id, r.dept_id, r.level_id,
+        r.register_type, r.register_status, r.pay_status, r.register_fee, r.register_time, r.remark,
+        r.create_time, r.update_time, p.id_card, p.name as patient_name,
+        d_dept.dept_name, dr.doctor_name, rl.level_name
+        from register r
+        left join patient p on r.patient_id = p.patient_id
+        <!-- 替换：关联doctor表拿doctor_name，不再关联sys_user拿nick_name -->
+        left join doctor dr on r.doctor_id = dr.doctor_id
+        left join sys_dept d_dept on r.dept_id = d_dept.dept_id
+        left join regist_level rl on r.level_id = rl.level_id
+    </sql>
+
+    <select id="selectRegisterList" parameterType="Register" resultMap="RegisterResult">
+        <include refid="selectRegisterVo"/>
+        <where>
+            <if test="registerNo != null  and registerNo != ''"> and r.register_no = #{registerNo}</if>
+            <if test="patientId != null "> and r.patient_id = #{patientId}</if>
+            <if test="scheduleId != null "> and r.schedule_id = #{scheduleId}</if>
+            <if test="doctorId != null "> and r.doctor_id = #{doctorId}</if>
+            <if test="deptId != null "> and r.dept_id = #{deptId}</if>
+            <if test="levelId != null "> and r.level_id = #{levelId}</if>
+            <if test="registerType != null  and registerType != ''"> and r.register_type = #{registerType}</if>
+            <if test="registerStatus != null  and registerStatus != ''"> and r.register_status = #{registerStatus}</if>
+            <if test="payStatus != null  and payStatus != ''"> and r.pay_status = #{payStatus}</if>
+            <if test="registerFee != null "> and r.register_fee = #{registerFee}</if>
+            <if test="registerTime != null "> and r.register_time = #{register_time}</if>
+            <if test="idCard != null and idCard != ''"> and p.id_card = #{idCard}</if>
+            <if test="patientName != null and patientName != ''"> and p.name like concat('%', #{patientName}, '%')</if>
+            <!-- 医生名称查询改成doctor_name -->
+            <if test="doctorName != null and doctorName != ''"> and dr.doctor_name like concat('%', #{doctorName}, '%')</if>
+            <if test="deptName != null and deptName != ''"> and d_dept.dept_name like concat('%', #{deptName}, '%')</if>
+            <if test="levelName != null and levelName != ''"> and rl.level_name like concat('%', #{levelName}, '%')</if>
+        </where>
+    </select>
+
+    <select id="selectRegisterByRegisterId" parameterType="Long" resultMap="RegisterResult">
+        <include refid="selectRegisterVo"/>
+        where r.register_id = #{registerId}
+    </select>
+
+    <select id="selectMaxRegisterNo" resultType="String">
+        select max(register_no) from register where register_no like concat(#{day},'%')
+    </select>
+
+    <select id="selectPatientByIdCard" resultType="java.util.Map">
+        select patient_id as patientId, patient_no as patientNo, name, phone, id_card as idCard
+        from patient
+        where id_card = #{idCard}
+            limit 1
+    </select>
+
+    <!-- 根据医生ID查询挂号费 -->
+    <select id="selectRegisterFeeByDoctorId" resultType="java.math.BigDecimal">
+        select outpatient_fee from doctor where doctor_id = #{doctorId}
+    </select>
+
+    <select id="selectRegisterLevelList" resultType="java.util.Map">
+        select level_id as id, level_name as levelName, fee as registerFee
+        from regist_level
+        order by level_id
+    </select>
+
+    <select id="selectDeptList" resultType="java.util.Map">
+        select dept_id as deptId, dept_name as deptName
+        from sys_dept
+        where del_flag = '0' and status = '0'
+        order by order_num, dept_id
+    </select>
+
+    <!-- 医生下拉：返回doctorId、doctor_name（之前已经改好联表doctor） -->
+    <select id="selectDoctorListByDeptId" resultType="java.util.Map">
+        select d.doctor_id as doctorId, d.doctor_name as doctorName
+        from doctor d
+                 inner join sys_user u on d.user_id = u.user_id
+        where u.del_flag = '0' and u.status = '0' and u.dept_id = #{deptId}
+        order by d.doctor_id
+    </select>
+
+    <insert id="insertRegister" parameterType="Register" useGeneratedKeys="true" keyProperty="registerId">
+        insert into register
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="registerNo != null and registerNo != ''">register_no,</if>
+            <if test="patientId != null">patient_id,</if>
+            <if test="scheduleId != null">schedule_id,</if>
+            <if test="doctorId != null">doctor_id,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="levelId != null">level_id,</if>
+            <if test="registerType != null">register_type,</if>
+            <if test="registerStatus != null">register_status,</if>
+            <if test="payStatus != null">pay_status,</if>
+            <if test="registerFee != null">register_fee,</if>
+            <if test="registerTime != null">register_time,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="registerNo != null and registerNo != ''">#{registerNo},</if>
+            <if test="patientId != null">#{patientId},</if>
+            <if test="scheduleId != null">#{scheduleId},</if>
+            <if test="doctorId != null">#{doctorId},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="levelId != null">#{levelId},</if>
+            <if test="registerType != null">#{registerType},</if>
+            <if test="registerStatus != null">#{registerStatus},</if>
+            <if test="payStatus != null">#{payStatus},</if>
+            <if test="registerFee != null">#{registerFee},</if>
+            <if test="registerTime != null">#{registerTime},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateRegister" parameterType="Register">
+        update register
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="scheduleId != null">schedule_id = #{scheduleId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="levelId != null">level_id = #{levelId},</if>
+            <if test="registerType != null">register_type = #{registerType},</if>
+            <if test="registerStatus != null">register_status = #{registerStatus},</if>
+            <if test="payStatus != null">pay_status = #{payStatus},</if>
+            <if test="registerFee != null">register_fee = #{registerFee},</if>
+            <if test="registerTime != null">register_time = #{registerTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where register_id = #{registerId}
+    </update>
+
+    <delete id="deleteRegisterByRegisterId" parameterType="Long">
+        delete from register where register_id = #{registerId}
+    </delete>
+
+    <delete id="deleteRegisterByRegisterIds" parameterType="String">
+        delete from register where register_id in
+        <foreach item="registerId" collection="array" open="(" separator="," close=")">
+            #{registerId}
+        </foreach>
+    </delete>
+</mapper>

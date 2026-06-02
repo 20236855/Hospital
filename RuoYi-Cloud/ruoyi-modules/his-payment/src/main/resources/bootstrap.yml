@@ -1,0 +1,26 @@
+# Tomcat
+server:
+  port: 9216
+
+# Spring
+spring:
+  application:
+    name: his-payment
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        encode: GBK
+        server-addr: 127.0.0.1:8848
+  config:
+    file-extension: yml
+    import:
+      - optional:nacos:application-${spring.profiles.active}.${spring.config.file-extension}
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.${spring.config.file-extension}
+
+mybatis:
+  typeAliasesPackage: com.ruoyi.payment.domain
+  mapper-locations: classpath:mapper/**/*.xml

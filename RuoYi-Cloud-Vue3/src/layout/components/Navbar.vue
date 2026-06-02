@@ -1,26 +1,37 @@
 <template>
   <div class="navbar" :class="'nav' + settingsStore.navType">
     <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
-    <breadcrumb v-if="settingsStore.navType == 1" id="breadcrumb-container" class="breadcrumb-container" />
+
+    <div v-if="settingsStore.navType == 1" class="navbar-workspace">
+      <div class="workspace-title">
+        <span>门诊 HIS 工作台</span>
+        <strong>Outpatient Operations</strong>
+      </div>
+      <breadcrumb id="breadcrumb-container" class="breadcrumb-container" />
+    </div>
+
     <top-nav v-if="settingsStore.navType == 2" id="topmenu-container" class="topmenu-container" />
     <template v-if="settingsStore.navType == 3">
-      <logo v-show="settingsStore.sidebarLogo" :collapse="false"></logo>
+      <logo v-show="settingsStore.sidebarLogo" :collapse="false" />
       <top-bar id="topbar-container" class="topbar-container" />
     </template>
 
     <div class="right-menu">
       <template v-if="appStore.device !== 'mobile'">
+        <div class="shift-chip">
+          <el-icon><OfficeBuilding /></el-icon>
+          总院门诊
+        </div>
+        <div class="shift-chip shift-chip--soft">
+          <el-icon><Clock /></el-icon>
+          日间班
+        </div>
+
         <header-search id="header-search" class="right-menu-item" />
 
-        <el-tooltip content="源码地址" effect="dark" placement="bottom">
-          <ruo-yi-git id="ruoyi-git" class="right-menu-item hover-effect" />
+        <el-tooltip content="全屏工作区" effect="dark" placement="bottom">
+          <screenfull id="screenfull" class="right-menu-item hover-effect" />
         </el-tooltip>
-
-        <el-tooltip content="文档地址" effect="dark" placement="bottom">
-          <ruo-yi-doc id="ruoyi-doc" class="right-menu-item hover-effect" />
-        </el-tooltip>
-
-        <screenfull id="screenfull" class="right-menu-item hover-effect" />
 
         <el-tooltip content="主题模式" effect="dark" placement="bottom">
           <div class="right-menu-item hover-effect theme-switch-wrapper" @click="toggleTheme">
@@ -29,30 +40,30 @@
           </div>
         </el-tooltip>
 
-        <el-tooltip content="布局大小" effect="dark" placement="bottom">
+        <el-tooltip content="界面密度" effect="dark" placement="bottom">
           <size-select id="size-select" class="right-menu-item hover-effect" />
         </el-tooltip>
 
-        <el-tooltip content="消息通知" effect="dark" placement="bottom">
+        <el-tooltip content="业务通知" effect="dark" placement="bottom">
           <header-notice id="header-notice" class="right-menu-item hover-effect" />
         </el-tooltip>
       </template>
 
       <el-dropdown @command="handleCommand" class="avatar-container right-menu-item hover-effect" trigger="hover">
         <div class="avatar-wrapper">
-          <img :src="userStore.avatar" class="user-avatar" />
-          <span class="user-nickname"> {{ userStore.nickName }} </span>
+          <img :src="userStore.avatar" class="user-avatar" @error="onAvatarError" />
+          <span class="user-nickname">{{ userStore.nickName }}</span>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
             <router-link to="/user/profile">
               <el-dropdown-item>个人中心</el-dropdown-item>
             </router-link>
-            <el-dropdown-item command="setLayout" v-if="settingsStore.showSettings">
-                <span>布局设置</span>
+            <el-dropdown-item v-if="settingsStore.showSettings" command="setLayout">
+              <span>界面设置</span>
             </el-dropdown-item>
             <el-dropdown-item command="lockScreen">
-                <span>锁定屏幕</span>
+              <span>锁定屏幕</span>
             </el-dropdown-item>
             <el-dropdown-item divided command="logout">
               <span>退出登录</span>
@@ -66,6 +77,7 @@
 
 <script setup>
 import { ElMessageBox } from 'element-plus'
+import { Clock, OfficeBuilding } from '@element-plus/icons-vue'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from './TopNav'
 import TopBar from './TopBar'
@@ -74,13 +86,12 @@ import Hamburger from '@/components/Hamburger'
 import Screenfull from '@/components/Screenfull'
 import SizeSelect from '@/components/SizeSelect'
 import HeaderSearch from '@/components/HeaderSearch'
-import RuoYiGit from '@/components/RuoYi/Git'
-import RuoYiDoc from '@/components/RuoYi/Doc'
+import HeaderNotice from './HeaderNotice'
 import useAppStore from '@/store/modules/app'
 import useUserStore from '@/store/modules/user'
 import useLockStore from '@/store/modules/lock'
 import useSettingsStore from '@/store/modules/settings'
-import HeaderNotice from './HeaderNotice'
+import defAva from '@/assets/images/profile.jpg'
 
 const route = useRoute()
 const router = useRouter()
@@ -95,13 +106,13 @@ function toggleSideBar() {
 
 function handleCommand(command) {
   switch (command) {
-    case "setLayout":
+    case 'setLayout':
       setLayout()
       break
-    case "lockScreen":
+    case 'lockScreen':
       lockScreen()
       break
-    case "logout":
+    case 'logout':
       logout()
       break
     default:
@@ -110,7 +121,7 @@ function handleCommand(command) {
 }
 
 function logout() {
-  ElMessageBox.confirm('确定注销并退出系统吗？', '提示', {
+  ElMessageBox.confirm('确定注销并退出系统吗？', '操作确认', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
@@ -118,7 +129,7 @@ function logout() {
     userStore.logOut().then(() => {
       location.href = '/index'
     })
-  }).catch(() => { })
+  }).catch(() => {})
 }
 
 const emits = defineEmits(['setLayout'])
@@ -132,12 +143,16 @@ function lockScreen() {
   router.push('/lock')
 }
 
+function onAvatarError() {
+  userStore.avatar = defAva
+}
+
 async function toggleTheme(event) {
   const x = event?.clientX || window.innerWidth / 2
   const y = event?.clientY || window.innerHeight / 2
   const wasDark = settingsStore.isDark
 
-  const isReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const isSupported = document.startViewTransition && !isReducedMotion
 
   if (!isSupported) {
@@ -160,20 +175,20 @@ async function toggleTheme(event) {
         clipPath: !wasDark ? [...clipPath].reverse() : clipPath
       }, {
         duration: 650,
-        easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-        fill: "forwards",
-        pseudoElement: !wasDark ? "::view-transition-old(root)" : "::view-transition-new(root)"
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        fill: 'forwards',
+        pseudoElement: !wasDark ? '::view-transition-old(root)' : '::view-transition-new(root)'
       }
     )
     await transition.finished
   } catch (error) {
-    console.warn("View transition failed, falling back to immediate toggle:", error)
+    console.warn('View transition failed, falling back to immediate toggle:', error)
     settingsStore.toggleTheme()
   }
 }
 </script>
 
-<style lang='scss' scoped>
+<style lang="scss" scoped>
 .navbar.nav3 {
   .hamburger-container {
     display: none !important;
@@ -181,29 +196,62 @@ async function toggleTheme(event) {
 }
 
 .navbar {
-  height: 50px;
-  overflow: hidden;
+  height: 58px;
+  overflow: visible;
   position: relative;
-  background: var(--navbar-bg);
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
   display: flex;
   align-items: center;
-  // padding: 0 8px;
   box-sizing: border-box;
+  padding: 0 16px 0 6px;
+  border-bottom: 1px solid rgba(121, 162, 184, 0.2);
+  background: var(--navbar-bg);
+  box-shadow: 0 8px 24px rgba(25, 74, 105, 0.06);
 
   .hamburger-container {
-    line-height: 46px;
-    height: 100%;
-    cursor: pointer;
-    transition: background 0.3s;
-    -webkit-tap-highlight-color: transparent;
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    margin-right: 8px;
+    height: 40px;
+    margin-right: 12px;
+    border-radius: 8px;
+    color: #315a78;
+    cursor: pointer;
+    line-height: 58px;
+    transition: background 0.2s, color 0.2s;
+    -webkit-tap-highlight-color: transparent;
 
     &:hover {
-      background: rgba(0, 0, 0, 0.025);
+      background: #eef7fb;
+      color: #0f6387;
+    }
+  }
+
+  .navbar-workspace {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+  }
+
+  .workspace-title {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 168px;
+    line-height: 1.2;
+
+    span {
+      color: #12395b;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    strong {
+      margin-top: 3px;
+      color: #7b8da0;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0;
     }
   }
 
@@ -217,39 +265,45 @@ async function toggleTheme(event) {
   }
 
   .topbar-container {
-    flex: 1;
-    min-width: 0;
     display: flex;
+    flex: 1;
     align-items: center;
-    overflow: hidden;
+    min-width: 0;
     margin-left: 8px;
+    overflow: hidden;
   }
 
   .right-menu {
-    height: 100%;
-    line-height: 50px;
     display: flex;
     align-items: center;
+    gap: 8px;
+    height: 100%;
     margin-left: auto;
+    line-height: 58px;
 
     &:focus {
       outline: none;
     }
 
     .right-menu-item {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
       padding: 0 8px;
-      height: 100%;
-      font-size: 18px;
-      color: #5a5e66;
+      border-radius: 8px;
+      color: #315a78;
+      font-size: 17px;
       vertical-align: text-bottom;
 
       &.hover-effect {
         cursor: pointer;
-        transition: background 0.3s;
+        transition: background 0.2s, color 0.2s;
 
         &:hover {
-          background: rgba(0, 0, 0, 0.025);
+          background: #eef7fb;
+          color: #0f6387;
         }
       }
 
@@ -259,37 +313,41 @@ async function toggleTheme(event) {
 
         svg {
           transition: transform 0.3s;
-          
+
           &:hover {
-            transform: scale(1.15);
+            transform: scale(1.12);
           }
         }
       }
     }
 
     .avatar-container {
-      margin-right: 0px;
-      padding-right: 0px;
+      margin-right: 0;
+      padding-right: 0;
 
       .avatar-wrapper {
-        margin-top: 10px;
-        right: 8px;
-        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 38px;
+        padding: 0 10px 0 6px;
+        border: 1px solid rgba(121, 162, 184, 0.24);
+        border-radius: 8px;
+        background: #f8fcfd;
 
         .user-avatar {
-          cursor: pointer;
           width: 30px;
           height: 30px;
-          margin-right: 8px;
+          margin-right: 0;
           border-radius: 50%;
+          cursor: pointer;
         }
 
-        .user-nickname{
-          position: relative;
-          left: 0px;
-          bottom: 10px;
+        .user-nickname {
+          position: static;
+          color: #183a59;
           font-size: 14px;
-          font-weight: bold;
+          font-weight: 700;
         }
 
         i {
@@ -300,6 +358,49 @@ async function toggleTheme(event) {
           font-size: 12px;
         }
       }
+    }
+  }
+}
+
+.shift-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(46, 119, 168, 0.18);
+  border-radius: 8px;
+  background: #eef8fb;
+  color: #175a7d;
+  font-size: 13px;
+  font-weight: 700;
+
+  &--soft {
+    background: #f4fbfa;
+    color: #2b7678;
+  }
+}
+
+@media (max-width: 1180px) {
+  .navbar .workspace-title {
+    min-width: 0;
+
+    strong {
+      display: none;
+    }
+  }
+
+  .shift-chip {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding-right: 10px;
+
+    .workspace-title {
+      display: none;
     }
   }
 }

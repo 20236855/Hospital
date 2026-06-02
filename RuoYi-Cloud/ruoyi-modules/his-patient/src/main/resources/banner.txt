@@ -1,0 +1,6 @@
+Spring Boot Version: ${spring-boot.version}
+Spring Application Name: ${spring.application.name}
+
+============================================
+           HIS-PATIENT 患者管理服务
+============================================

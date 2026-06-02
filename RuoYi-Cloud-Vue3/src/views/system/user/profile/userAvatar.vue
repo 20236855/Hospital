@@ -1,6 +1,6 @@
 <template>
   <div class="user-info-head" @click="editCropper()">
-    <img :src="options.img" title="点击上传头像" class="img-circle img-lg" />
+    <img :key="currentAvatarKey" :src="displayAvatar" title="点击上传头像" class="img-circle img-lg" @error="onAvatarError" />
     <el-dialog :title="title" v-model="open" width="800px" append-to-body @opened="modalOpened" @close="closeDialog">
       <el-row>
         <el-col :xs="24" :md="12" :style="{ height: '350px' }">
@@ -51,7 +51,7 @@
           <el-button icon="RefreshRight" @click="rotateRight()"></el-button>
         </el-col>
         <el-col :lg="{ span: 2, offset: 6 }" :md="2">
-          <el-button type="primary" @click="uploadImg()">提 交</el-button>
+          <el-button type="primary" @click="uploadImg()">提交</el-button>
         </el-col>
       </el-row>
     </el-dialog>
@@ -63,6 +63,7 @@ import "vue-cropper/dist/index.css"
 import { VueCropper } from "vue-cropper"
 import { uploadAvatar } from "@/api/system/user"
 import useUserStore from "@/store/modules/user"
+import defAva from '@/assets/images/profile.jpg'
 
 const userStore = useUserStore()
 const { proxy } = getCurrentInstance()
@@ -70,10 +71,24 @@ const { proxy } = getCurrentInstance()
 const open = ref(false)
 const visible = ref(false)
 const title = ref("修改头像")
+const currentAvatarKey = ref(Date.now()) // 用于强制刷新头像的key
+
+// 计算属性：显示的头像，带时间戳避免缓存
+const displayAvatar = computed(() => {
+  const avatar = userStore.avatar || defAva
+  // 如果是默认头像或者data URL，直接返回
+  if (avatar === defAva || avatar.startsWith('data:')) {
+    return avatar
+  }
+  // 给URL添加时间戳参数
+  const timestamp = currentAvatarKey.value
+  const separator = avatar.includes('?') ? '&' : '?'
+  return `${avatar}${separator}t=${timestamp}`
+})
 
 //图片裁剪数据
 const options = reactive({
-  img: userStore.avatar,     // 裁剪图片的地址
+  img: '',                 // 裁剪图片的地址，在初始化时设置
   autoCrop: true,            // 是否默认生成截图框
   autoCropWidth: 200,        // 默认生成截图框宽度
   autoCropHeight: 200,       // 默认生成截图框高度
@@ -81,6 +96,11 @@ const options = reactive({
   outputType: "png",         // 默认生成截图为PNG格式
   filename: 'avatar',        // 文件名称
   previews: {}               //预览数据
+})
+
+// 初始化options.img
+onMounted(() => {
+  options.img = userStore.avatar || defAva
 })
 
 /** 编辑头像 */
@@ -115,7 +135,7 @@ function changeScale(num) {
 /** 上传预处理 */
 function beforeUpload(file) {
   if (file.type.indexOf("image/") == -1) {
-    proxy.$modal.msgError("文件格式错误，请上传图片类型,如：JPG，PNG后缀的文件。")
+    proxy.$modal.msgError("文件格式错误，请上传 JPG、PNG 等图片文件")
   } else {
     const reader = new FileReader()
     reader.readAsDataURL(file)
@@ -132,11 +152,28 @@ function uploadImg() {
     let formData = new FormData()
     formData.append("avatarfile", data, options.filename)
     uploadAvatar(formData).then(response => {
+      console.log("头像上传响应:", response)
       open.value = false
-      options.img = response.imgUrl
-      userStore.avatar = options.img
+      // 获取后端返回的头像URL
+      const imgUrl = response.imgUrl || response.data?.imgUrl
+      if (imgUrl) {
+        // 更新store中的头像（保存原始URL）
+        userStore.setAvatar(imgUrl)
+        // 更新key强制刷新显示
+        currentAvatarKey.value = Date.now()
+        // 更新options.img用于下次编辑
+        options.img = userStore.avatar || defAva
+      }
       proxy.$modal.msgSuccess("修改成功")
       visible.value = false
+    }).catch(error => {
+      // 处理上传错误
+      console.error("头像上传失败:", error)
+      if (error.response && error.response.data && error.response.data.msg) {
+        proxy.$modal.msgError(error.response.data.msg)
+      } else {
+        proxy.$modal.msgError("文件服务异常，请联系管理员")
+      }
     })
   })
 }
@@ -148,9 +185,20 @@ function realTime(data) {
 
 /** 关闭窗口 */
 function closeDialog() {
-  options.img = userStore.avatar
+  options.img = userStore.avatar || defAva
   options.visible = false
 }
+
+function onAvatarError() {
+  options.img = defAva
+}
+
+// 监听userStore.avatar变化
+watch(() => userStore.avatar, (newAvatar) => {
+  options.img = newAvatar || defAva
+  // 头像变化时也刷新显示
+  currentAvatarKey.value = Date.now()
+}, { immediate: true })
 </script>
 
 <style lang='scss' scoped>

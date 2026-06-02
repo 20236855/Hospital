@@ -444,13 +444,14 @@ $tags-bar-height: 34px;
   }
 
   &:not(.tags-view-container--chrome) .tags-view-wrapper .tags-view-item.active {
-    background-color: #42b983;
+    background-color: #e6f4f8;
     color: #fff;
-    border-color: #42b983;
+    border-color: #b9d7e3;
+    color: #0b6387;
 
     &::before {
       content: '';
-      background: #fff;
+      background: #2e77a8;
       display: inline-block;
       width: 8px;
       height: 8px;

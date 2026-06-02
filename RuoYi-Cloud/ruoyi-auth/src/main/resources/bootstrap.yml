@@ -1,26 +1,29 @@
-# Tomcat
+﻿# Tomcat
 server: 
   port: 9200
 
 # Spring
 spring: 
   application:
-    # 应用名称
+    # 搴旂敤鍚嶇О
     name: ruoyi-auth
   profiles:
-    # 环境配置
+    # 鐜閰嶇疆
     active: dev
   cloud:
     nacos:
       discovery:
-        # 服务注册地址
+        # 鏈嶅姟娉ㄥ唽鍦板潃
         server-addr: 127.0.0.1:8848
-      config:
-        # 配置中心地址
+      config:
+        encode: GBK
+        # 閰嶇疆涓績鍦板潃
         server-addr: 127.0.0.1:8848
   config:
-    # 配置文件格式
+    # 閰嶇疆鏂囦欢鏍煎紡
     file-extension: yml
     import:
-      - nacos:application-${spring.profiles.active}.${spring.config.file-extension}
-      - nacos:${spring.application.name}-${spring.profiles.active}.${spring.config.file-extension}
+      - optional:nacos:application-${spring.profiles.active}.${spring.config.file-extension}
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.${spring.config.file-extension}
+
+

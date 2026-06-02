@@ -1,0 +1,6 @@
+Spring Boot Version: ${spring-boot.version}
+Spring Application Name: ${spring.application.name}
+
+============================================
+           HIS-EMR 病历管理服务
+============================================

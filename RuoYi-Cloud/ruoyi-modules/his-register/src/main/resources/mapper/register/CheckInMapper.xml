@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.register.mapper.CheckInMapper">
+    
+    <resultMap type="CheckIn" id="CheckInResult">
+        <result property="checkInId"    column="check_in_id"    />
+        <result property="registerId"    column="register_id"    />
+        <result property="queueNo"    column="queue_no"    />
+        <result property="checkInTime"    column="check_in_time"    />
+        <result property="status"    column="status"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectCheckInVo">
+        select check_in_id, register_id, queue_no, check_in_time, status, create_time, update_time from check_in
+    </sql>
+
+    <select id="selectCheckInList" parameterType="CheckIn" resultMap="CheckInResult">
+        <include refid="selectCheckInVo"/>
+        <where>  
+            <if test="registerId != null "> and register_id = #{registerId}</if>
+            <if test="queueNo != null "> and queue_no = #{queueNo}</if>
+            <if test="checkInTime != null "> and check_in_time = #{checkInTime}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectCheckInByCheckInId" parameterType="Long" resultMap="CheckInResult">
+        <include refid="selectCheckInVo"/>
+        where check_in_id = #{checkInId}
+    </select>
+
+    <select id="selectCheckInByRegisterId" parameterType="Long" resultMap="CheckInResult">
+        <include refid="selectCheckInVo"/>
+        where register_id = #{registerId}
+    </select>
+
+    <insert id="insertCheckIn" parameterType="CheckIn" useGeneratedKeys="true" keyProperty="checkInId">
+        insert into check_in
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="registerId != null">register_id,</if>
+            <if test="queueNo != null">queue_no,</if>
+            <if test="checkInTime != null">check_in_time,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="registerId != null">#{registerId},</if>
+            <if test="queueNo != null">#{queueNo},</if>
+            <if test="checkInTime != null">#{checkInTime},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateCheckIn" parameterType="CheckIn">
+        update check_in
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="registerId != null">register_id = #{registerId},</if>
+            <if test="queueNo != null">queue_no = #{queueNo},</if>
+            <if test="checkInTime != null">check_in_time = #{checkInTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where check_in_id = #{checkInId}
+    </update>
+
+    <delete id="deleteCheckInByCheckInId" parameterType="Long">
+        delete from check_in where check_in_id = #{checkInId}
+    </delete>
+
+    <delete id="deleteCheckInByCheckInIds" parameterType="String">
+        delete from check_in where check_in_id in 
+        <foreach item="checkInId" collection="array" open="(" separator="," close=")">
+            #{checkInId}
+        </foreach>
+    </delete>
+</mapper>

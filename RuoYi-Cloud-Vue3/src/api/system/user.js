@@ -105,8 +105,11 @@ export function uploadAvatar(data) {
   return request({
     url: '/system/user/profile/avatar',
     method: 'post',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    data: data
+    data: data,
+    // 让axios自动处理Content-Type，包括边界符
+    headers: {
+      'Content-Type': undefined
+    }
   })
 }
 

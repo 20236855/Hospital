@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.MedicalRecordMapper">
+    
+    <resultMap type="MedicalRecord" id="MedicalRecordResult">
+        <result property="recordId"    column="record_id"    />
+        <result property="encounterId"    column="encounter_id"    />
+        <result property="chiefComplaint"    column="chief_complaint"    />
+        <result property="presentIllness"    column="present_illness"    />
+        <result property="pastHistory"    column="past_history"    />
+        <result property="allergyHistory"    column="allergy_history"    />
+        <result property="physicalExam"    column="physical_exam"    />
+        <result property="diagnosisOpinion"    column="diagnosis_opinion"    />
+        <result property="treatmentPlan"    column="treatment_plan"    />
+        <result property="doctorAdvice"    column="doctor_advice"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectMedicalRecordVo">
+        select record_id, encounter_id, chief_complaint, present_illness, past_history, allergy_history, physical_exam, diagnosis_opinion, treatment_plan, doctor_advice, create_time, update_time from medical_record
+    </sql>
+
+    <select id="selectMedicalRecordList" parameterType="MedicalRecord" resultMap="MedicalRecordResult">
+        <include refid="selectMedicalRecordVo"/>
+        <where>  
+            <if test="encounterId != null "> and encounter_id = #{encounterId}</if>
+            <if test="chiefComplaint != null  and chiefComplaint != ''"> and chief_complaint = #{chiefComplaint}</if>
+            <if test="presentIllness != null  and presentIllness != ''"> and present_illness = #{presentIllness}</if>
+            <if test="pastHistory != null  and pastHistory != ''"> and past_history = #{pastHistory}</if>
+            <if test="allergyHistory != null  and allergyHistory != ''"> and allergy_history = #{allergyHistory}</if>
+            <if test="physicalExam != null  and physicalExam != ''"> and physical_exam = #{physicalExam}</if>
+            <if test="diagnosisOpinion != null  and diagnosisOpinion != ''"> and diagnosis_opinion = #{diagnosisOpinion}</if>
+            <if test="treatmentPlan != null  and treatmentPlan != ''"> and treatment_plan = #{treatmentPlan}</if>
+            <if test="doctorAdvice != null  and doctorAdvice != ''"> and doctor_advice = #{doctorAdvice}</if>
+        </where>
+    </select>
+    
+    <select id="selectMedicalRecordByRecordId" parameterType="Long" resultMap="MedicalRecordResult">
+        <include refid="selectMedicalRecordVo"/>
+        where record_id = #{recordId}
+    </select>
+
+    <insert id="insertMedicalRecord" parameterType="MedicalRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into medical_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="encounterId != null">encounter_id,</if>
+            <if test="chiefComplaint != null">chief_complaint,</if>
+            <if test="presentIllness != null">present_illness,</if>
+            <if test="pastHistory != null">past_history,</if>
+            <if test="allergyHistory != null">allergy_history,</if>
+            <if test="physicalExam != null">physical_exam,</if>
+            <if test="diagnosisOpinion != null">diagnosis_opinion,</if>
+            <if test="treatmentPlan != null">treatment_plan,</if>
+            <if test="doctorAdvice != null">doctor_advice,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="encounterId != null">#{encounterId},</if>
+            <if test="chiefComplaint != null">#{chiefComplaint},</if>
+            <if test="presentIllness != null">#{presentIllness},</if>
+            <if test="pastHistory != null">#{pastHistory},</if>
+            <if test="allergyHistory != null">#{allergyHistory},</if>
+            <if test="physicalExam != null">#{physicalExam},</if>
+            <if test="diagnosisOpinion != null">#{diagnosisOpinion},</if>
+            <if test="treatmentPlan != null">#{treatmentPlan},</if>
+            <if test="doctorAdvice != null">#{doctorAdvice},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateMedicalRecord" parameterType="MedicalRecord">
+        update medical_record
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="encounterId != null">encounter_id = #{encounterId},</if>
+            <if test="chiefComplaint != null">chief_complaint = #{chiefComplaint},</if>
+            <if test="presentIllness != null">present_illness = #{presentIllness},</if>
+            <if test="pastHistory != null">past_history = #{pastHistory},</if>
+            <if test="allergyHistory != null">allergy_history = #{allergyHistory},</if>
+            <if test="physicalExam != null">physical_exam = #{physicalExam},</if>
+            <if test="diagnosisOpinion != null">diagnosis_opinion = #{diagnosisOpinion},</if>
+            <if test="treatmentPlan != null">treatment_plan = #{treatmentPlan},</if>
+            <if test="doctorAdvice != null">doctor_advice = #{doctorAdvice},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where record_id = #{recordId}
+    </update>
+
+    <delete id="deleteMedicalRecordByRecordId" parameterType="Long">
+        delete from medical_record where record_id = #{recordId}
+    </delete>
+
+    <delete id="deleteMedicalRecordByRecordIds" parameterType="String">
+        delete from medical_record where record_id in 
+        <foreach item="recordId" collection="array" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+    </delete>
+</mapper>

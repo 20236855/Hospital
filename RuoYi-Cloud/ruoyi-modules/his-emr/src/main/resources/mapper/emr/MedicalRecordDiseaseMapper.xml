@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.MedicalRecordDiseaseMapper">
+    
+    <resultMap type="MedicalRecordDisease" id="MedicalRecordDiseaseResult">
+        <result property="id"    column="id"    />
+        <result property="recordId"    column="record_id"    />
+        <result property="diseaseId"    column="disease_id"    />
+        <result property="diagnosisType"    column="diagnosis_type"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectMedicalRecordDiseaseVo">
+        select id, record_id, disease_id, diagnosis_type, create_time from medical_record_disease
+    </sql>
+
+    <select id="selectMedicalRecordDiseaseList" parameterType="MedicalRecordDisease" resultMap="MedicalRecordDiseaseResult">
+        <include refid="selectMedicalRecordDiseaseVo"/>
+        <where>  
+            <if test="recordId != null "> and record_id = #{recordId}</if>
+            <if test="diseaseId != null "> and disease_id = #{diseaseId}</if>
+            <if test="diagnosisType != null  and diagnosisType != ''"> and diagnosis_type = #{diagnosisType}</if>
+        </where>
+    </select>
+    
+    <select id="selectMedicalRecordDiseaseById" parameterType="Long" resultMap="MedicalRecordDiseaseResult">
+        <include refid="selectMedicalRecordDiseaseVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertMedicalRecordDisease" parameterType="MedicalRecordDisease" useGeneratedKeys="true" keyProperty="id">
+        insert into medical_record_disease
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="recordId != null">record_id,</if>
+            <if test="diseaseId != null">disease_id,</if>
+            <if test="diagnosisType != null">diagnosis_type,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="recordId != null">#{recordId},</if>
+            <if test="diseaseId != null">#{diseaseId},</if>
+            <if test="diagnosisType != null">#{diagnosisType},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateMedicalRecordDisease" parameterType="MedicalRecordDisease">
+        update medical_record_disease
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="recordId != null">record_id = #{recordId},</if>
+            <if test="diseaseId != null">disease_id = #{diseaseId},</if>
+            <if test="diagnosisType != null">diagnosis_type = #{diagnosisType},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteMedicalRecordDiseaseById" parameterType="Long">
+        delete from medical_record_disease where id = #{id}
+    </delete>
+
+    <delete id="deleteMedicalRecordDiseaseByIds" parameterType="String">
+        delete from medical_record_disease where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

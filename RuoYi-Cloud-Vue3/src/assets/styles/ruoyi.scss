@@ -1,6 +1,6 @@
 /**
  * 通用css样式布局处理
- * Copyright (c) 2019 ruoyi
+ * Common application layout styles
  */
 
 /** 基础通用 **/
@@ -169,7 +169,7 @@
 /** 表格更多操作下拉样式 */
 .el-table .el-dropdown-link {
   cursor: pointer;
-  color: #409EFF;
+  color: #0b6387;
   margin-left: 10px;
 }
 
@@ -310,7 +310,7 @@
   color: #333;
   border-bottom: 1px solid #ebeef5;
 }
-.detail-card-title i { margin-right: 5px; color: #409EFF; }
+.detail-card-title i { margin-right: 5px; color: #0b6387; }
 
 .detail-row { padding: 0 8px; }
 
@@ -368,7 +368,7 @@
 }
 .code-action .el-button:hover { 
   background: #ffffff;
-  border-color: #409EFF;
+  border-color: #0b6387;
 }
 .code-pre {
   margin: 0;
@@ -485,7 +485,7 @@
 .sortable-ghost{
   opacity: .8;
   color: #fff!important;
-  background: #42b983!important;
+  background: #0b6387!important;
 }
 
 /* 表格右侧工具栏样式 */

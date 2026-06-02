@@ -1,62 +1,35 @@
 <template>
-  <div class="sidebar-logo-container" :class="{ 'collapse': collapse }">
+  <div class="sidebar-logo-container" :class="{ collapse }">
     <transition name="sidebarLogoFade">
       <router-link v-if="collapse" key="collapse" class="sidebar-logo-link" to="/">
-        <img v-if="logo" :src="logo" class="sidebar-logo" />
-        <h1 v-else class="sidebar-title">{{ title }}</h1>
+        <img src="/logo1.png" alt="logo" class="brand-logo-img" />
       </router-link>
       <router-link v-else key="expand" class="sidebar-logo-link" to="/">
-        <img v-if="logo" :src="logo" class="sidebar-logo" />
-        <h1 class="sidebar-title">{{ title }}</h1>
+        <span class="logo-title-wrapper">
+          <img src="/logo3.png" alt="logo" class="brand-logo-img" />
+          <span class="brand-title">
+            <strong>门诊 HIS</strong>
+          </span>
+        </span>
+        <small class="brand-desc">医院门诊信息系统</small>
       </router-link>
     </transition>
   </div>
 </template>
 
 <script setup>
-import logo from '@/assets/logo/logo.png'
-import useSettingsStore from '@/store/modules/settings'
-import variables from '@/assets/styles/variables.module.scss'
-
 defineProps({
   collapse: {
     type: Boolean,
     required: true
   }
 })
-
-const title = import.meta.env.VITE_APP_TITLE
-const settingsStore = useSettingsStore()
-const sideTheme = computed(() => settingsStore.sideTheme)
-
-// 获取Logo背景色
-const getLogoBackground = computed(() => {
-  if (settingsStore.isDark) {
-    return 'var(--sidebar-bg)'
-  }
-  if (settingsStore.navType == 3) {
-    return variables.menuLightBg
-  }
-  return sideTheme.value === 'theme-dark' ? variables.menuBg : variables.menuLightBg
-})
-
-// 获取Logo文字颜色
-const getLogoTextColor = computed(() => {
-  if (settingsStore.isDark) {
-    return 'var(--sidebar-logo-text)'
-  }
-  if (settingsStore.navType == 3) {
-    return variables.menuLightText
-  }
-  return sideTheme.value === 'theme-dark' ? '#fff' : variables.menuLightText
-})
 </script>
 
 <style lang="scss" scoped>
 .sidebarLogoFade-enter-active {
-  transition: opacity 1.5s;
+  transition: opacity 0.35s;
 }
-
 .sidebarLogoFade-enter,
 .sidebarLogoFade-leave-to {
   opacity: 0;
@@ -64,38 +37,73 @@ const getLogoTextColor = computed(() => {
 
 .sidebar-logo-container {
   position: relative;
-  height: 50px;
-  line-height: 50px;
-  background: v-bind(getLogoBackground);
-  text-align: center;
+  height: auto;
+  padding: 14px 0;
   overflow: hidden;
+  border-bottom: 1px solid rgba(181, 213, 226, 0.16);
+  background: #123a5d;
 
-  & .sidebar-logo-link {
-    height: 100%;
+  .sidebar-logo-link {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     width: 100%;
+    padding: 0 18px;
+    text-decoration: none;
+    gap: 6px;
+  }
 
-    & .sidebar-logo {
-      width: 32px;
-      height: 32px;
-      vertical-align: middle;
-      margin-right: 12px;
-    }
+  .logo-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
 
-    & .sidebar-title {
-      display: inline-block;
-      margin: 0;
-      color: v-bind(getLogoTextColor);
+  .brand-logo-img {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+
+  .brand-title {
+    display: flex;
+    align-items: center;
+    
+    strong {
+      color: #ffffff;
+      font-size: 16px;
       font-weight: 600;
-      line-height: 50px;
-      font-size: 14px;
-      font-family: Avenir, Helvetica Neue, Arial, Helvetica, sans-serif;
-      vertical-align: middle;
+      letter-spacing: 0.5px;
+      line-height: 1;
     }
   }
 
+  .brand-desc {
+    color: rgba(221, 242, 248, 0.76);
+    font-size: 12px;
+    line-height: 1.4;
+    padding-left: 52px; /* logo宽度 + gap */
+  }
+
   &.collapse {
-    .sidebar-logo {
-      margin-right: 0px;
+    padding: 10px 0;
+    
+    .sidebar-logo-link {
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+    }
+    
+    .logo-title-wrapper {
+      display: none;
+    }
+    
+    .brand-logo-img {
+      width: 36px;
+      height: 36px;
     }
   }
 }
