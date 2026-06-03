@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.hisprescription.mapper.DrugMapper">
+    
+    <resultMap type="Drug" id="DrugResult">
+        <result property="id"    column="id"    />
+        <result property="drugCode"    column="drug_code"    />
+        <result property="drugName"    column="drug_name"    />
+        <result property="pyCode"    column="py_code"    />
+        <result property="spec"    column="spec"    />
+        <result property="unit"    column="unit"    />
+        <result property="drugPrice"    column="drug_price"    />
+        <result property="manufacturer"    column="manufacturer"    />
+        <result property="drugType"    column="drug_type"    />
+        <result property="sort"    column="sort"    />
+        <result property="status"    column="status"    />
+        <result property="remark"    column="remark"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectDrugVo">
+        select id, drug_code, drug_name, py_code, spec, unit, drug_price, manufacturer, drug_type, sort, status, remark, create_time, update_time from drug
+    </sql>
+
+    <select id="selectDrugList" parameterType="Drug" resultMap="DrugResult">
+        <include refid="selectDrugVo"/>
+        <where>  
+            <if test="drugCode != null  and drugCode != ''"> and drug_code = #{drugCode}</if>
+            <if test="drugName != null  and drugName != ''"> and drug_name like concat('%', #{drugName}, '%')</if>
+            <if test="pyCode != null  and pyCode != ''"> and py_code = #{pyCode}</if>
+            <if test="spec != null  and spec != ''"> and spec = #{spec}</if>
+            <if test="unit != null  and unit != ''"> and unit = #{unit}</if>
+            <if test="drugPrice != null "> and drug_price = #{drugPrice}</if>
+            <if test="manufacturer != null  and manufacturer != ''"> and manufacturer = #{manufacturer}</if>
+            <if test="drugType != null  and drugType != ''"> and drug_type = #{drugType}</if>
+            <if test="sort != null "> and sort = #{sort}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectDrugById" parameterType="Long" resultMap="DrugResult">
+        <include refid="selectDrugVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertDrug" parameterType="Drug" useGeneratedKeys="true" keyProperty="id">
+        insert into drug
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="drugCode != null and drugCode != ''">drug_code,</if>
+            <if test="drugName != null and drugName != ''">drug_name,</if>
+            <if test="pyCode != null">py_code,</if>
+            <if test="spec != null">spec,</if>
+            <if test="unit != null">unit,</if>
+            <if test="drugPrice != null">drug_price,</if>
+            <if test="manufacturer != null">manufacturer,</if>
+            <if test="drugType != null">drug_type,</if>
+            <if test="sort != null">sort,</if>
+            <if test="status != null">status,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="drugCode != null and drugCode != ''">#{drugCode},</if>
+            <if test="drugName != null and drugName != ''">#{drugName},</if>
+            <if test="pyCode != null">#{pyCode},</if>
+            <if test="spec != null">#{spec},</if>
+            <if test="unit != null">#{unit},</if>
+            <if test="drugPrice != null">#{drugPrice},</if>
+            <if test="manufacturer != null">#{manufacturer},</if>
+            <if test="drugType != null">#{drugType},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="status != null">#{status},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateDrug" parameterType="Drug">
+        update drug
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="drugCode != null and drugCode != ''">drug_code = #{drugCode},</if>
+            <if test="drugName != null and drugName != ''">drug_name = #{drugName},</if>
+            <if test="pyCode != null">py_code = #{pyCode},</if>
+            <if test="spec != null">spec = #{spec},</if>
+            <if test="unit != null">unit = #{unit},</if>
+            <if test="drugPrice != null">drug_price = #{drugPrice},</if>
+            <if test="manufacturer != null">manufacturer = #{manufacturer},</if>
+            <if test="drugType != null">drug_type = #{drugType},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteDrugById" parameterType="Long">
+        delete from drug where id = #{id}
+    </delete>
+
+    <delete id="deleteDrugByIds" parameterType="String">
+        delete from drug where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

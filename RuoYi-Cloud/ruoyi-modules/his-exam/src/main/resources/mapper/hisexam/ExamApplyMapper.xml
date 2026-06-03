@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.hisexam.mapper.ExamApplyMapper">
+    
+    <resultMap type="ExamApply" id="ExamApplyResult">
+        <result property="applyId"    column="apply_id"    />
+        <result property="registerId"    column="register_id"    />
+        <result property="encounterId"    column="encounter_id"    />
+        <result property="patientId"    column="patient_id"    />
+        <result property="doctorId"    column="doctor_id"    />
+        <result property="deptId"    column="dept_id"    />
+        <result property="applyType"    column="apply_type"    />
+        <result property="techId"    column="tech_id"    />
+        <result property="applyInfo"    column="apply_info"    />
+        <result property="applyPosition"    column="apply_position"    />
+        <result property="operatorId"    column="operator_id"    />
+        <result property="inputerId"    column="inputer_id"    />
+        <result property="applyTime"    column="apply_time"    />
+        <result property="examTime"    column="exam_time"    />
+        <result property="examResult"    column="exam_result"    />
+        <result property="imageUrl"    column="image_url"    />
+        <result property="applyStatus"    column="apply_status"    />
+        <result property="payStatus"    column="pay_status"    />
+        <result property="remark"    column="remark"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectExamApplyVo">
+        select apply_id, register_id, encounter_id, patient_id, doctor_id, dept_id, apply_type, tech_id, apply_info, apply_position, operator_id, inputer_id, apply_time, exam_time, exam_result, image_url, apply_status, pay_status, remark, create_time, update_time from exam_apply
+    </sql>
+
+    <select id="selectExamApplyList" parameterType="ExamApply" resultMap="ExamApplyResult">
+        <include refid="selectExamApplyVo"/>
+        <where>  
+            <if test="registerId != null "> and register_id = #{registerId}</if>
+            <if test="encounterId != null "> and encounter_id = #{encounterId}</if>
+            <if test="patientId != null "> and patient_id = #{patientId}</if>
+            <if test="doctorId != null "> and doctor_id = #{doctorId}</if>
+            <if test="deptId != null "> and dept_id = #{deptId}</if>
+            <if test="applyType != null  and applyType != ''"> and apply_type = #{applyType}</if>
+            <if test="techId != null "> and tech_id = #{techId}</if>
+            <if test="applyInfo != null  and applyInfo != ''"> and apply_info = #{applyInfo}</if>
+            <if test="applyPosition != null  and applyPosition != ''"> and apply_position = #{applyPosition}</if>
+            <if test="operatorId != null "> and operator_id = #{operatorId}</if>
+            <if test="inputerId != null "> and inputer_id = #{inputerId}</if>
+            <if test="applyTime != null "> and apply_time = #{applyTime}</if>
+            <if test="examTime != null "> and exam_time = #{examTime}</if>
+            <if test="examResult != null  and examResult != ''"> and exam_result = #{examResult}</if>
+            <if test="imageUrl != null  and imageUrl != ''"> and image_url = #{imageUrl}</if>
+            <if test="applyStatus != null  and applyStatus != ''"> and apply_status = #{applyStatus}</if>
+            <if test="payStatus != null  and payStatus != ''"> and pay_status = #{payStatus}</if>
+        </where>
+    </select>
+    
+    <select id="selectExamApplyByApplyId" parameterType="Long" resultMap="ExamApplyResult">
+        <include refid="selectExamApplyVo"/>
+        where apply_id = #{applyId}
+    </select>
+
+    <insert id="insertExamApply" parameterType="ExamApply" useGeneratedKeys="true" keyProperty="applyId">
+        insert into exam_apply
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="registerId != null">register_id,</if>
+            <if test="encounterId != null">encounter_id,</if>
+            <if test="patientId != null">patient_id,</if>
+            <if test="doctorId != null">doctor_id,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="applyType != null and applyType != ''">apply_type,</if>
+            <if test="techId != null">tech_id,</if>
+            <if test="applyInfo != null">apply_info,</if>
+            <if test="applyPosition != null">apply_position,</if>
+            <if test="operatorId != null">operator_id,</if>
+            <if test="inputerId != null">inputer_id,</if>
+            <if test="applyTime != null">apply_time,</if>
+            <if test="examTime != null">exam_time,</if>
+            <if test="examResult != null">exam_result,</if>
+            <if test="imageUrl != null">image_url,</if>
+            <if test="applyStatus != null">apply_status,</if>
+            <if test="payStatus != null">pay_status,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="registerId != null">#{registerId},</if>
+            <if test="encounterId != null">#{encounterId},</if>
+            <if test="patientId != null">#{patientId},</if>
+            <if test="doctorId != null">#{doctorId},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="applyType != null and applyType != ''">#{applyType},</if>
+            <if test="techId != null">#{techId},</if>
+            <if test="applyInfo != null">#{applyInfo},</if>
+            <if test="applyPosition != null">#{applyPosition},</if>
+            <if test="operatorId != null">#{operatorId},</if>
+            <if test="inputerId != null">#{inputerId},</if>
+            <if test="applyTime != null">#{applyTime},</if>
+            <if test="examTime != null">#{examTime},</if>
+            <if test="examResult != null">#{examResult},</if>
+            <if test="imageUrl != null">#{imageUrl},</if>
+            <if test="applyStatus != null">#{applyStatus},</if>
+            <if test="payStatus != null">#{payStatus},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateExamApply" parameterType="ExamApply">
+        update exam_apply
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="registerId != null">register_id = #{registerId},</if>
+            <if test="encounterId != null">encounter_id = #{encounterId},</if>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="applyType != null and applyType != ''">apply_type = #{applyType},</if>
+            <if test="techId != null">tech_id = #{techId},</if>
+            <if test="applyInfo != null">apply_info = #{applyInfo},</if>
+            <if test="applyPosition != null">apply_position = #{applyPosition},</if>
+            <if test="operatorId != null">operator_id = #{operatorId},</if>
+            <if test="inputerId != null">inputer_id = #{inputerId},</if>
+            <if test="applyTime != null">apply_time = #{applyTime},</if>
+            <if test="examTime != null">exam_time = #{examTime},</if>
+            <if test="examResult != null">exam_result = #{examResult},</if>
+            <if test="imageUrl != null">image_url = #{imageUrl},</if>
+            <if test="applyStatus != null">apply_status = #{applyStatus},</if>
+            <if test="payStatus != null">pay_status = #{payStatus},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where apply_id = #{applyId}
+    </update>
+
+    <delete id="deleteExamApplyByApplyId" parameterType="Long">
+        delete from exam_apply where apply_id = #{applyId}
+    </delete>
+
+    <delete id="deleteExamApplyByApplyIds" parameterType="String">
+        delete from exam_apply where apply_id in 
+        <foreach item="applyId" collection="array" open="(" separator="," close=")">
+            #{applyId}
+        </foreach>
+    </delete>
+</mapper>

@@ -211,6 +211,19 @@ RuoYi-Cloud\ruoyi-modules\ruoyi-file\target\ruoyi-modules-file.jar
 
 ## 10. 启动后端微服务
 
+推荐直接运行脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File C:\Users\Admin\Desktop\实训\hosipital\code\start-ruoyi-backend.ps1
+```
+
+说明：本机可能存在多个网卡，若不指定注册 IP，微服务可能注册成 `10.x.x.x` 地址，导致网关转发到 `10.x.x.x:9201` 超时。脚本已强制指定：
+
+```text
+spring.cloud.nacos.discovery.ip=127.0.0.1
+spring.cloud.client.ip-address=127.0.0.1
+```
+
 启动命令：
 
 ```powershell
@@ -218,6 +231,7 @@ $java='C:\Users\Admin\Desktop\实训\hosipital\tools\jdk17\jdk-17.0.19+10\bin\ja
 $base='C:\Users\Admin\Desktop\实训\hosipital\code\RuoYi-Cloud'
 $log='C:\Users\Admin\Desktop\实训\hosipital\tools\logs'
 New-Item -ItemType Directory -Path $log -Force | Out-Null
+$common=@('-Dspring.cloud.nacos.discovery.ip=127.0.0.1','-Dspring.cloud.client.ip-address=127.0.0.1')
 
 $services=@(
   @('gateway',"$base\ruoyi-gateway\target",'ruoyi-gateway.jar'),
@@ -229,7 +243,7 @@ $services=@(
 )
 
 foreach($s in $services){
-  Start-Process -FilePath $java -ArgumentList @('-jar',$s[2]) -WorkingDirectory $s[1] -WindowStyle Hidden -RedirectStandardOutput "$log\$($s[0]).out.log" -RedirectStandardError "$log\$($s[0]).err.log"
+  Start-Process -FilePath $java -ArgumentList @($common[0],$common[1],'-jar',$s[2]) -WorkingDirectory $s[1] -WindowStyle Hidden -RedirectStandardOutput "$log\$($s[0]).out.log" -RedirectStandardError "$log\$($s[0]).err.log"
   Start-Sleep -Seconds 2
 }
 ```
@@ -530,4 +544,3 @@ java -version
 Nacos 服务端：http://localhost:8848/nacos
 Nacos 控制台：http://localhost:18080
 ```
-

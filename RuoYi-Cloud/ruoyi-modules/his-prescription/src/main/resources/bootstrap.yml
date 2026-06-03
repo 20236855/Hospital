@@ -1,0 +1,37 @@
+# Tomcat
+server:
+  port: 9214
+
+# Spring
+spring: 
+  application:
+    # 应用名称
+    name: his-prescription
+  profiles:
+    # 环境配置
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        # 服务注册地址
+        server-addr: 127.0.0.1:8848
+        # 强制本机注册，避免网关发现错误的内网 IP
+        ip: 127.0.0.1
+      config:
+        # 配置中心地址
+        server-addr: 127.0.0.1:8848
+    client:
+      ip-address: 127.0.0.1
+  config:
+    # 配置文件格式
+    file-extension: yml
+    import:
+      - nacos:application-${spring.profiles.active}.${spring.config.file-extension}
+      - nacos:${spring.application.name}-${spring.profiles.active}.${spring.config.file-extension}
+
+management:
+  health:
+    redis:
+      enabled: false
+    sentinel:
+      enabled: false

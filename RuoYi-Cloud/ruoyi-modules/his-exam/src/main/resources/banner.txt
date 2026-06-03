@@ -1,0 +1,11 @@
+Spring Boot Version: ${spring-boot.version}
+Spring Application Name: his-doctor
+
+  _   _ _           _
+ | | | (_)         | |
+ | |_| |_  ___  ___| |_ ___  _ __ _ __
+ |  _  | |/ _ \/ __| __/ _ \| '__| '_ \
+ | | | | |  __/ (__| || (_) | |  | | | |
+ |_| |_|_|\___|\___|\__\___/|_|  |_| |_|
+
+        HIS Doctor Service Started

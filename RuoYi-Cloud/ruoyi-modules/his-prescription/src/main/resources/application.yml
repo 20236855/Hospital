@@ -1,0 +1,7 @@
+# 健康检查配置
+management:
+  health:
+    redis:
+      enabled: false
+    sentinel:
+      enabled: false

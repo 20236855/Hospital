@@ -9,13 +9,25 @@ spring:
   profiles:
     active: dev
   cloud:
+    gateway:
+      routes:
+        - id: his-doctor
+          uri: lb://his-doctor
+          predicates:
+            - Path=/hisdoctor/**
+          filters:
+            - StripPrefix=1
     nacos:
       discovery:
         server-addr: 127.0.0.1:8848
+        # 强制本机注册，避免网关发现错误的内网 IP
+        ip: 127.0.0.1
       config:
 
         encode: GBK
         server-addr: 127.0.0.1:8848
+    client:
+      ip-address: 127.0.0.1
     sentinel:
       eager: true
       transport:
@@ -31,7 +43,12 @@ spring:
   config:
     file-extension: yml
     import:
-      - optional:nacos:application-${spring.profiles.active}.${spring.config.file-extension}
-      - optional:nacos:${spring.application.name}-${spring.profiles.active}.${spring.config.file-extension}
+      - nacos:application-${spring.profiles.active}.${spring.config.file-extension}
+      - nacos:${spring.application.name}-${spring.profiles.active}.${spring.config.file-extension}
 
-
+management:
+  health:
+    redis:
+      enabled: false
+    sentinel:
+      enabled: false

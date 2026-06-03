@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.hisexam.mapper.MedicalTechnologyMapper">
+    
+    <resultMap type="MedicalTechnology" id="MedicalTechnologyResult">
+        <result property="id"    column="id"    />
+        <result property="techCode"    column="tech_code"    />
+        <result property="techName"    column="tech_name"    />
+        <result property="techFormat"    column="tech_format"    />
+        <result property="techPrice"    column="tech_price"    />
+        <result property="techType"    column="tech_type"    />
+        <result property="priceType"    column="price_type"    />
+        <result property="deptmentId"    column="deptment_id"    />
+        <result property="pyCode"    column="py_code"    />
+        <result property="sort"    column="sort"    />
+        <result property="status"    column="status"    />
+        <result property="remark"    column="remark"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectMedicalTechnologyVo">
+        select id, tech_code, tech_name, tech_format, tech_price, tech_type, price_type, deptment_id, py_code, sort, status, remark, create_time, update_time from medical_technology
+    </sql>
+
+    <select id="selectMedicalTechnologyList" parameterType="MedicalTechnology" resultMap="MedicalTechnologyResult">
+        <include refid="selectMedicalTechnologyVo"/>
+        <where>  
+            <if test="techCode != null  and techCode != ''"> and tech_code = #{techCode}</if>
+            <if test="techName != null  and techName != ''"> and tech_name like concat('%', #{techName}, '%')</if>
+            <if test="techFormat != null  and techFormat != ''"> and tech_format = #{techFormat}</if>
+            <if test="techPrice != null "> and tech_price = #{techPrice}</if>
+            <if test="techType != null  and techType != ''"> and tech_type = #{techType}</if>
+            <if test="priceType != null  and priceType != ''"> and price_type = #{priceType}</if>
+            <if test="deptmentId != null "> and deptment_id = #{deptmentId}</if>
+            <if test="pyCode != null  and pyCode != ''"> and py_code = #{pyCode}</if>
+            <if test="sort != null "> and sort = #{sort}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectMedicalTechnologyById" parameterType="Long" resultMap="MedicalTechnologyResult">
+        <include refid="selectMedicalTechnologyVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertMedicalTechnology" parameterType="MedicalTechnology" useGeneratedKeys="true" keyProperty="id">
+        insert into medical_technology
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="techCode != null and techCode != ''">tech_code,</if>
+            <if test="techName != null and techName != ''">tech_name,</if>
+            <if test="techFormat != null">tech_format,</if>
+            <if test="techPrice != null">tech_price,</if>
+            <if test="techType != null and techType != ''">tech_type,</if>
+            <if test="priceType != null">price_type,</if>
+            <if test="deptmentId != null">deptment_id,</if>
+            <if test="pyCode != null">py_code,</if>
+            <if test="sort != null">sort,</if>
+            <if test="status != null">status,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="techCode != null and techCode != ''">#{techCode},</if>
+            <if test="techName != null and techName != ''">#{techName},</if>
+            <if test="techFormat != null">#{techFormat},</if>
+            <if test="techPrice != null">#{techPrice},</if>
+            <if test="techType != null and techType != ''">#{techType},</if>
+            <if test="priceType != null">#{priceType},</if>
+            <if test="deptmentId != null">#{deptmentId},</if>
+            <if test="pyCode != null">#{pyCode},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="status != null">#{status},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateMedicalTechnology" parameterType="MedicalTechnology">
+        update medical_technology
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="techCode != null and techCode != ''">tech_code = #{techCode},</if>
+            <if test="techName != null and techName != ''">tech_name = #{techName},</if>
+            <if test="techFormat != null">tech_format = #{techFormat},</if>
+            <if test="techPrice != null">tech_price = #{techPrice},</if>
+            <if test="techType != null and techType != ''">tech_type = #{techType},</if>
+            <if test="priceType != null">price_type = #{priceType},</if>
+            <if test="deptmentId != null">deptment_id = #{deptmentId},</if>
+            <if test="pyCode != null">py_code = #{pyCode},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteMedicalTechnologyById" parameterType="Long">
+        delete from medical_technology where id = #{id}
+    </delete>
+
+    <delete id="deleteMedicalTechnologyByIds" parameterType="String">
+        delete from medical_technology where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
