@@ -191,10 +191,6 @@ public class RegisterServiceImpl implements IRegisterService
         return registerMapper.updateRegister(register);
     }
 
-    @Override
-    public BigDecimal getFeeByDoctorId(Long doctorId) {
-        return null;
-    }
 
     @Override
     public BigDecimal getRegisterFeeByDoctorId(Long doctorId)
