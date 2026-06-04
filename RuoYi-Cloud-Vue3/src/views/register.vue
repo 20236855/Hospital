@@ -1,7 +1,24 @@
 <template>
-  <div class="register">
-    <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
-      <h3 class="title">{{ title }}</h3>
+  <div class="auth-page register">
+    <span class="auth-bg-cross cross-one"></span>
+    <span class="auth-bg-cross cross-two"></span>
+    <span class="auth-bg-cross cross-three"></span>
+    <span class="auth-bg-cross cross-four"></span>
+
+    <div class="auth-shell">
+      <AuthMedicalVisual />
+
+      <main class="auth-panel">
+        <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="auth-form register-form">
+          <div class="form-sparkles">
+            <span></span>
+            <span></span>
+          </div>
+          <div class="brand-lockup">
+            <span class="brand-mark"><i class="brand-cross"></i></span>
+            <p class="slogan">用心守护，智慧就医</p>
+            <h3 class="title">注册{{ title }}</h3>
+          </div>
       <el-form-item prop="username">
         <el-input 
           v-model="registerForm.username" 
@@ -37,37 +54,40 @@
           <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
         </el-input>
       </el-form-item>
-      <el-form-item prop="code" v-if="captchaEnabled">
+      <el-form-item prop="code" v-if="captchaEnabled" class="auth-code-item">
         <el-input
           size="large" 
           v-model="registerForm.code"
+          class="auth-code-input"
           auto-complete="off"
           placeholder="验证码"
-          style="width: 63%"
           @keyup.enter="handleRegister"
         >
           <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
         </el-input>
-        <div class="register-code">
-          <img :src="codeUrl" @click="getCode" class="register-code-img"/>
+        <div class="auth-code register-code">
+          <img :src="codeUrl" @click="getCode" class="auth-code-img register-code-img" />
         </div>
       </el-form-item>
-      <el-form-item style="width:100%;">
+      <el-form-item>
         <el-button
+          class="auth-submit"
           :loading="loading"
           size="large" 
           type="primary"
-          style="width:100%;"
           @click.prevent="handleRegister"
         >
-          <span v-if="!loading">注 册</span>
-          <span v-else>注 册 中...</span>
+          <span v-if="!loading">注册</span>
+          <span v-else>注册中...</span>
         </el-button>
-        <div style="float: right;">
-          <router-link class="link-type" :to="'/login'">使用已有账户登录</router-link>
-        </div>
       </el-form-item>
-    </el-form>
+          <div class="auth-switch">
+            <span>已有账号？</span>
+            <router-link :to="'/login'">去登录</router-link>
+          </div>
+        </el-form>
+      </main>
+    </div>
     <!--  底部  -->
     <div class="el-register-footer">
       <span>{{ footerContent }}</span>
@@ -80,6 +100,7 @@ import { ElMessageBox } from "element-plus"
 import { getCodeImg, register } from "@/api/login"
 import defaultSettings from '@/settings'
 import { usePasswordRule } from "@/utils/passwordRule"
+import AuthMedicalVisual from '@/components/AuthMedicalVisual/index.vue'
 
 const title = import.meta.env.VITE_APP_TITLE
 const footerContent = defaultSettings.footerContent
@@ -133,7 +154,7 @@ function handleRegister() {
         }).catch(() => {})
       }).catch(() => {
         loading.value = false
-        if (captchaEnabled) {
+        if (captchaEnabled.value) {
           getCode()
         }
       })
@@ -154,66 +175,6 @@ function getCode() {
 getCode()
 </script>
 
-<style lang='scss' scoped>
-.register {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  background-image: url("../assets/images/login-background.jpg");
-  background-size: cover;
-}
-.title {
-  margin: 0px auto 30px auto;
-  text-align: center;
-  color: #707070;
-}
-
-.register-form {
-  border-radius: 6px;
-  background: #ffffff;
-  width: 400px;
-  padding: 25px 25px 5px 25px;
-  .el-input {
-    height: 40px;
-    input {
-      height: 40px;
-    }
-  }
-  .input-icon {
-    height: 39px;
-    width: 14px;
-    margin-left: 0px;
-  }
-}
-.register-tip {
-  font-size: 13px;
-  text-align: center;
-  color: #bfbfbf;
-}
-.register-code {
-  width: 33%;
-  height: 40px;
-  float: right;
-  img {
-    cursor: pointer;
-    vertical-align: middle;
-  }
-}
-.el-register-footer {
-  height: 40px;
-  line-height: 40px;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  text-align: center;
-  color: #fff;
-  font-family: Arial;
-  font-size: 12px;
-  letter-spacing: 1px;
-}
-.register-code-img {
-  height: 40px;
-  padding-left: 12px;
-}
+<style lang='scss'>
+@use "@/assets/styles/auth-medical.scss";
 </style>

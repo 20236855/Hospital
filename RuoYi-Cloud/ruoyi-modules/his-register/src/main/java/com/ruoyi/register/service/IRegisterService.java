@@ -94,8 +94,4 @@ public interface IRegisterService
      */
     public int cancelRegister(Long registerId);
 
-    /**
-     * 根据医生ID获取挂号费
-     */
-    BigDecimal getFeeByDoctorId(Long doctorId);
 }

@@ -1,7 +1,24 @@
 <template>
-  <div class="login">
-    <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
-      <h3 class="title">{{ title }}</h3>
+  <div class="auth-page login">
+    <span class="auth-bg-cross cross-one"></span>
+    <span class="auth-bg-cross cross-two"></span>
+    <span class="auth-bg-cross cross-three"></span>
+    <span class="auth-bg-cross cross-four"></span>
+
+    <div class="auth-shell">
+      <AuthMedicalVisual />
+
+      <main class="auth-panel">
+        <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="auth-form login-form">
+          <div class="form-sparkles">
+            <span></span>
+            <span></span>
+          </div>
+          <div class="brand-lockup">
+            <span class="brand-mark"><i class="brand-cross"></i></span>
+            <p class="slogan">用心守护，智慧就医</p>
+            <h3 class="title">{{ title }}</h3>
+          </div>
       <el-form-item prop="username">
         <el-input
           v-model="loginForm.username"
@@ -25,38 +42,43 @@
           <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
         </el-input>
       </el-form-item>
-      <el-form-item prop="code" v-if="captchaEnabled">
+      <el-form-item prop="code" v-if="captchaEnabled" class="auth-code-item">
         <el-input
           v-model="loginForm.code"
+          class="auth-code-input"
           size="large"
           auto-complete="off"
           placeholder="验证码"
-          style="width: 63%"
           @keyup.enter="handleLogin"
         >
           <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
         </el-input>
-        <div class="login-code">
-          <img :src="codeUrl" @click="getCode" class="login-code-img"/>
+        <div class="auth-code login-code">
+          <img :src="codeUrl" @click="getCode" class="auth-code-img login-code-img" />
         </div>
       </el-form-item>
-      <el-checkbox v-model="loginForm.rememberMe" style="margin:0px 0px 25px 0px;">记住密码</el-checkbox>
-      <el-form-item style="width:100%;">
+      <div class="auth-options">
+        <el-checkbox v-model="loginForm.rememberMe">记住密码</el-checkbox>
+      </div>
+      <el-form-item>
         <el-button
+          class="auth-submit"
           :loading="loading"
           size="large"
           type="primary"
-          style="width:100%;"
           @click.prevent="handleLogin"
         >
-          <span v-if="!loading">登 录</span>
-          <span v-else>登 录 中...</span>
+          <span v-if="!loading">登录</span>
+          <span v-else>登录中...</span>
         </el-button>
-        <div style="float: right;" v-if="register">
-          <router-link class="link-type" :to="'/register'">立即注册</router-link>
-        </div>
       </el-form-item>
-    </el-form>
+          <div class="auth-switch" v-if="register">
+            <span>还没有账号？</span>
+            <router-link :to="'/register'">立即注册</router-link>
+          </div>
+        </el-form>
+      </main>
+    </div>
     <!--  底部  -->
     <div class="el-login-footer">
       <span>{{ footerContent }}</span>
@@ -70,6 +92,7 @@ import Cookies from "js-cookie"
 import { encrypt, decrypt } from "@/utils/jsencrypt"
 import useUserStore from '@/store/modules/user'
 import defaultSettings from '@/settings'
+import AuthMedicalVisual from '@/components/AuthMedicalVisual/index.vue'
 
 const title = import.meta.env.VITE_APP_TITLE
 const footerContent = defaultSettings.footerContent
@@ -97,7 +120,7 @@ const loading = ref(false)
 // 验证码开关
 const captchaEnabled = ref(true)
 // 注册开关
-const register = ref(false)
+const register = ref(true)
 const redirect = ref(undefined)
 
 watch(route, (newRoute) => {
@@ -155,6 +178,7 @@ function getCookie() {
   const password = Cookies.get("password")
   const rememberMe = Cookies.get("rememberMe")
   loginForm.value = {
+    ...loginForm.value,
     username: username === undefined ? loginForm.value.username : username,
     password: password === undefined ? loginForm.value.password : decrypt(password),
     rememberMe: rememberMe === undefined ? false : Boolean(rememberMe)
@@ -165,75 +189,6 @@ getCode()
 getCookie()
 </script>
 
-<style lang='scss' scoped>
-.login {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  background-image: url("../assets/images/login-background.jpg");
-  background-size: cover;
-}
-.title {
-  margin: 0px auto 30px auto;
-  text-align: center;
-  color: #707070;
-}
-
-.login-form {
-  border-radius: 6px;
-  background: #ffffff;
-  width: 400px;
-  padding: 25px 25px 5px 25px;
-  z-index: 1;
-  .el-input {
-    height: 40px;
-    input {
-      height: 40px;
-    }
-  }
-  .input-icon {
-    height: 39px;
-    width: 14px;
-    margin-left: 0px;
-  }
-}
-.login-tip {
-  font-size: 13px;
-  text-align: center;
-  color: #bfbfbf;
-}
-.login-code {
-  width: 33%;
-  height: 40px;
-  float: right;
-  img {
-    cursor: pointer;
-    vertical-align: middle;
-  }
-}
-.el-login-footer {
-  height: 40px;
-  line-height: 40px;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  text-align: center;
-  color: #fff;
-  font-family: Arial;
-  font-size: 12px;
-  letter-spacing: 1px;
-}
-.login-code-img {
-  height: 40px;
-  padding-left: 12px;
-}
-
-html.dark .login {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), url("../assets/images/login-background.jpg");
-  .login-form {
-    background: var(--el-bg-color-overlay) !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-  }
-}
+<style lang='scss'>
+@use "@/assets/styles/auth-medical.scss";
 </style>
