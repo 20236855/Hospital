@@ -305,7 +305,7 @@
 </template>
 
 <script setup name="Patient">
-import { listPatient, getPatient, delPatient, addPatient, updatePatient } from "@/api/patient/patient"
+import { listPatient, getPatient, delPatient, addPatient, updatePatient, getPatientByUserId } from "@/api/patient/patient"
 
 const { proxy } = getCurrentInstance()
 
@@ -339,6 +339,7 @@ const data = reactive({
     allergyHistory: undefined,
     pastHistory: undefined,
     status: undefined,
+    userId: undefined,
   },
   rules: {
     patientNo: [
@@ -399,7 +400,8 @@ function reset() {
     pastHistory: null,
     status: null,
     createTime: null,
-    updateTime: null
+    updateTime: null,
+    userId: null
   }
   proxy.resetForm("patientRef")
 }

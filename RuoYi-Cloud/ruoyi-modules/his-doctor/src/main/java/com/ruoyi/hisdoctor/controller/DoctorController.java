@@ -11,9 +11,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
+import com.ruoyi.common.security.annotation.InnerAuth;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
+import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.hisdoctor.domain.Doctor;
 import com.ruoyi.hisdoctor.service.IDoctorService;
 import com.ruoyi.common.core.web.controller.BaseController;
@@ -68,6 +71,46 @@ public class DoctorController extends BaseController
     {
         return success(doctorService.selectDoctorByDoctorId(doctorId));
     }
+    
+    /**
+     * 根据用户ID查询医生信息
+     */
+    @GetMapping(value = "/userId/{userId}")
+    public AjaxResult getByUserId(@PathVariable("userId") Long userId)
+    {
+        return success(doctorService.getDoctorByUserId(userId));
+    }
+    
+    /**
+     * 内部接口：根据用户ID查询医生
+     */
+    @InnerAuth
+    @GetMapping(value = "/inner/user/{userId}")
+    public R<Doctor> innerInfoByUserId(@PathVariable("userId") Long userId)
+    {
+        return R.ok(doctorService.getDoctorByUserId(userId));
+    }
+    
+    /**
+     * 内部接口：根据用户ID查询医生（返回Map）
+     */
+    @InnerAuth
+    @GetMapping(value = "/getByUserId/{userId}")
+    public R<java.util.Map<String, Object>> getDoctorByUserId(@PathVariable("userId") Long userId)
+    {
+        Doctor doctor = doctorService.getDoctorByUserId(userId);
+        if (doctor == null) {
+            return R.ok(null);
+        }
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("doctorId", doctor.getDoctorId());
+        map.put("doctorNo", doctor.getDoctorNo());
+        map.put("userId", doctor.getUserId());
+        map.put("deptId", doctor.getDeptId());
+        map.put("doctorName", doctor.getDoctorName());
+        map.put("phone", doctor.getPhone());
+        return R.ok(map);
+    }
 
     /**
      * 新增医生信息
@@ -100,5 +143,17 @@ public class DoctorController extends BaseController
     public AjaxResult remove(@PathVariable Long[] doctorIds)
     {
         return toAjax(doctorService.deleteDoctorByDoctorIds(doctorIds));
+    }
+    
+    /**
+     * 自助完善医生信息（登录用户使用）
+     */
+    @PostMapping("/complete")
+    public AjaxResult complete(@RequestBody Doctor doctor)
+    {
+        // 自动获取当前登录用户ID
+        Long userId = SecurityUtils.getUserId();
+        doctor.setUserId(userId);
+        return toAjax(doctorService.completeDoctor(doctor));
     }
 }

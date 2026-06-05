@@ -16,6 +16,7 @@ import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.security.annotation.InnerAuth;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
+import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.patient.domain.Patient;
 import com.ruoyi.patient.service.IPatientService;
 import com.ruoyi.common.core.web.controller.BaseController;
@@ -58,6 +59,15 @@ public class PatientController extends BaseController
     }
 
     /**
+     * 根据用户ID查询患者信息
+     */
+    @GetMapping(value = "/userId/{userId}")
+    public AjaxResult getByUserId(@PathVariable("userId") Long userId)
+    {
+        return success(patientService.getPatientByUserId(userId));
+    }
+
+    /**
      * 导出患者列表
      */
     @RequiresPermissions("patient:patient:export")
@@ -85,6 +95,36 @@ public class PatientController extends BaseController
     public R<Patient> innerInfo(@PathVariable("patientId") Long patientId)
     {
         return R.ok(patientService.selectPatientByPatientId(patientId));
+    }
+    
+    /**
+     * 内部接口：根据用户ID查询患者
+     */
+    @InnerAuth
+    @GetMapping(value = "/inner/user/{userId}")
+    public R<Patient> innerInfoByUserId(@PathVariable("userId") Long userId)
+    {
+        return R.ok(patientService.getPatientByUserId(userId));
+    }
+    
+    /**
+     * 内部接口：根据用户ID查询患者（返回Map）
+     */
+    @InnerAuth
+    @GetMapping(value = "/getByUserId/{userId}")
+    public R<java.util.Map<String, Object>> getPatientByUserId(@PathVariable("userId") Long userId)
+    {
+        Patient patient = patientService.getPatientByUserId(userId);
+        if (patient == null) {
+            return R.ok(null);
+        }
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("patientId", patient.getPatientId());
+        map.put("patientNo", patient.getPatientNo());
+        map.put("userId", patient.getUserId());
+        map.put("name", patient.getName());
+        map.put("phone", patient.getPhone());
+        return R.ok(map);
     }
 
     /**
@@ -118,5 +158,17 @@ public class PatientController extends BaseController
     public AjaxResult remove(@PathVariable Long[] patientIds)
     {
         return toAjax(patientService.deletePatientByPatientIds(patientIds));
+    }
+    
+    /**
+     * 自助完善患者信息（登录用户使用）
+     */
+    @PostMapping("/complete")
+    public AjaxResult complete(@RequestBody Patient patient)
+    {
+        // 自动获取当前登录用户ID
+        Long userId = SecurityUtils.getUserId();
+        patient.setUserId(userId);
+        return toAjax(patientService.completePatient(patient));
     }
 }

@@ -129,6 +129,18 @@ public class SysUserServiceImpl implements ISysUserService
     }
 
     /**
+     * 通过手机号查询用户
+     * 
+     * @param phonenumber 手机号
+     * @return 用户对象信息
+     */
+    @Override
+    public SysUser selectUserByPhonenumber(String phonenumber)
+    {
+        return userMapper.selectUserByPhonenumber(phonenumber);
+    }
+
+    /**
      * 查询用户所属角色组
      * 
      * @param userName 用户名
@@ -276,9 +288,31 @@ public class SysUserServiceImpl implements ISysUserService
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean registerUser(SysUser user)
     {
-        return userMapper.insertUser(user) > 0;
+        String tempUserType = user.getUserType(); // 临时保存用户类型用于分配角色
+        user.setUserType("00"); // 重置为默认值，避免数据库字段长度问题
+        boolean result = userMapper.insertUser(user) > 0;
+        if (result && StringUtils.isNotEmpty(tempUserType))
+        {
+            // 根据用户类型分配角色
+            // role_id=3是医生，role_id=4是患者
+            List<Long> roleIds = new ArrayList<>();
+            if ("patient".equals(tempUserType))
+            {
+                roleIds.add(4L); // 患者角色
+            }
+            else if ("doctor".equals(tempUserType))
+            {
+                roleIds.add(3L); // 医生角色
+            }
+            if (!roleIds.isEmpty())
+            {
+                insertUserRole(user.getUserId(), roleIds.toArray(new Long[0]));
+            }
+        }
+        return result;
     }
 
     /**

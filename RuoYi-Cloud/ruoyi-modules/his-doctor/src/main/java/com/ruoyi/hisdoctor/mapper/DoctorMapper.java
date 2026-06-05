@@ -58,4 +58,12 @@ public interface DoctorMapper
      * @return 结果
      */
     public int deleteDoctorByDoctorIds(Long[] doctorIds);
+
+    /**
+     * 根据用户ID查询医生信息
+     * 
+     * @param userId 用户ID
+     * @return 医生信息
+     */
+    public Doctor selectDoctorByUserId(Long userId);
 }

@@ -35,7 +35,10 @@ const useUserStore = defineStore(
       nickName: '',
       avatar: '',
       roles: [],
-      permissions: []
+      permissions: [],
+      userType: '',
+      needCompleteInfo: false,
+      deptId: null
     }),
     actions: {
       // 登录
@@ -72,6 +75,10 @@ const useUserStore = defineStore(
             this.name = user.userName
             this.nickName = user.nickName
             this.avatar = avatar
+            // 直接使用后端返回的userType
+            this.userType = res.userType || ''
+            this.needCompleteInfo = res.needCompleteInfo || false
+            this.deptId = res.deptId || null
             cache.session.set('pwrChrtype', res.pwdChrtype)
             /* 初始密码提示 */
             if(res.isDefaultModifyPwd) {

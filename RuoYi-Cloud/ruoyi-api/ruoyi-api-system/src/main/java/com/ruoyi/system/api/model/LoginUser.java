@@ -57,6 +57,16 @@ public class LoginUser implements Serializable
      * 用户信息
      */
     private SysUser sysUser;
+    
+    /**
+     * 是否需要完善信息
+     */
+    private Boolean needCompleteInfo = false;
+    
+    /**
+     * 医生所属科室ID，用于数据权限
+     */
+    private Long deptId;
 
     public String getToken()
     {
@@ -146,5 +156,25 @@ public class LoginUser implements Serializable
     public void setSysUser(SysUser sysUser)
     {
         this.sysUser = sysUser;
+    }
+
+    public Boolean getNeedCompleteInfo()
+    {
+        return needCompleteInfo;
+    }
+
+    public void setNeedCompleteInfo(Boolean needCompleteInfo)
+    {
+        this.needCompleteInfo = needCompleteInfo;
+    }
+
+    public Long getDeptId()
+    {
+        return deptId;
+    }
+
+    public void setDeptId(Long deptId)
+    {
+        this.deptId = deptId;
     }
 }

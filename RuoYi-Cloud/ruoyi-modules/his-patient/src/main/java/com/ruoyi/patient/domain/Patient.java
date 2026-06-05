@@ -9,7 +9,7 @@ import com.ruoyi.common.core.web.domain.BaseEntity;
 
 /**
  * 患者对象 patient
- * 
+ *
  * @author ruoyi
  * @date 2026-05-29
  */
@@ -81,165 +81,178 @@ public class Patient extends BaseEntity
     @Excel(name = "状态")
     private String status;
 
-    public void setPatientId(Long patientId) 
+    /** 系统用户id */
+    @Excel(name = "用户id")
+    private Long userId;
+
+
+    public void setPatientId(Long patientId)
     {
         this.patientId = patientId;
     }
 
-    public Long getPatientId() 
+    public Long getPatientId()
     {
         return patientId;
     }
 
-    public void setPatientNo(String patientNo) 
+    public void setPatientNo(String patientNo)
     {
         this.patientNo = patientNo;
     }
 
-    public String getPatientNo() 
+    public String getPatientNo()
     {
         return patientNo;
     }
 
-    public void setName(String name) 
+    public void setName(String name)
     {
         this.name = name;
     }
 
-    public String getName() 
+    public String getName()
     {
         return name;
     }
 
-    public void setGender(String gender) 
+    public void setGender(String gender)
     {
         this.gender = gender;
     }
 
-    public String getGender() 
+    public String getGender()
     {
         return gender;
     }
 
-    public void setBirthday(Date birthday) 
+    public void setBirthday(Date birthday)
     {
         this.birthday = birthday;
     }
 
-    public Date getBirthday() 
+    public Date getBirthday()
     {
         return birthday;
     }
 
-    public void setAge(Long age) 
+    public void setAge(Long age)
     {
         this.age = age;
     }
 
-    public Long getAge() 
+    public Long getAge()
     {
         return age;
     }
 
-    public void setPhone(String phone) 
+    public void setPhone(String phone)
     {
         this.phone = phone;
     }
 
-    public String getPhone() 
+    public String getPhone()
     {
         return phone;
     }
 
-    public void setIdCard(String idCard) 
+    public void setIdCard(String idCard)
     {
         this.idCard = idCard;
     }
 
-    public String getIdCard() 
+    public String getIdCard()
     {
         return idCard;
     }
 
-    public void setBloodType(String bloodType) 
+    public void setBloodType(String bloodType)
     {
         this.bloodType = bloodType;
     }
 
-    public String getBloodType() 
+    public String getBloodType()
     {
         return bloodType;
     }
 
-    public void setMaritalStatus(String maritalStatus) 
+    public void setMaritalStatus(String maritalStatus)
     {
         this.maritalStatus = maritalStatus;
     }
 
-    public String getMaritalStatus() 
+    public String getMaritalStatus()
     {
         return maritalStatus;
     }
 
-    public void setAddress(String address) 
+    public void setAddress(String address)
     {
         this.address = address;
     }
 
-    public String getAddress() 
+    public String getAddress()
     {
         return address;
     }
 
-    public void setEmergencyContact(String emergencyContact) 
+    public void setEmergencyContact(String emergencyContact)
     {
         this.emergencyContact = emergencyContact;
     }
 
-    public String getEmergencyContact() 
+    public String getEmergencyContact()
     {
         return emergencyContact;
     }
 
-    public void setEmergencyPhone(String emergencyPhone) 
+    public void setEmergencyPhone(String emergencyPhone)
     {
         this.emergencyPhone = emergencyPhone;
     }
 
-    public String getEmergencyPhone() 
+    public String getEmergencyPhone()
     {
         return emergencyPhone;
     }
 
-    public void setAllergyHistory(String allergyHistory) 
+    public void setAllergyHistory(String allergyHistory)
     {
         this.allergyHistory = allergyHistory;
     }
 
-    public String getAllergyHistory() 
+    public String getAllergyHistory()
     {
         return allergyHistory;
     }
 
-    public void setPastHistory(String pastHistory) 
+    public void setPastHistory(String pastHistory)
     {
         this.pastHistory = pastHistory;
     }
 
-    public String getPastHistory() 
+    public String getPastHistory()
     {
         return pastHistory;
     }
 
-    public void setStatus(String status) 
+    public void setStatus(String status)
     {
         this.status = status;
     }
 
-    public String getStatus() 
+    public String getStatus()
     {
         return status;
     }
+
+    public Long getUserId() {
+        return userId;
+    }
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
 
     @Override
     public String toString() {
@@ -262,6 +275,7 @@ public class Patient extends BaseEntity
             .append("status", getStatus())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())
+            .append("userId", getUserId())
             .toString();
     }
 }

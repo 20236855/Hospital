@@ -1,6 +1,7 @@
 package com.ruoyi.common.security.annotation;
 
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.annotation.AliasFor;
 import java.lang.annotation.*;
 
@@ -14,6 +15,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @EnableFeignClients
+@ComponentScan(basePackages = { "com.ruoyi.system.api.factory", "com.ruoyi.his.api.factory" })
 public @interface EnableRyFeignClients
 {
     String[] value() default {};

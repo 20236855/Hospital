@@ -71,6 +71,12 @@
             <artifactId>ruoyi-common-swagger</artifactId>
         </dependency>
 
+        <!-- HIS API -->
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-api-his</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

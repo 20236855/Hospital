@@ -74,4 +74,12 @@ public interface PatientMapper
      * @return 最大病历号
      */
     String selectMaxMedicalIdByDay(@Param("day") String day);
+
+    /**
+     * 根据用户ID查询患者
+     *
+     * @param userId 用户ID
+     * @return 患者
+     */
+    public Patient selectPatientByUserId(Long userId);
 }

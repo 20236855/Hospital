@@ -15,7 +15,10 @@ const user = {
     nickName: '',
     avatar: '',
     roles: [],
-    permissions: []
+    permissions: [],
+    userType: '',
+    needCompleteInfo: false,
+    deptId: null
   },
 
   mutations: {
@@ -42,6 +45,15 @@ const user = {
     },
     SET_PERMISSIONS: (state, permissions) => {
       state.permissions = permissions
+    },
+    SET_USER_TYPE: (state, userType) => {
+      state.userType = userType
+    },
+    SET_NEED_COMPLETE_INFO: (state, needCompleteInfo) => {
+      state.needCompleteInfo = needCompleteInfo
+    },
+    SET_DEPT_ID: (state, deptId) => {
+      state.deptId = deptId
     }
   },
 
@@ -83,6 +95,9 @@ const user = {
           commit('SET_NAME', user.userName)
           commit('SET_NICK_NAME', user.nickName)
           commit('SET_AVATAR', avatar)
+          commit('SET_USER_TYPE', res.userType || '')
+          commit('SET_NEED_COMPLETE_INFO', res.needCompleteInfo || false)
+          commit('SET_DEPT_ID', res.deptId || null)
           cache.session.set('pwrChrtype', res.pwdChrtype)
           /* 初始密码提示 */
           if(res.isDefaultModifyPwd) {

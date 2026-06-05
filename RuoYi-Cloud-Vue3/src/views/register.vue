@@ -19,6 +19,12 @@
             <p class="slogan">用心守护，智慧就医</p>
             <h3 class="title">注册{{ title }}</h3>
           </div>
+      <el-form-item prop="userType" label="身份">
+        <el-radio-group v-model="registerForm.userType">
+          <el-radio value="patient">就诊患者</el-radio>
+          <el-radio value="doctor">医护人员</el-radio>
+        </el-radio-group>
+      </el-form-item>
       <el-form-item prop="username">
         <el-input 
           v-model="registerForm.username" 
@@ -54,6 +60,29 @@
           <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
         </el-input>
       </el-form-item>
+      <el-form-item prop="nickName">
+        <el-input 
+          v-model="registerForm.nickName" 
+          type="text" 
+          size="large" 
+          auto-complete="off" 
+          placeholder="姓名"
+        >
+          <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
+        </el-input>
+      </el-form-item>
+      <el-form-item prop="phonenumber">
+        <el-input 
+          v-model="registerForm.phonenumber" 
+          type="text" 
+          size="large" 
+          auto-complete="off" 
+          placeholder="手机号"
+        >
+          <template #prefix><svg-icon icon-class="phone" class="el-input__icon input-icon" /></template>
+        </el-input>
+      </el-form-item>
+
       <el-form-item prop="code" v-if="captchaEnabled" class="auth-code-item">
         <el-input
           size="large" 
@@ -113,7 +142,10 @@ const registerForm = ref({
   password: "",
   confirmPassword: "",
   code: "",
-  uuid: ""
+  uuid: "",
+  userType: "",
+  nickName: "",
+  phonenumber: ""
 })
 
 const equalToPassword = (rule, value, callback) => {
@@ -124,7 +156,18 @@ const equalToPassword = (rule, value, callback) => {
   }
 }
 
+const validateUserType = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error("请选择身份"))
+  } else {
+    callback()
+  }
+}
+
 const registerRules = {
+  userType: [
+    { required: true, validator: validateUserType, trigger: "change" }
+  ],
   username: [
     { required: true, trigger: "blur", message: "请输入您的账号" },
     { min: 2, max: 20, message: "用户账号长度必须介于 2 和 20 之间", trigger: "blur" }
@@ -132,6 +175,13 @@ const registerRules = {
   confirmPassword: [
     { required: true, trigger: "blur", message: "请再次输入您的密码" },
     { required: true, validator: equalToPassword, trigger: "blur" }
+  ],
+  nickName: [
+    { required: true, trigger: "blur", message: "请输入您的姓名" }
+  ],
+  phonenumber: [
+    { required: true, trigger: "blur", message: "请输入您的手机号" },
+    { pattern: /^1[3-9]\d{9}$/, message: "请输入正确的手机号", trigger: "blur" }
   ],
   code: [{ required: true, trigger: "change", message: "请输入验证码" }]
 }
@@ -143,10 +193,19 @@ const captchaEnabled = ref(true)
 function handleRegister() {
   proxy.$refs.registerRef.validate(valid => {
     if (valid) {
+      if (registerForm.value.username === 'admin') {
+        proxy.$modal.msgError("超级管理员账号不开放自助注册")
+        return
+      }
       loading.value = true
-      register(registerForm.value).then(res => {
+      const submitData = { ...registerForm.value }
+      delete submitData.confirmPassword
+      register(submitData).then(res => {
         const username = registerForm.value.username
-        ElMessageBox.alert("<font color='red'>恭喜你，您的账号 " + username + " 注册成功！</font>", "系统提示", {
+        const message = registerForm.value.userType === 'doctor'
+          ? `<font color='red'>恭喜你，您的账号 ${username} 注册成功！账号需要管理员审核后才能登录。</font>`
+          : `<font color='red'>恭喜你，您的账号 ${username} 注册成功！</font>`
+        ElMessageBox.alert(message, "系统提示", {
           dangerouslyUseHTMLString: true,
           type: "success",
         }).then(() => {

@@ -25,6 +25,14 @@ export function getPatientByIdCard(idCard) {
   })
 }
 
+// 根据用户ID查询患者
+export function getPatientByUserId(userId) {
+  return request({
+    url: '/patient/patient/userId/' + userId,
+    method: 'get'
+  })
+}
+
 // 新增患者
 export function addPatient(data) {
   return request({
@@ -48,5 +56,14 @@ export function delPatient(patientId) {
   return request({
     url: '/patient/patient/' + patientId,
     method: 'delete'
+  })
+}
+
+// 患者自助完善信息
+export function completePatient(data) {
+  return request({
+    url: '/patient/patient/complete',
+    method: 'post',
+    data: data
   })
 }

@@ -89,6 +89,16 @@ export const constantRoutes = [
         meta: { title: '个人中心', icon: 'user' }
       }
     ]
+  },
+  {
+    path: '/complete/patient',
+    component: () => import('@/views/complete/PatientComplete'),
+    hidden: true
+  },
+  {
+    path: '/complete/doctor',
+    component: () => import('@/views/complete/DoctorComplete'),
+    hidden: true
   }
 ]
 

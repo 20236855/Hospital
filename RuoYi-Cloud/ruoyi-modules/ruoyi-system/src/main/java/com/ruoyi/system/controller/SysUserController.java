@@ -3,6 +3,7 @@ package com.ruoyi.system.controller;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.ruoyi.common.core.domain.R;
+import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.text.Convert;
 import com.ruoyi.common.core.utils.DateUtils;
 import com.ruoyi.common.core.utils.StringUtils;
@@ -36,6 +38,8 @@ import com.ruoyi.system.api.domain.SysDept;
 import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.domain.SysUser;
 import com.ruoyi.system.api.model.LoginUser;
+import com.ruoyi.his.api.RemoteDoctorService;
+import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.system.service.ISysConfigService;
 import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysPermissionService;
@@ -73,6 +77,12 @@ public class SysUserController extends BaseController
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private RemotePatientService remotePatientService;
+
+    @Autowired
+    private RemoteDoctorService remoteDoctorService;
+
     /**
      * 获取用户列表
      */
@@ -83,6 +93,17 @@ public class SysUserController extends BaseController
         startPage();
         List<SysUser> list = userService.selectUserList(user);
         return getDataTable(list);
+    }
+
+    /**
+     * 通过手机号查询用户信息
+     */
+    @InnerAuth
+    @GetMapping("/info/phonenumber/{phonenumber}")
+    public R<SysUser> getUserInfoByPhonenumber(@PathVariable("phonenumber") String phonenumber)
+    {
+        SysUser user = userService.selectUserByPhonenumber(phonenumber);
+        return R.ok(user);
     }
 
     @Log(title = "用户管理", businessType = BusinessType.EXPORT)
@@ -153,6 +174,10 @@ public class SysUserController extends BaseController
         {
             return R.fail("保存用户'" + username + "'失败，注册账号已存在");
         }
+        if (StringUtils.isNotEmpty(sysUser.getPhonenumber()) && !userService.checkPhoneUnique(sysUser))
+        {
+            return R.fail("保存用户'" + username + "'失败，手机号码已存在");
+        }
         return R.ok(userService.registerUser(sysUser));
     }
 
@@ -186,19 +211,77 @@ public class SysUserController extends BaseController
         Set<String> roles = permissionService.getRolePermission(user);
         // 权限集合
         Set<String> permissions = permissionService.getMenuPermission(user);
-        if (!loginUser.getPermissions().equals(permissions))
-        {
-            loginUser.setPermissions(permissions);
-        }
+        // 更新 loginUser 中的 roles
+        loginUser.setRoles(roles);
+        loginUser.setPermissions(permissions);
+        refreshBusinessInfo(loginUser, user, roles);
         tokenService.setLoginUser(loginUser);
+        // 根据角色设置userType
+        String userType = "00";
+        if (roles != null) {
+            if (roles.contains("patient")) {
+                userType = "patient";
+            } else if (roles.contains("doctor")) {
+                userType = "doctor";
+            }
+        }
         AjaxResult ajax = AjaxResult.success();
         ajax.put("user", user);
         ajax.put("roles", roles);
         ajax.put("permissions", permissions);
+        ajax.put("needCompleteInfo", loginUser.getNeedCompleteInfo());
+        ajax.put("deptId", loginUser.getDeptId());
+        ajax.put("userType", userType);
         ajax.put("pwdChrtype", getSysAccountChrtype());
         ajax.put("isDefaultModifyPwd", initPasswordIsModify(user.getPwdUpdateDate()));
         ajax.put("isPasswordExpired", passwordIsExpiration(user.getPwdUpdateDate()));
         return ajax;
+    }
+
+    private void refreshBusinessInfo(LoginUser loginUser, SysUser user, Set<String> roles)
+    {
+        if (StringUtils.isNull(user))
+        {
+            loginUser.setNeedCompleteInfo(false);
+            return;
+        }
+        Long userId = user.getUserId();
+        if (roles != null && roles.contains("patient"))
+        {
+            R<Map<String, Object>> patientR = remotePatientService.getPatientByUserId(userId, com.ruoyi.common.core.constant.SecurityConstants.INNER);
+            if (R.FAIL == patientR.getCode())
+            {
+                throw new ServiceException(patientR.getMsg());
+            }
+            loginUser.setNeedCompleteInfo(patientR.getData() == null);
+        }
+        else if (roles != null && roles.contains("doctor"))
+        {
+            // 如果用户已经有 deptId，就不需要完善信息
+            if (user.getDeptId() != null)
+            {
+                loginUser.setNeedCompleteInfo(false);
+                loginUser.setDeptId(user.getDeptId());
+                return;
+            }
+            R<Map<String, Object>> doctorR = remoteDoctorService.getDoctorByUserId(userId, com.ruoyi.common.core.constant.SecurityConstants.INNER);
+            if (R.FAIL == doctorR.getCode())
+            {
+                throw new ServiceException(doctorR.getMsg());
+            }
+            Map<String, Object> doctor = doctorR.getData();
+            loginUser.setNeedCompleteInfo(doctor == null);
+            if (doctor != null && doctor.get("deptId") != null)
+            {
+                Long deptId = Long.valueOf(doctor.get("deptId").toString());
+                loginUser.setDeptId(deptId);
+                user.setDeptId(deptId);
+            }
+        }
+        else
+        {
+            loginUser.setNeedCompleteInfo(false);
+        }
     }
 
     // 获取用户密码自定义配置规则

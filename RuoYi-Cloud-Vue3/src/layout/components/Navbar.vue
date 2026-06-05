@@ -52,7 +52,10 @@
       <el-dropdown @command="handleCommand" class="avatar-container right-menu-item hover-effect" trigger="hover">
         <div class="avatar-wrapper">
           <img :src="userStore.avatar" class="user-avatar" @error="onAvatarError" />
-          <span class="user-nickname">{{ userStore.nickName }}</span>
+          <div class="user-info">
+            <span class="user-nickname">{{ userStore.nickName }}</span>
+            <span class="user-role">{{ getUserRoleText(userStore.roles) }}</span>
+          </div>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -145,6 +148,24 @@ function lockScreen() {
 
 function onAvatarError() {
   userStore.avatar = defAva
+}
+
+function getUserRoleText(roles) {
+  if (!roles || roles.length === 0) {
+    return ''
+  }
+  const roleMap = {
+    'admin': '超级管理员',
+    'doctor': '医护人员',
+    'patient': '就诊患者'
+  }
+  // 查找匹配的角色
+  for (const role of roles) {
+    if (roleMap[role]) {
+      return roleMap[role]
+    }
+  }
+  return ''
 }
 
 async function toggleTheme(event) {
@@ -326,14 +347,15 @@ async function toggleTheme(event) {
       padding-right: 0;
 
       .avatar-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        height: 38px;
-        padding: 0 10px 0 6px;
-        border: 1px solid rgba(121, 162, 184, 0.24);
-        border-radius: 8px;
-        background: #f8fcfd;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          height: auto;
+          min-height: 38px;
+          padding: 6px 10px 6px 6px;
+          border: 1px solid rgba(121, 162, 184, 0.24);
+          border-radius: 8px;
+          background: #f8fcfd;
 
         .user-avatar {
           width: 30px;
@@ -343,11 +365,26 @@ async function toggleTheme(event) {
           cursor: pointer;
         }
 
-        .user-nickname {
-          position: static;
-          color: #183a59;
-          font-size: 14px;
-          font-weight: 700;
+        .user-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          
+          .user-nickname {
+            position: static;
+            color: #183a59;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.2;
+          }
+          
+          .user-role {
+            position: static;
+            color: #7b8da0;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.2;
+          }
         }
 
         i {
