@@ -112,4 +112,37 @@ public interface RegisterMapper
      * @return 结果
      */
     public int deleteRegisterByRegisterIds(Long[] registerIds);
+
+    /**
+     * 根据排班ID查询排班
+     *
+     * @param scheduleId 排班ID
+     * @return 排班信息
+     */
+    public Map<String, Object> selectScheduleById(@Param("scheduleId") Long scheduleId);
+
+    /**
+     * 增加排班预约人数
+     *
+     * @param scheduleId 排班ID
+     * @return 结果
+     */
+    public int incrementScheduleReservedNumber(@Param("scheduleId") Long scheduleId);
+
+    /**
+     * 减少排班预约人数
+     *
+     * @param scheduleId 排班ID
+     * @return 结果
+     */
+    public int decrementScheduleReservedNumber(@Param("scheduleId") Long scheduleId);
+
+    /**
+     * 更新排班状态
+     *
+     * @param scheduleId 排班ID
+     * @param status 状态
+     * @return 结果
+     */
+    public int updateScheduleStatus(@Param("scheduleId") Long scheduleId, @Param("status") String status);
 }

@@ -178,4 +178,26 @@
             #{registerId}
         </foreach>
     </delete>
+
+    <select id="selectScheduleById" resultType="java.util.Map">
+        select schedule_id as scheduleId, doctor_id as doctorId, schedule_date as scheduleDate, 
+               time_slot as timeSlot, max_number as maxNumber, reserved_number as reservedNumber, status
+        from schedule
+        where schedule_id = #{scheduleId}
+    </select>
+
+    <update id="incrementScheduleReservedNumber">
+        update schedule set reserved_number = reserved_number + 1, update_time = now()
+        where schedule_id = #{scheduleId}
+    </update>
+
+    <update id="decrementScheduleReservedNumber">
+        update schedule set reserved_number = reserved_number - 1, update_time = now()
+        where schedule_id = #{scheduleId}
+    </update>
+
+    <update id="updateScheduleStatus">
+        update schedule set status = #{status}, update_time = now()
+        where schedule_id = #{scheduleId}
+    </update>
 </mapper>
