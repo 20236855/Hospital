@@ -23,6 +23,7 @@ router.beforeEach(async (to, from) => {
   if (getToken()) {
     to.meta.title && useSettingsStore().setTitle(to.meta.title)
     const isLock = useLockStore().isLock
+    const userStore = useUserStore()
     if (to.path === '/login') {
       NProgress.done()
       return { path: '/' }
@@ -38,11 +39,11 @@ router.beforeEach(async (to, from) => {
       NProgress.done()
       return { path: '/' }
     }
-    if (useUserStore().roles.length === 0) {
+    if (userStore.roles.length === 0) {
       isRelogin.show = true
       try {
         // 拉取user_info信息
-        await useUserStore().getInfo()
+        await userStore.getInfo()
         isRelogin.show = false
         // 根据roles权限生成可访问的路由
         const accessRoutes = await usePermissionStore().generateRoutes()
@@ -54,7 +55,7 @@ router.beforeEach(async (to, from) => {
         // 重新导航到目标路由，确保动态路由已注册
         return { ...to, replace: true }
       } catch (err) {
-        await useUserStore().logOut()
+        await userStore.logOut()
         ElMessage.error(err)
         return { path: '/' }
       }

@@ -44,6 +44,14 @@ public interface IPatientService
     public int insertPatient(Patient patient);
 
     /**
+     * 自助完善患者信息
+     *
+     * @param patient 患者
+     * @return 结果
+     */
+    public int completePatient(Patient patient);
+
+    /**
      * 修改患者
      * 
      * @param patient 患者
@@ -66,4 +74,12 @@ public interface IPatientService
      * @return 结果
      */
     public int deletePatientByPatientId(Long patientId);
+
+    /**
+     * 根据用户ID查询患者
+     *
+     * @param userId 用户ID
+     * @return 患者
+     */
+    public Patient getPatientByUserId(Long userId);
 }

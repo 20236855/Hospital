@@ -1,5 +1,51 @@
 <template>
   <div class="app-container home">
+    <!-- 患者完善信息弹窗 -->
+    <el-dialog
+      title="完善患者信息"
+      :visible.sync="patientDialogVisible"
+      width="400px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+    >
+      <div style="text-align: center; padding: 20px 0">
+        <i class="el-icon-info" style="font-size: 40px; color: #409EFF;"></i>
+        <p style="margin-top: 20px; font-size: 16px;">
+          您还未完善患者信息
+        </p>
+        <p style="color: #909399; margin-top: 10px;">
+          完善信息后可使用更多功能
+        </p>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="handlePatientLater">稍后完善</el-button>
+        <el-button type="primary" @click="handlePatientComplete">立即完善</el-button>
+      </span>
+    </el-dialog>
+    <!-- 医生等待分配科室弹窗 -->
+    <el-dialog
+      title="温馨提示"
+      :visible.sync="doctorDialogVisible"
+      width="400px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+    >
+      <div style="text-align: center; padding: 20px 0">
+        <i class="el-icon-info" style="font-size: 40px; color: #409EFF;"></i>
+        <p style="margin-top: 20px; font-size: 16px;">
+          请等待管理员分配科室
+        </p>
+        <p style="color: #909399; margin-top: 10px;">
+          您的账号已注册成功，请联系管理员为您分配科室后即可正常使用系统
+        </p>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="handleDoctorConfirm">我知道了</el-button>
+      </span>
+    </el-dialog>
+    
     <el-row :gutter="20">
       <el-col :sm="24" :lg="12" style="padding-left: 20px">
         <h2>若依后台管理框架</h2>
@@ -1017,17 +1063,69 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
+
 export default {
   name: "Index",
   data() {
     return {
       // 版本号
-      version: "3.6.8"
+      version: "3.6.8",
+      patientDialogVisible: false,
+      doctorDialogVisible: false,
+      hasShownDialog: false
     }
+  },
+  computed: {
+    ...mapState({
+      userStore: state => state.user
+    })
+  },
+  watch: {
+    'userStore.needCompleteInfo': {
+      handler(newVal) {
+        if (newVal && !this.hasShownDialog) {
+          this.$nextTick(() => {
+            if (this.userStore.userType === 'patient') {
+              this.patientDialogVisible = true
+            } else if (this.userStore.userType === 'doctor') {
+              this.doctorDialogVisible = true
+            }
+            this.hasShownDialog = true
+          })
+        }
+      },
+      immediate: true
+    }
+  },
+  mounted() {
+    // 额外检查，确保即使 watch 没触发也能显示
+    this.$nextTick(() => {
+      setTimeout(() => {
+        if (this.userStore.needCompleteInfo && !this.hasShownDialog) {
+          if (this.userStore.userType === 'patient') {
+            this.patientDialogVisible = true
+          } else if (this.userStore.userType === 'doctor') {
+            this.doctorDialogVisible = true
+          }
+          this.hasShownDialog = true
+        }
+      }, 800)
+    })
   },
   methods: {
     goTarget(href) {
       window.open(href, "_blank")
+    },
+    handlePatientLater() {
+      this.patientDialogVisible = false
+    },
+    handlePatientComplete() {
+      this.patientDialogVisible = false
+      this.$router.push('/complete/patient')
+    },
+    handleDoctorConfirm() {
+      this.doctorDialogVisible = false
     }
   }
 }

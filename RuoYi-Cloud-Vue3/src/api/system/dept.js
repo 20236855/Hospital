@@ -9,6 +9,17 @@ export function listDept(query) {
   })
 }
 
+// 注册页查询启用科室列表
+export function listRegisterDept() {
+  return request({
+    url: '/system/dept/register/list',
+    headers: {
+      isToken: false
+    },
+    method: 'get'
+  })
+}
+
 // 查询部门列表（排除节点）
 export function listDeptExcludeChild(deptId) {
   return request({

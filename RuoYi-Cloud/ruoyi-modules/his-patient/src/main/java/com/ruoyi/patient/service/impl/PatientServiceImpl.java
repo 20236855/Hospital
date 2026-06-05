@@ -3,12 +3,21 @@ package com.ruoyi.patient.service.impl;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
+import com.ruoyi.common.core.constant.SecurityConstants;
+import com.ruoyi.common.core.domain.R;
+import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.utils.DateUtils;
+import com.ruoyi.common.core.utils.StringUtils;
+import com.ruoyi.common.security.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.patient.mapper.PatientMapper;
 import com.ruoyi.patient.domain.Patient;
 import com.ruoyi.patient.service.IPatientService;
+import com.ruoyi.system.api.RemoteUserService;
+import com.ruoyi.system.api.domain.SysUser;
 
 /**
  * 患者Service业务层处理
@@ -21,6 +30,9 @@ public class PatientServiceImpl implements IPatientService
 {
     @Autowired
     private PatientMapper patientMapper;
+    
+    @Autowired
+    private RemoteUserService remoteUserService;
 
     /**
      * 查询患者
@@ -62,29 +74,41 @@ public class PatientServiceImpl implements IPatientService
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int insertPatient(Patient patient)
     {
-        // 1.获取当日日期前缀
-        String today = new SimpleDateFormat("yyyyMMdd").format(new Date());
-        
-        // 2.查询当天最大病历号
-        String maxMedicalId = patientMapper.selectMaxMedicalIdByDay(today);
-        String newNo;
-        
-        if(maxMedicalId == null){
-            //当日第一条，从001开始
-            newNo = today + "001";
-        }else{
-            //截取后3位数字+1，不足3位补0
-            String numStr = maxMedicalId.substring(8);
-            int num = Integer.parseInt(numStr)+1;
-            newNo = today + String.format("%03d",num);
+        // 1.自动生成病历号：P+年月日+6位随机数
+        if (patient.getPatientNo() == null || patient.getPatientNo().isEmpty()) {
+            patient.setPatientNo(generatePatientNo());
         }
         
-        //3.自动赋值给实体，前端不用传
-        patient.setPatientNo(newNo);
+        // 2.线下建档：手机号有效时自动创建或绑定系统用户
+        bindSystemUserIfNecessary(patient);
         
-        //4.正常insert入库
+        // 3.正常insert入库
+        patient.setCreateTime(DateUtils.getNowDate());
+        return patientMapper.insertPatient(patient);
+    }
+
+    /**
+     * 自助完善患者信息：只保存业务档案，不创建系统用户。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int completePatient(Patient patient)
+    {
+        if (patient.getUserId() == null)
+        {
+            throw new ServiceException("当前登录用户不能为空");
+        }
+        if (patientMapper.selectPatientByUserId(patient.getUserId()) != null)
+        {
+            throw new ServiceException("患者档案已存在，请勿重复完善");
+        }
+        if (StringUtils.isEmpty(patient.getPatientNo()))
+        {
+            patient.setPatientNo(generatePatientNo());
+        }
         patient.setCreateTime(DateUtils.getNowDate());
         return patientMapper.insertPatient(patient);
     }
@@ -96,8 +120,16 @@ public class PatientServiceImpl implements IPatientService
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int updatePatient(Patient patient)
     {
+        // 如果手机号有变化或之前没有userId
+        Patient oldPatient = patientMapper.selectPatientByPatientId(patient.getPatientId());
+        if (StringUtils.isNotEmpty(patient.getPhone()) && (oldPatient == null || oldPatient.getUserId() == null))
+        {
+            bindSystemUserIfNecessary(patient);
+        }
+        
         patient.setUpdateTime(DateUtils.getNowDate());
         return patientMapper.updatePatient(patient);
     }
@@ -124,5 +156,63 @@ public class PatientServiceImpl implements IPatientService
     public int deletePatientByPatientId(Long patientId)
     {
         return patientMapper.deletePatientByPatientId(patientId);
+    }
+
+    /**
+     * 根据用户ID查询患者
+     */
+    @Override
+    public Patient getPatientByUserId(Long userId)
+    {
+        return patientMapper.selectPatientByUserId(userId);
+    }
+
+    private void bindSystemUserIfNecessary(Patient patient)
+    {
+        if (patient.getUserId() != null || StringUtils.isEmpty(patient.getPhone()))
+        {
+            return;
+        }
+        SysUser existUser = getUserByPhonenumber(patient.getPhone());
+        if (existUser == null)
+        {
+            SysUser newUser = new SysUser();
+            newUser.setUserName(patient.getPhone());
+            newUser.setNickName(patient.getName());
+            newUser.setPhonenumber(patient.getPhone());
+            newUser.setPassword(SecurityUtils.encryptPassword("123456"));
+            newUser.setUserType("patient");
+            newUser.setStatus("0");
+            R<Boolean> registerResult = remoteUserService.registerUserInfo(newUser, SecurityConstants.INNER);
+            if (R.isError(registerResult))
+            {
+                throw new ServiceException(registerResult.getMsg());
+            }
+            existUser = getUserByPhonenumber(patient.getPhone());
+        }
+        if (existUser != null)
+        {
+            patient.setUserId(existUser.getUserId());
+        }
+    }
+
+    private SysUser getUserByPhonenumber(String phonenumber)
+    {
+        R<SysUser> userResult = remoteUserService.getUserInfoByPhonenumber(phonenumber, SecurityConstants.INNER);
+        if (R.isError(userResult))
+        {
+            throw new ServiceException(userResult.getMsg());
+        }
+        return userResult.getData();
+    }
+    
+    /**
+     * 生成病历号：P+年月日+6位随机数
+     */
+    private String generatePatientNo() {
+        String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        Random random = new Random();
+        int randomNum = random.nextInt(900000) + 100000; // 6位随机数
+        return "P" + dateStr + String.valueOf(randomNum);
     }
 }

@@ -12,7 +12,7 @@ import com.ruoyi.common.security.annotation.EnableRyFeignClients;
  */
 @EnableCustomConfig
 @EnableRyFeignClients
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.ruoyi.emr")
 public class HisEmrApplication
 {
     public static void main(String[] args)

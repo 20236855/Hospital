@@ -104,4 +104,12 @@ public interface SysRoleMapper
      * @return 结果
      */
     public int deleteRoleByIds(Long[] roleIds);
+
+    /**
+     * 根据角色权限字符查询角色
+     * 
+     * @param roleKey 角色权限字符
+     * @return 角色对象信息
+     */
+    public SysRole selectRoleByKey(String roleKey);
 }

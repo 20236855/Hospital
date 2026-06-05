@@ -36,6 +36,14 @@ public interface IDoctorService
     public int insertDoctor(Doctor doctor);
 
     /**
+     * 自助完善医生信息
+     *
+     * @param doctor 医生信息
+     * @return 结果
+     */
+    public int completeDoctor(Doctor doctor);
+
+    /**
      * 修改医生信息
      * 
      * @param doctor 医生信息
@@ -58,4 +66,12 @@ public interface IDoctorService
      * @return 结果
      */
     public int deleteDoctorByDoctorId(Long doctorId);
+
+    /**
+     * 根据用户ID查询医生信息
+     * 
+     * @param userId 用户ID
+     * @return 医生信息
+     */
+    public Doctor getDoctorByUserId(Long userId);
 }

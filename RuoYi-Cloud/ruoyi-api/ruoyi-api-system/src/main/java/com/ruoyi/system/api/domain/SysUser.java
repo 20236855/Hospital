@@ -95,6 +95,9 @@ public class SysUser extends BaseEntity
     /** 角色ID */
     private Long roleId;
 
+    /** 用户类型（patient/doctor/00） */
+    private String userType;
+
     public SysUser()
     {
 
@@ -308,12 +311,23 @@ public class SysUser extends BaseEntity
         this.roleId = roleId;
     }
 
+    public String getUserType()
+    {
+        return userType;
+    }
+
+    public void setUserType(String userType)
+    {
+        this.userType = userType;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("userId", getUserId())
             .append("deptId", getDeptId())
             .append("userName", getUserName())
+            .append("userType", getUserType())
             .append("nickName", getNickName())
             .append("email", getEmail())
             .append("phonenumber", getPhonenumber())

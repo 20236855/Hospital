@@ -42,3 +42,12 @@ export function delDoctor(doctorId) {
     method: 'delete'
   })
 }
+
+// 医生自助完善信息
+export function completeDoctor(data) {
+  return request({
+    url: '/hisdoctor/doctor/complete',
+    method: 'post',
+    data: data
+  })
+}

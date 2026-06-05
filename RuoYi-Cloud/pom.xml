@@ -212,6 +212,13 @@
                 <version>${ruoyi.version}</version>
             </dependency>
 
+            <!-- HIS接口 -->
+            <dependency>
+                <groupId>com.ruoyi</groupId>
+                <artifactId>ruoyi-api-his</artifactId>
+                <version>${ruoyi.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

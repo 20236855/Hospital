@@ -49,6 +49,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where doctor_id = #{doctorId}
     </select>
 
+    <select id="selectDoctorByUserId" parameterType="Long" resultMap="DoctorResult">
+        <include refid="selectDoctorVo"/>
+        where user_id = #{userId}
+        limit 1
+    </select>
+
     <insert id="insertDoctor" parameterType="Doctor" useGeneratedKeys="true" keyProperty="doctorId">
         insert into doctor
         <trim prefix="(" suffix=")" suffixOverrides=",">

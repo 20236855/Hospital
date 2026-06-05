@@ -1,7 +1,9 @@
 package com.ruoyi.system.controller;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -44,6 +46,23 @@ public class SysDeptController extends BaseController
     public AjaxResult list(SysDept dept)
     {
         List<SysDept> depts = deptService.selectDeptList(dept);
+        return success(depts);
+    }
+
+    /**
+     * 注册页获取启用部门列表
+     */
+    @GetMapping("/register/list")
+    public AjaxResult registerList()
+    {
+        SysDept dept = new SysDept();
+        dept.setStatus(UserConstants.DEPT_NORMAL);
+        List<Map<String, Object>> depts = deptService.selectDeptList(dept).stream().map(item -> {
+            Map<String, Object> option = new LinkedHashMap<>();
+            option.put("deptId", item.getDeptId());
+            option.put("deptName", item.getDeptName());
+            return option;
+        }).collect(Collectors.toList());
         return success(depts);
     }
 

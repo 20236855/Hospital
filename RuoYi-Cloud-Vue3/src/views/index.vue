@@ -263,11 +263,35 @@
         </div>
       </section>
     </section>
+
+    <!-- 完善信息提醒弹窗 -->
+    <el-dialog
+      v-model="showCompleteInfoDialog"
+      :title="`完善您的${userTypeText}信息`"
+      width="500px"
+      center
+      close-on-click-modal
+      :close-on-click-modal="false"
+    >
+      <div class="complete-info-content">
+        <div class="complete-info-icon">
+          <el-icon><UserFilled /></el-icon>
+        </div>
+        <p>完善您的个人信息可以为您提供更好的就诊服务</p>
+      </div>
+      <template #footer>
+        <div class="complete-info-footer">
+          <el-button @click="showCompleteInfoDialog = false">稍后完善</el-button>
+          <el-button type="primary" @click="goToCompleteInfo">立即完善</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Index">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   BellFilled,
   Coin,
@@ -282,6 +306,40 @@ import {
   Van,
   WarningFilled
 } from '@element-plus/icons-vue'
+import useUserStore from '@/store/modules/user'
+
+const router = useRouter()
+const userStore = useUserStore()
+
+// 完善信息弹窗状态
+const showCompleteInfoDialog = ref(false)
+
+// 用户类型文本
+const userTypeText = computed(() => {
+  return userStore.userType === 'doctor' ? '医生' : '患者'
+})
+
+// 页面加载时检查是否需要完善信息
+onMounted(() => {
+  nextTick(() => {
+    // 延迟一下，确保用户信息已经加载
+    setTimeout(() => {
+      if (userStore.needCompleteInfo && userStore.userType) {
+        showCompleteInfoDialog.value = true
+      }
+    }, 500)
+  })
+})
+
+// 跳转到完善信息页面
+const goToCompleteInfo = () => {
+  showCompleteInfoDialog.value = false
+  if (userStore.userType === 'doctor') {
+    router.push('/complete/doctor')
+  } else if (userStore.userType === 'patient') {
+    router.push('/complete/patient')
+  }
+}
 
 const currentTime = computed(() => {
   const now = new Date()
@@ -1920,5 +1978,36 @@ onBeforeUnmount(() => {
     font-size: 15px;
     line-height: 1.7;
   }
+}
+
+/* 完善信息弹窗样式 */
+.complete-info-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.complete-info-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #73d8b9, #49b99d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 40px;
+}
+
+.complete-info-content p {
+  font-size: 16px;
+  color: #607f8c;
+  margin: 0;
+}
+
+.complete-info-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
 }
 </style>
