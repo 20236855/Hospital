@@ -1,43 +1,110 @@
 <template>
-  <div class="record-container">
-    <van-nav-bar title="电子病历" left-arrow @click-left="goBack" />
+  <div class="record-page">
+    <div class="auth-bg-cross cross-one"></div>
+    <div class="auth-bg-cross cross-two"></div>
+    <div class="auth-bg-cross cross-three"></div>
+    <div class="auth-bg-cross cross-four"></div>
 
-    <div class="content">
+    <div class="header-section">
+      <div class="header-back" @click="goBack">
+        <van-icon name="arrow-left" />
+      </div>
+      <div class="header-title">
+        <span class="title-icon float-animation">
+          <span class="title-cross"></span>
+        </span>
+        <h1>电子病历</h1>
+      </div>
+    </div>
+
+    <div class="content-section">
       <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
         <van-list v-model:loading="loading" :finished="finished" @load="onLoad">
-          <div v-if="recordList.length === 0 && !loading" class="empty">
-            <van-empty description="暂无病历记录" />
+          <div v-if="recordList.length === 0 && !loading" class="empty-state slide-up-animation">
+            <div class="empty-icon">
+              <svg viewBox="0 0 120 120" class="empty-svg">
+                <defs>
+                  <linearGradient id="emptyGrad" x1="0" x2="1" y1="0" y2="1">
+                    <stop offset="0" stop-color="#68c7a9" />
+                    <stop offset="1" stop-color="#8ed6f2" />
+                  </linearGradient>
+                </defs>
+                <circle cx="60" cy="60" r="45" fill="none" stroke="url(#emptyGrad)" stroke-width="3" opacity="0.3" />
+                <rect x="38" y="42" width="44" height="52" rx="8" fill="none" stroke="url(#emptyGrad)" stroke-width="3" />
+                <line x1="50" y1="58" x2="70" y2="58" stroke="url(#emptyGrad)" stroke-width="3" stroke-linecap="round" />
+                <line x1="50" y1="70" x2="65" y2="70" stroke="url(#emptyGrad)" stroke-width="3" stroke-linecap="round" opacity="0.6" />
+                <line x1="50" y1="82" x2="60" y2="82" stroke="url(#emptyGrad)" stroke-width="3" stroke-linecap="round" opacity="0.4" />
+              </svg>
+            </div>
+            <div class="empty-text">
+              <h3>暂无病历记录</h3>
+              <p>您还没有就诊记录</p>
+            </div>
           </div>
-          <div v-else>
-            <van-card
-              v-for="item in recordList"
+
+          <div v-else class="record-list">
+            <div 
+              v-for="(item, index) in recordList" 
               :key="item.recordId"
-              :title="item.diagnosis"
-              :desc="item.createTime"
-              is-link
+              class="record-card slide-up-animation"
+              :style="{ animationDelay: `${index * 0.08}s` }"
               @click="viewDetail(item)"
             >
-              <template #tags>
-                <van-tag plain type="primary" size="small">{{ item.visitType }}</van-tag>
-              </template>
-            </van-card>
+              <div class="card-left">
+                <div class="date-badge float-animation" :style="{ animationDelay: `${index * 0.05}s` }">
+                  <span class="date-day">{{ formatDate(item.date).day }}</span>
+                  <span class="date-month">{{ formatDate(item.date).month }}</span>
+                </div>
+              </div>
+              <div class="card-content">
+                <div class="card-header">
+                  <div class="doctor-info">
+                    <span class="doctor-avatar">{{ (item.doctorName || '医生').charAt(0) }}</span>
+                    <div class="doctor-details">
+                      <span class="doctor-name">{{ item.doctorName || '医生' }}</span>
+                      <span class="dept-name">{{ item.department || '内科' }}</span>
+                    </div>
+                  </div>
+                  <div class="visit-type">
+                    <span class="type-tag">{{ item.visitType || '门诊' }}</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="diagnosis-section">
+                    <span class="diagnosis-label">诊断</span>
+                    <span class="diagnosis-text">{{ item.diagnosis || '常见病症，建议多休息，多喝水' }}</span>
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <span class="visit-time">
+                    <van-icon name="clock-o" />
+                    {{ formatTime(item.date) }}
+                  </span>
+                  <span class="view-more">
+                    查看详情
+                    <van-icon name="arrow" />
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </van-list>
       </van-pull-refresh>
     </div>
-  </div>
 
-  <van-tabbar v-model="active">
-    <van-tabbar-item icon="home-o" to="/">首页</van-tabbar-item>
-    <van-tabbar-item icon="todo-list-o" to="/register">挂号</van-tabbar-item>
-    <van-tabbar-item icon="notes-o" to="/record">病历</van-tabbar-item>
-    <van-tabbar-item icon="user-o" to="/profile">我的</van-tabbar-item>
-  </van-tabbar>
+    <van-tabbar v-model="active" class="custom-tabbar">
+      <van-tabbar-item icon="home-o" to="/">首页</van-tabbar-item>
+      <van-tabbar-item icon="todo-list-o" to="/register">挂号</van-tabbar-item>
+      <van-tabbar-item icon="notes-o" to="/record">病历</van-tabbar-item>
+      <van-tabbar-item icon="user-o" to="/profile">我的</van-tabbar-item>
+    </van-tabbar>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { showToast } from 'vant'
 import { getMedicalRecordList } from '@/api/emr'
 
 const router = useRouter()
@@ -48,6 +115,22 @@ const finished = ref(false)
 const recordList = ref([])
 const pageNum = ref(1)
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return { day: '--', month: '--' }
+  const date = new Date(dateStr.replace(/-/g, '/'))
+  const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+  return {
+    day: date.getDate().toString().padStart(2, '0'),
+    month: months[date.getMonth()]
+  }
+}
+
+const formatTime = (dateStr) => {
+  if (!dateStr) return '--:--'
+  const date = new Date(dateStr.replace(/-/g, '/'))
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
 const onLoad = async () => {
   try {
     const res = await getMedicalRecordList({
@@ -55,12 +138,12 @@ const onLoad = async () => {
       pageSize: 10
     })
     if (pageNum.value === 1) {
-      recordList.value = res.rows
+      recordList.value = res.rows || []
     } else {
-      recordList.value = [...recordList.value, ...res.rows]
+      recordList.value = [...recordList.value, ...(res.rows || [])]
     }
     loading.value = false
-    if (recordList.value.length >= res.total) {
+    if (recordList.value.length >= (res.total || 10)) {
       finished.value = true
     } else {
       pageNum.value++
@@ -80,7 +163,7 @@ const onRefresh = async () => {
 }
 
 const viewDetail = (item) => {
-  console.log('查看详情', item)
+  showToast('查看病历详情功能开发中')
 }
 
 const goBack = () => {
@@ -93,17 +176,382 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.record-container {
+.record-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
-  padding-bottom: 50px;
+  background: var(--bg-gradient);
+  padding-bottom: 60px;
+  position: relative;
+  overflow-x: hidden;
+}
 
-  .content {
-    padding: 10px;
+.auth-bg-cross {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  opacity: 0.12;
+  animation: authCrossBreath 8s ease-in-out infinite;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    background: #68c7a9;
+    border-radius: 8px;
   }
 
-  .empty {
-    padding-top: 100px;
+  &::before {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    transform: translateY(-50%);
   }
+
+  &::after {
+    top: 0;
+    left: 50%;
+    width: 6px;
+    height: 100%;
+    transform: translateX(-50%);
+  }
+}
+
+.cross-one {
+  top: 12%;
+  left: 8%;
+  animation-delay: 0s;
+}
+
+.cross-two {
+  top: 25%;
+  right: 10%;
+  animation-delay: -2s;
+}
+
+.cross-three {
+  bottom: 30%;
+  left: 12%;
+  animation-delay: -4s;
+}
+
+.cross-four {
+  bottom: 15%;
+  right: 6%;
+  animation-delay: -6s;
+}
+
+.header-section {
+  padding: 16px 20px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-back {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  .van-icon {
+    color: #5f7580;
+    font-size: 20px;
+  }
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #4f7380;
+    margin: 0;
+  }
+}
+
+.title-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(104, 199, 169, 0.2);
+}
+
+.title-cross {
+  position: relative;
+  width: 24px;
+  height: 24px;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    background: linear-gradient(135deg, #68c7a9, #89dbc1);
+    border-radius: 6px;
+  }
+
+  &::before {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    transform: translateY(-50%);
+  }
+
+  &::after {
+    top: 0;
+    left: 50%;
+    width: 5px;
+    height: 100%;
+    transform: translateX(-50%);
+  }
+}
+
+.content-section {
+  padding: 0 16px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+}
+
+.empty-icon {
+  margin-bottom: 24px;
+}
+
+.empty-svg {
+  width: 140px;
+  height: 140px;
+  animation: floatSoft 4s ease-in-out infinite;
+}
+
+.empty-text {
+  text-align: center;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #4f7380;
+    margin: 0 0 8px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #8e9fa8;
+    margin: 0;
+  }
+}
+
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.record-card {
+  background: rgba(255, 255, 255, 0.74);
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid rgba(194, 228, 236, 0.72);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(8px);
+  display: flex;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(102, 170, 189, 0.18);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.card-left {
+  flex-shrink: 0;
+}
+
+.date-badge {
+  width: 64px;
+  height: 72px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(104, 199, 169, 0.25);
+
+  .date-day {
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+  }
+
+  .date-month {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    margin-top: 4px;
+  }
+}
+
+.card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.doctor-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doctor-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #8ed6f2, #bfefff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+
+.doctor-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.doctor-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #4f7380;
+}
+
+.dept-name {
+  font-size: 13px;
+  color: #8e9fa8;
+}
+
+.visit-type {
+  flex-shrink: 0;
+}
+
+.type-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: #68c7a9;
+  background: rgba(104, 199, 169, 0.12);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.card-body {
+  margin-bottom: 12px;
+}
+
+.diagnosis-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.diagnosis-label {
+  font-size: 13px;
+  color: #8e9fa8;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.diagnosis-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #5f7580;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid rgba(213, 237, 243, 0.6);
+}
+
+.visit-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #a5b8c0;
+
+  .van-icon {
+    font-size: 14px;
+  }
+}
+
+.view-more {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #68c7a9;
+
+  .van-icon {
+    font-size: 14px;
+  }
+}
+
+.custom-tabbar {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(194, 228, 236, 0.72);
+}
+
+@keyframes authCrossBreath {
+  0%, 100% { opacity: 0.08; transform: scale(1); }
+  50% { opacity: 0.18; transform: scale(1.08); }
+}
+
+@keyframes floatSoft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 </style>

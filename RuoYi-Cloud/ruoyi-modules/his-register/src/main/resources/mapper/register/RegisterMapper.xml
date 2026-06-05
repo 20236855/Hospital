@@ -78,6 +78,13 @@
         where id_card = #{idCard}
             limit 1
     </select>
+    
+    <select id="selectPatientById" resultType="java.util.Map">
+        select patient_id as patientId, patient_no as patientNo, name, phone, id_card as idCard
+        from patient
+        where patient_id = #{patientId}
+            limit 1
+    </select>
 
     <!-- 根据医生ID查询挂号费 -->
     <select id="selectRegisterFeeByDoctorId" resultType="java.math.BigDecimal">

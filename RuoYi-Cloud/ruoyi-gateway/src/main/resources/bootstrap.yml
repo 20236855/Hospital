@@ -1,4 +1,4 @@
-﻿# Tomcat
+# Tomcat
 server:
   port: 8080
 
@@ -15,6 +15,42 @@ spring:
           uri: lb://his-doctor
           predicates:
             - Path=/hisdoctor/**
+          filters:
+            - StripPrefix=1
+        - id: his-register
+          uri: lb://his-register
+          predicates:
+            - Path=/register/**
+          filters:
+            - StripPrefix=0
+        - id: his-emr
+          uri: lb://his-emr
+          predicates:
+            - Path=/emr/**
+          filters:
+            - StripPrefix=0
+        - id: his-patient
+          uri: lb://his-patient
+          predicates:
+            - Path=/patient/**
+          filters:
+            - StripPrefix=0
+        - id: his-exam
+          uri: lb://his-exam
+          predicates:
+            - Path=/hisexam/**
+          filters:
+            - StripPrefix=1
+        - id: his-prescription
+          uri: lb://his-prescription
+          predicates:
+            - Path=/hisprescription/**
+          filters:
+            - StripPrefix=1
+        - id: his-payment
+          uri: lb://his-payment
+          predicates:
+            - Path=/hispayment/**
           filters:
             - StripPrefix=1
     nacos:

@@ -93,4 +93,29 @@ public class ScheduleServiceImpl implements IScheduleService
     {
         return scheduleMapper.deleteScheduleByScheduleId(scheduleId);
     }
+
+    /**
+     * 增加排班预约人数
+     * 
+     * @param scheduleId 排班ID
+     * @return 结果
+     */
+    @Override
+    public int incrementReservedNumber(Long scheduleId)
+    {
+        return scheduleMapper.incrementReservedNumber(scheduleId);
+    }
+
+    /**
+     * 更新排班状态
+     * 
+     * @param scheduleId 排班ID
+     * @param status 状态
+     * @return 结果
+     */
+    @Override
+    public int updateScheduleStatus(Long scheduleId, String status)
+    {
+        return scheduleMapper.updateScheduleStatus(scheduleId, status);
+    }
 }

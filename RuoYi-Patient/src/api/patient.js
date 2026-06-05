@@ -14,3 +14,10 @@ export function getPatient(id) {
     method: 'get'
   })
 }
+
+export function getPatientInfo() {
+  return request({
+    url: '/patient/patient/info',
+    method: 'get'
+  })
+}

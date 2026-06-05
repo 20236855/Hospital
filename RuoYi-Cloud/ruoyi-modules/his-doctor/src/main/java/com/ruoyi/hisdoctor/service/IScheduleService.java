@@ -58,4 +58,21 @@ public interface IScheduleService
      * @return 结果
      */
     public int deleteScheduleByScheduleId(Long scheduleId);
+
+    /**
+     * 增加排班预约人数
+     * 
+     * @param scheduleId 排班ID
+     * @return 结果
+     */
+    public int incrementReservedNumber(Long scheduleId);
+
+    /**
+     * 更新排班状态
+     * 
+     * @param scheduleId 排班ID
+     * @param status 状态
+     * @return 结果
+     */
+    public int updateScheduleStatus(Long scheduleId, String status);
 }

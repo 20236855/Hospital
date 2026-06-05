@@ -47,6 +47,14 @@ public interface RegisterMapper
      * @return 患者信息
      */
     public Map<String, Object> selectPatientByIdCard(@Param("idCard") String idCard);
+    
+    /**
+     * 根据患者ID查询患者
+     *
+     * @param patientId 患者ID
+     * @return 患者信息
+     */
+    public Map<String, Object> selectPatientById(@Param("patientId") Long patientId);
 
     /**
      * 根据医生ID查询挂号费

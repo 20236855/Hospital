@@ -150,9 +150,22 @@ public class RegisterServiceImpl implements IRegisterService
 
     private void setPatientByIdCard(Register register)
     {
+        // 患者手机端已经登录，直接使用patientId
+        if (register.getPatientId() != null)
+        {
+            // 验证患者是否存在
+            Map<String, Object> patient = registerMapper.selectPatientById(register.getPatientId());
+            if (patient == null || patient.get("patientId") == null)
+            {
+                throw new ServiceException("患者不存在");
+            }
+            return;
+        }
+        
+        // 网页端可以通过身份证查找（保留原有功能）
         if (StringUtils.isEmpty(register.getIdCard()))
         {
-            throw new ServiceException("身份证号不能为空");
+            throw new ServiceException("请选择患者或输入身份证号");
         }
         Map<String, Object> patient = registerMapper.selectPatientByIdCard(register.getIdCard());
         if (patient == null || patient.get("patientId") == null)

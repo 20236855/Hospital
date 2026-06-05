@@ -16,6 +16,10 @@ export function addRegister(data) {
   })
 }
 
+export function createRegister(data) {
+  return addRegister(data)
+}
+
 export function getDoctorList(query) {
   return request({
     url: '/hisdoctor/doctor/list',
@@ -27,6 +31,14 @@ export function getDoctorList(query) {
 export function getScheduleList(query) {
   return request({
     url: '/hisdoctor/schedule/list',
+    method: 'get',
+    params: query
+  })
+}
+
+export function getDeptList(query) {
+  return request({
+    url: '/system/dept/list',
     method: 'get',
     params: query
   })

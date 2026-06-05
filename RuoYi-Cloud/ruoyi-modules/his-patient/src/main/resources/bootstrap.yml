@@ -24,3 +24,10 @@ spring:
 mybatis:
   typeAliasesPackage: com.ruoyi.patient.domain
   mapper-locations: classpath:mapper/**/*.xml
+
+management:
+  health:
+    redis:
+      enabled: false
+    sentinel:
+      enabled: false
