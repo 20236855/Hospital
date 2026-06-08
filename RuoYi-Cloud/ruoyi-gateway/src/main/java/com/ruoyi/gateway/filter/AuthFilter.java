@@ -46,8 +46,8 @@ public class AuthFilter implements GlobalFilter, Ordered
         ServerHttpRequest.Builder mutate = request.mutate();
 
         String url = request.getURI().getPath();
-        // 跳过不需要验证的路径
-        if (StringUtils.matches(url, ignoreWhite.getWhites()))
+        // 跳过不需要验证的路径 - 包括我们新增的患者登录接口
+        if (StringUtils.matches(url, ignoreWhite.getWhites()) || "/auth/patient/login".equals(url))
         {
             return chain.filter(exchange);
         }

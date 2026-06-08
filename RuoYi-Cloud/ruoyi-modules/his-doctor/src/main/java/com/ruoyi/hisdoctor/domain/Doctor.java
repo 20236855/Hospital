@@ -43,17 +43,16 @@ public class Doctor extends BaseEntity
     @Excel(name = "手机号")
     private String phone;
 
-    /** 职称 */
-    @Excel(name = "职称")
-    private String title;
+    /** 挂号级别ID */
+    @Excel(name = "挂号级别ID")
+    private Long levelId;
+
+    /** 挂号级别名称（查询展示用，不存数据库） */
+    private String levelName;
 
     /** 擅长领域 */
     @Excel(name = "擅长领域")
     private String specialty;
-
-    /** 门诊挂号费 */
-    @Excel(name = "门诊挂号费")
-    private BigDecimal outpatientFee;
 
     /** 医生简介 */
     @Excel(name = "医生简介")
@@ -132,39 +131,33 @@ public class Doctor extends BaseEntity
         this.phone = phone;
     }
 
-    public String getPhone() 
-    {
+    public String getPhone() {
         return phone;
     }
 
-    public void setTitle(String title) 
-    {
-        this.title = title;
+    public void setLevelId(Long levelId) {
+        this.levelId = levelId;
     }
 
-    public String getTitle() 
-    {
-        return title;
+    public Long getLevelId() {
+        return levelId;
     }
 
-    public void setSpecialty(String specialty) 
-    {
+    public void setLevelName(String levelName) {
+        this.levelName = levelName;
+    }
+
+    public String getLevelName() {
+        return levelName;
+    }
+
+    public void setSpecialty(String specialty) {
         this.specialty = specialty;
     }
 
     public String getSpecialty() 
     {
         return specialty;
-    }
-
-    public void setOutpatientFee(BigDecimal outpatientFee) 
-    {
-        this.outpatientFee = outpatientFee;
-    }
-
-    public BigDecimal getOutpatientFee() 
-    {
-        return outpatientFee;
     }
 
     public void setIntroduction(String introduction) 
@@ -207,9 +200,9 @@ public class Doctor extends BaseEntity
             .append("doctorName", getDoctorName())
             .append("gender", getGender())
             .append("phone", getPhone())
-            .append("title", getTitle())
+            .append("levelId", getLevelId())
+            .append("levelName", getLevelName())
             .append("specialty", getSpecialty())
-            .append("outpatientFee", getOutpatientFee())
             .append("introduction", getIntroduction())
             .append("avatar", getAvatar())
             .append("status", getStatus())

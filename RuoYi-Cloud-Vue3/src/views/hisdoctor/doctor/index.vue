@@ -53,21 +53,20 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="职称" prop="title">
-        <el-input
-          v-model="queryParams.title"
-          placeholder="请输入职称"
+      <el-form-item label="挂号级别" prop="levelId">
+        <el-select
+          v-model="queryParams.levelId"
+          placeholder="请选择挂号级别"
           clearable
           @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="门诊挂号费" prop="outpatientFee">
-        <el-input
-          v-model="queryParams.outpatientFee"
-          placeholder="请输入门诊挂号费"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        >
+          <el-option
+            v-for="item in levelList"
+            :key="item.levelId"
+            :label="item.levelName"
+            :value="item.levelId"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item label="头像" prop="avatar">
         <el-input
@@ -138,9 +137,8 @@
       <el-table-column label="医生姓名" align="center" prop="doctorName" />
       <el-table-column label="性别" align="center" prop="gender" />
       <el-table-column label="手机号" align="center" prop="phone" />
-      <el-table-column label="职称" align="center" prop="title" />
+      <el-table-column label="挂号级别" align="center" prop="levelName" />
       <el-table-column label="擅长领域" align="center" prop="specialty" />
-      <el-table-column label="门诊挂号费" align="center" prop="outpatientFee" />
       <el-table-column label="医生简介" align="center" prop="introduction" />
       <el-table-column label="头像" align="center" prop="avatar" />
       <el-table-column label="状态" align="center" prop="status" />
@@ -217,18 +215,20 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="职称" prop="title">
-              <el-input v-model="form.title" placeholder="请输入职称" />
+            <el-form-item label="挂号级别" prop="levelId">
+              <el-select v-model="form.levelId" placeholder="请选择挂号级别" style="width: 100%">
+                <el-option
+                  v-for="item in levelList"
+                  :key="item.levelId"
+                  :label="item.levelName"
+                  :value="item.levelId"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="擅长领域" prop="specialty">
               <el-input v-model="form.specialty" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="门诊挂号费" prop="outpatientFee">
-              <el-input v-model="form.outpatientFee" placeholder="请输入门诊挂号费" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -256,8 +256,13 @@
 <script setup name="Doctor">
 import { listDoctor, getDoctor, delDoctor, addDoctor, updateDoctor, listAvailableDoctorUsers } from "@/api/hisdoctor/doctor"
 import { listDept } from "@/api/system/dept"
+import { listDoctor, getDoctor, delDoctor, addDoctor, updateDoctor } from "@/api/hisdoctor/doctor"
+import { listDoctorlevel } from "@/api/hisdoctor/doctorlevel"
 
 const { proxy } = getCurrentInstance()
+
+// 挂号级别列表
+const levelList = ref([])
 
 const doctorList = ref([])
 const open = ref(false)
@@ -283,9 +288,8 @@ const data = reactive({
     doctorName: undefined,
     gender: undefined,
     phone: undefined,
-    title: undefined,
+    levelId: undefined,
     specialty: undefined,
-    outpatientFee: undefined,
     introduction: undefined,
     avatar: undefined,
     status: undefined,
@@ -296,6 +300,9 @@ const data = reactive({
     ],
     deptId: [
       { required: true, message: "所属科室不能为空", trigger: "change" }
+    ],
+    levelId: [
+      { required: true, message: "挂号级别不能为空", trigger: "change" }
     ],
   }
 })
@@ -359,6 +366,13 @@ function getList() {
   })
 }
 
+/** 获取挂号级别列表 */
+function getLevelList() {
+  listDoctorlevel().then(response => {
+    levelList.value = response.rows
+  })
+}
+
 /** 取消按钮 */
 function cancel() {
   open.value = false
@@ -375,9 +389,8 @@ function reset() {
     doctorName: null,
     gender: null,
     phone: null,
-    title: null,
+    levelId: null,
     specialty: null,
-    outpatientFee: null,
     introduction: null,
     avatar: null,
     status: null,
@@ -471,6 +484,7 @@ function handleExport() {
 getDeptOptions()
 getDoctorUserOptions()
 getList()
+getLevelList()
 </script>
 
 <style scoped>

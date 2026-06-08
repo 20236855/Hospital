@@ -65,6 +65,14 @@ public interface RegisterMapper
     BigDecimal selectRegisterFeeByDoctorId(@Param("doctorId") Long doctorId);
 
     /**
+     * 根据医生ID查询挂号级别ID
+     *
+     * @param doctorId 医生ID
+     * @return 挂号级别ID
+     */
+    Long selectLevelIdByDoctorId(@Param("doctorId") Long doctorId);
+
+    /**
      * 查询全部挂号级别
      */
     public List<Map<String, Object>> selectRegisterLevelList();
@@ -112,37 +120,4 @@ public interface RegisterMapper
      * @return 结果
      */
     public int deleteRegisterByRegisterIds(Long[] registerIds);
-
-    /**
-     * 根据排班ID查询排班
-     *
-     * @param scheduleId 排班ID
-     * @return 排班信息
-     */
-    public Map<String, Object> selectScheduleById(@Param("scheduleId") Long scheduleId);
-
-    /**
-     * 增加排班预约人数
-     *
-     * @param scheduleId 排班ID
-     * @return 结果
-     */
-    public int incrementScheduleReservedNumber(@Param("scheduleId") Long scheduleId);
-
-    /**
-     * 减少排班预约人数
-     *
-     * @param scheduleId 排班ID
-     * @return 结果
-     */
-    public int decrementScheduleReservedNumber(@Param("scheduleId") Long scheduleId);
-
-    /**
-     * 更新排班状态
-     *
-     * @param scheduleId 排班ID
-     * @param status 状态
-     * @return 结果
-     */
-    public int updateScheduleStatus(@Param("scheduleId") Long scheduleId, @Param("status") String status);
 }

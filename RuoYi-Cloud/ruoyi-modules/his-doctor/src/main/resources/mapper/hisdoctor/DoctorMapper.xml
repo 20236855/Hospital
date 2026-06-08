@@ -12,9 +12,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="doctorName"    column="doctor_name"    />
         <result property="gender"    column="gender"    />
         <result property="phone"    column="phone"    />
-        <result property="title"    column="title"    />
+        <result property="levelId"    column="level_id"    />
+        <result property="levelName"    column="level_name"    />
         <result property="specialty"    column="specialty"    />
-        <result property="outpatientFee"    column="outpatient_fee"    />
         <result property="introduction"    column="introduction"    />
         <result property="avatar"    column="avatar"    />
         <result property="status"    column="status"    />
@@ -23,35 +23,36 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectDoctorVo">
-        select doctor_id, user_id, dept_id, doctor_no, doctor_name, gender, phone, title, specialty, outpatient_fee, introduction, avatar, status, create_time, update_time from doctor
+        select d.doctor_id, d.user_id, d.dept_id, d.doctor_no, d.doctor_name, d.gender, d.phone, d.level_id, rl.level_name, d.specialty, d.introduction, d.avatar, d.status, d.create_time, d.update_time 
+        from doctor d
+        left join regist_level rl on d.level_id = rl.level_id
     </sql>
 
     <select id="selectDoctorList" parameterType="Doctor" resultMap="DoctorResult">
         <include refid="selectDoctorVo"/>
         <where>  
-            <if test="userId != null "> and user_id = #{userId}</if>
-            <if test="deptId != null "> and dept_id = #{deptId}</if>
-            <if test="doctorNo != null  and doctorNo != ''"> and doctor_no = #{doctorNo}</if>
-            <if test="doctorName != null  and doctorName != ''"> and doctor_name like concat('%', #{doctorName}, '%')</if>
-            <if test="gender != null  and gender != ''"> and gender = #{gender}</if>
-            <if test="phone != null  and phone != ''"> and phone = #{phone}</if>
-            <if test="title != null  and title != ''"> and title = #{title}</if>
-            <if test="specialty != null  and specialty != ''"> and specialty = #{specialty}</if>
-            <if test="outpatientFee != null "> and outpatient_fee = #{outpatientFee}</if>
-            <if test="introduction != null  and introduction != ''"> and introduction = #{introduction}</if>
-            <if test="avatar != null  and avatar != ''"> and avatar = #{avatar}</if>
-            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="userId != null "> and d.user_id = #{userId}</if>
+            <if test="deptId != null "> and d.dept_id = #{deptId}</if>
+            <if test="doctorNo != null  and doctorNo != ''"> and d.doctor_no = #{doctorNo}</if>
+            <if test="doctorName != null  and doctorName != ''"> and d.doctor_name like concat('%', #{doctorName}, '%')</if>
+            <if test="gender != null  and gender != ''"> and d.gender = #{gender}</if>
+            <if test="phone != null  and phone != ''"> and d.phone = #{phone}</if>
+            <if test="levelId != null "> and d.level_id = #{levelId}</if>
+            <if test="specialty != null  and specialty != ''"> and d.specialty = #{specialty}</if>
+            <if test="introduction != null  and introduction != ''"> and d.introduction = #{introduction}</if>
+            <if test="avatar != null  and avatar != ''"> and d.avatar = #{avatar}</if>
+            <if test="status != null  and status != ''"> and d.status = #{status}</if>
         </where>
     </select>
     
     <select id="selectDoctorByDoctorId" parameterType="Long" resultMap="DoctorResult">
         <include refid="selectDoctorVo"/>
-        where doctor_id = #{doctorId}
+        where d.doctor_id = #{doctorId}
     </select>
 
     <select id="selectDoctorByUserId" parameterType="Long" resultMap="DoctorResult">
         <include refid="selectDoctorVo"/>
-        where user_id = #{userId}
+        where d.user_id = #{userId}
         limit 1
     </select>
 
@@ -90,15 +91,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="doctorName != null and doctorName != ''">doctor_name,</if>
             <if test="gender != null">gender,</if>
             <if test="phone != null">phone,</if>
-            <if test="title != null">title,</if>
+            <if test="levelId != null">level_id,</if>
             <if test="specialty != null">specialty,</if>
-            <if test="outpatientFee != null">outpatient_fee,</if>
             <if test="introduction != null">introduction,</if>
             <if test="avatar != null">avatar,</if>
             <if test="status != null">status,</if>
             <if test="createTime != null">create_time,</if>
             <if test="updateTime != null">update_time,</if>
-         </trim>
+        </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="userId != null">#{userId},</if>
             <if test="deptId != null">#{deptId},</if>
@@ -106,15 +106,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="doctorName != null and doctorName != ''">#{doctorName},</if>
             <if test="gender != null">#{gender},</if>
             <if test="phone != null">#{phone},</if>
-            <if test="title != null">#{title},</if>
+            <if test="levelId != null">#{levelId},</if>
             <if test="specialty != null">#{specialty},</if>
-            <if test="outpatientFee != null">#{outpatientFee},</if>
             <if test="introduction != null">#{introduction},</if>
             <if test="avatar != null">#{avatar},</if>
             <if test="status != null">#{status},</if>
             <if test="createTime != null">#{createTime},</if>
             <if test="updateTime != null">#{updateTime},</if>
-         </trim>
+        </trim>
     </insert>
 
     <update id="updateDoctor" parameterType="Doctor">
@@ -126,9 +125,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="doctorName != null and doctorName != ''">doctor_name = #{doctorName},</if>
             <if test="gender != null">gender = #{gender},</if>
             <if test="phone != null">phone = #{phone},</if>
-            <if test="title != null">title = #{title},</if>
+            <if test="levelId != null">level_id = #{levelId},</if>
             <if test="specialty != null">specialty = #{specialty},</if>
-            <if test="outpatientFee != null">outpatient_fee = #{outpatientFee},</if>
             <if test="introduction != null">introduction = #{introduction},</if>
             <if test="avatar != null">avatar = #{avatar},</if>
             <if test="status != null">status = #{status},</if>

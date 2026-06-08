@@ -317,4 +317,35 @@ public class SysLoginService
         }
         recordLogService.recordLogininfor(username, Constants.REGISTER, "注册成功");
     }
+
+    /**
+     * 患者手机端登录 - 验证只有管理员和患者角色可进入
+     */
+    public LoginUser patientLogin(String username, String password)
+    {
+        // 先调用普通登录逻辑
+        LoginUser userInfo = login(username, password);
+        
+        // 验证角色 - 只有管理员和患者角色可以进入患者手机端
+        boolean isAllowed = false;
+        if (userInfo.getRoles() != null)
+        {
+            for (String roleKey : userInfo.getRoles())
+            {
+                if ("admin".equals(roleKey) || "patient".equals(roleKey))
+                {
+                    isAllowed = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!isAllowed)
+        {
+            recordLogService.recordLogininfor(username, Constants.LOGIN_FAIL, "当前角色不允许访问患者手机端");
+            throw new ServiceException("对不起，当前角色不允许访问患者手机端");
+        }
+        
+        return userInfo;
+    }
 }
