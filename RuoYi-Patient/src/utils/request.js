@@ -34,8 +34,27 @@ request.interceptors.response.use(
     return res
   },
   error => {
-    showToast(error.message || '网络错误')
-    return Promise.reject(error)
+    console.error('请求错误:', error)
+    let message = '网络错误'
+    if (error.response) {
+      // 服务器返回错误
+      const res = error.response.data
+      if (res && res.msg) {
+        message = res.msg
+      } else if (error.response.status === 401) {
+        message = '未授权，请重新登录'
+        localStorage.removeItem('token')
+        window.location.href = '#/login'
+      } else if (error.response.status === 404) {
+        message = '请求的资源不存在'
+      } else if (error.response.status === 500) {
+        message = '服务器内部错误'
+      }
+    } else if (error.message) {
+      message = error.message
+    }
+    showToast(message)
+    return Promise.reject(new Error(message))
   }
 )
 

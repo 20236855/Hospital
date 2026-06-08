@@ -11,10 +11,10 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: his-doctor
-          uri: lb://his-doctor
+        - id: ruoyi-auth
+          uri: lb://ruoyi-auth
           predicates:
-            - Path=/hisdoctor/**
+            - Path=/auth/**
           filters:
             - StripPrefix=1
         - id: his-register
@@ -35,6 +35,12 @@ spring:
             - Path=/patient/**
           filters:
             - StripPrefix=0
+        - id: his-doctor
+          uri: lb://his-doctor
+          predicates:
+            - Path=/hisdoctor/**
+          filters:
+            - StripPrefix=1
         - id: his-exam
           uri: lb://his-exam
           predicates:

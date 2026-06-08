@@ -227,7 +227,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showDialog } from 'vant'
 import { createRegister, getDoctorList, getDeptList, getScheduleList } from '@/api/register'
-import { getPatientList } from '@/api/patient'
+import { getPatientByUserId } from '@/api/patient'
+import { getInfo } from '@/api/user'
 
 const router = useRouter()
 const active = ref(1)
@@ -426,14 +427,17 @@ const goBack = () => {
 const ensurePatientId = async () => {
     try {
         const savedPatientId = localStorage.getItem('patientId')
-        const savedUsername = localStorage.getItem('username')
         
         if (!savedPatientId) {
-            const patientRes = await getPatientList({ pageNum: 1, pageSize: 10 })
-            if (patientRes.rows && patientRes.rows.length > 0) {
-                const patient = patientRes.rows.find(p => p.name === savedUsername) || patientRes.rows[0]
-                localStorage.setItem('patientId', patient.patientId)
-                localStorage.setItem('patientName', patient.name)
+            const userRes = await getInfo()
+            const userId = userRes?.user?.userId
+            if (userId) {
+                const patientRes = await getPatientByUserId(userId)
+                const patient = patientRes?.data
+                if (patient) {
+                    localStorage.setItem('patientId', patient.patientId)
+                    localStorage.setItem('patientName', patient.name)
+                }
             }
         }
     } catch (error) {

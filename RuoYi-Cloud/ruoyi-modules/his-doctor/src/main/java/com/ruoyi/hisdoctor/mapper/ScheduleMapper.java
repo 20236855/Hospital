@@ -75,4 +75,12 @@ public interface ScheduleMapper
      * @return 结果
      */
     public int updateScheduleStatus(Long scheduleId, String status);
+
+    /**
+     * 减少排班预约人数
+     * 
+     * @param scheduleId 排班ID
+     * @return 结果
+     */
+    public int decrementReservedNumber(Long scheduleId);
 }

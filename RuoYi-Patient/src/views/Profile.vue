@@ -144,9 +144,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast, showDialog } from 'vant'
 import { logout } from '@/api/login'
-import { getPatientList } from '@/api/patient'
+import { getPatientByUserId } from '@/api/patient'
 import { getRegisterList } from '@/api/register'
 import { getMedicalRecordList } from '@/api/emr'
+import { getInfo } from '@/api/user'
 
 const router = useRouter()
 const active = ref(3)
@@ -165,12 +166,18 @@ const loadUserData = async () => {
     const savedUsername = localStorage.getItem('username')
     const patientName = localStorage.getItem('patientName')
     userName.value = patientName || savedUsername || '患者'
-    
-    const patientRes = await getPatientList({ pageNum: 1, pageSize: 10 })
-    if (patientRes.rows && patientRes.rows.length > 0) {
-      const patient = patientRes.rows.find(p => p.name === savedUsername) || patientRes.rows[0]
-      userId.value = patient.patientId
-      userName.value = patient.name
+
+    const userRes = await getInfo()
+    const currentUserId = userRes?.user?.userId
+    if (currentUserId) {
+      userId.value = currentUserId
+      const patientRes = await getPatientByUserId(currentUserId)
+      const patient = patientRes?.data
+      if (patient) {
+        localStorage.setItem('patientId', patient.patientId)
+        localStorage.setItem('patientName', patient.name)
+        userName.value = patient.name
+      }
     }
     
     const registerRes = await getRegisterList({ pageNum: 1, pageSize: 100 })
@@ -188,7 +195,7 @@ const loadUserData = async () => {
 }
 
 const goToInfo = () => {
-  showToast('个人信息功能开发中')
+  router.push('/patient-complete')
 }
 
 const goToMyRegister = () => {

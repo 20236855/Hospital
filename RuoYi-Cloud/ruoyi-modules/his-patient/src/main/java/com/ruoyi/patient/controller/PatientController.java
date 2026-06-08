@@ -31,7 +31,7 @@ import com.ruoyi.common.core.web.page.TableDataInfo;
  * @date 2026-05-29
  */
 @RestController
-@RequestMapping("/patient")
+@RequestMapping({"/patient", ""})
 public class PatientController extends BaseController
 {
     @Autowired
@@ -40,7 +40,6 @@ public class PatientController extends BaseController
     /**
      * 查询患者列表
      */
-    @RequiresPermissions("patient:patient:list")
     @GetMapping("/list")
     public TableDataInfo list(Patient patient)
     {

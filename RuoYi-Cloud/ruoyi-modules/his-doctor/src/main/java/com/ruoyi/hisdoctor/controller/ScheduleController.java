@@ -101,4 +101,42 @@ public class ScheduleController extends BaseController
     {
         return toAjax(scheduleService.deleteScheduleByScheduleIds(scheduleIds));
     }
+
+    /**
+     * 预约排班（内部接口）
+     */
+    @PostMapping("/book/{scheduleId}")
+    public AjaxResult bookSchedule(@PathVariable Long scheduleId)
+    {
+        return toAjax(scheduleService.bookSchedule(scheduleId));
+    }
+
+    /**
+     * 取消排班预约（内部接口）
+     */
+    @PostMapping("/cancel/{scheduleId}")
+    public AjaxResult cancelSchedule(@PathVariable Long scheduleId)
+    {
+        return toAjax(scheduleService.cancelSchedule(scheduleId));
+    }
+
+    /**
+     * 获取排班信息（内部接口）
+     */
+    @GetMapping("/info/{scheduleId}")
+    public AjaxResult getScheduleInfo(@PathVariable Long scheduleId)
+    {
+        return success(scheduleService.selectScheduleByScheduleId(scheduleId));
+    }
+
+    /**
+     * 查询医生排班列表（患者端使用，无需权限）
+     */
+    @GetMapping("/open/list")
+    public TableDataInfo openList(Schedule schedule)
+    {
+        startPage();
+        List<Schedule> list = scheduleService.selectScheduleList(schedule);
+        return getDataTable(list);
+    }
 }

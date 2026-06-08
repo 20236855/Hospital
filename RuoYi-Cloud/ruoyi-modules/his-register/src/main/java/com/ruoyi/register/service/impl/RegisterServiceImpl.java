@@ -86,42 +86,16 @@ public class RegisterServiceImpl implements IRegisterService
      */
     @Override
     @Transactional
-    public int insertRegister(Register register)
-    {
+    public int insertRegister(Register register) {
         register.setRegisterNo(buildRegisterNo());
         if (StringUtils.isEmpty(register.getRegisterType())) {
             register.setRegisterType("online");
         }
         register.setRegisterStatus("registered");
+        // 自动设置备注为"网上预约挂号"
+        register.setRemark("网上预约挂号");
         setPatientByIdCard(register);
         setRegisterFeeByDoctor(register);
-
-        // 检查并更新排班
-        if (register.getScheduleId() != null) {
-            Map<String, Object> schedule = registerMapper.selectScheduleById(register.getScheduleId());
-            if (schedule == null) {
-                throw new ServiceException("排班不存在");
-            }
-            String status = (String) schedule.get("status");
-            Long reservedNumber = ((Number) schedule.get("reservedNumber")).longValue();
-            Long maxNumber = ((Number) schedule.get("maxNumber")).longValue();
-            
-            if ("1".equals(status) || reservedNumber >= maxNumber) {
-                throw new ServiceException("该排班已满，无法预约");
-            }
-
-            // 增加预约人数
-            registerMapper.incrementScheduleReservedNumber(register.getScheduleId());
-
-            // 检查是否满了，如果满了更新状态
-            Map<String, Object> updatedSchedule = registerMapper.selectScheduleById(register.getScheduleId());
-            Long newReservedNumber = ((Number) updatedSchedule.get("reservedNumber")).longValue();
-            if (newReservedNumber >= maxNumber) {
-                registerMapper.updateScheduleStatus(register.getScheduleId(), "1");
-            }
-        } else {
-            throw new ServiceException("请选择排班时间");
-        }
 
         register.setCreateTime(DateUtils.getNowDate());
         return registerMapper.insertRegister(register);
@@ -207,16 +181,18 @@ public class RegisterServiceImpl implements IRegisterService
         register.setPatientId(Long.valueOf(patient.get("patientId").toString()));
     }
 
-    private void setRegisterFeeByDoctor(Register register)
-    {
+    private void setRegisterFeeByDoctor(Register register) {
         // 没有医生ID直接返回
-        if (register.getDoctorId() == null)
-        {
+        if (register.getDoctorId() == null) {
             return;
         }
         // 传doctorId去医生表取outpatient_fee
         BigDecimal registerFee = registerMapper.selectRegisterFeeByDoctorId(register.getDoctorId());
         register.setRegisterFee(registerFee);
+        
+        // 自动设置挂号级别ID
+        Long levelId = registerMapper.selectLevelIdByDoctorId(register.getDoctorId());
+        register.setLevelId(levelId);
     }
 
     @Override
@@ -234,24 +210,7 @@ public class RegisterServiceImpl implements IRegisterService
         }
         register.setRegisterStatus("cancel");
         register.setUpdateTime(DateUtils.getNowDate());
-        int result = registerMapper.updateRegister(register);
-
-        // 退号时减少排班预约人数
-        if (register.getScheduleId() != null) {
-            Map<String, Object> schedule = registerMapper.selectScheduleById(register.getScheduleId());
-            if (schedule != null) {
-                Long reservedNumber = ((Number) schedule.get("reservedNumber")).longValue();
-                if (reservedNumber > 0) {
-                    registerMapper.decrementScheduleReservedNumber(register.getScheduleId());
-                    String status = (String) schedule.get("status");
-                    if ("1".equals(status)) {
-                        registerMapper.updateScheduleStatus(register.getScheduleId(), "0");
-                    }
-                }
-            }
-        }
-
-        return result;
+        return registerMapper.updateRegister(register);
     }
 
     @Override

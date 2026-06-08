@@ -193,6 +193,11 @@
             <span v-if="loading">登录中...</span>
             <span v-else>登录</span>
           </button>
+
+          <div class="register-link">
+            <span>还没有账号？</span>
+            <span @click="goRegister">立即注册</span>
+          </div>
         </form>
       </main>
     </div>
@@ -202,7 +207,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { login as loginApi, getCodeImg } from '@/api/login'
+import { patientLogin as loginApi, getCodeImg } from '@/api/login'
+import { getPatientByUserId } from '@/api/patient'
+import { getInfo } from '@/api/user'
 import { showToast } from 'vant'
 
 const router = useRouter()
@@ -226,6 +233,26 @@ const getCode = async () => {
     loginForm.value.uuid = res.uuid
   } catch (error) {
     console.error('获取验证码失败', error)
+  }
+}
+
+const checkAndRedirect = async () => {
+  try {
+    const res = await getInfo()
+    if (res.user && res.user.userId) {
+      const patientRes = await getPatientByUserId(res.user.userId)
+      if (!patientRes.data) {
+        showToast('请先完善患者信息')
+        setTimeout(() => {
+          router.push('/patient-complete')
+        }, 1000)
+        return
+      }
+    }
+    router.push('/')
+  } catch (error) {
+    console.error('检查患者信息失败', error)
+    router.push('/')
   }
 }
 
@@ -255,13 +282,18 @@ const handleLogin = async () => {
     localStorage.setItem('username', loginForm.value.username)
     localStorage.setItem('userInfo', JSON.stringify(res.data))
     showToast('登录成功')
-    router.push('/')
+    await checkAndRedirect()
   } catch (error) {
-    showToast(error.msg || '登录失败')
+    console.error('登录失败:', error)
+    showToast(error.message || error.msg || '登录失败')
     getCode()
   } finally {
     loading.value = false
   }
+}
+
+const goRegister = () => {
+  router.push('/register-account')
 }
 
 onMounted(() => {
@@ -598,6 +630,25 @@ onMounted(() => {
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+  }
+}
+
+.register-link {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+
+  span:first-child {
+    color: var(--text-regular);
+  }
+
+  span:last-child {
+    color: var(--primary-color);
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 4px;
   }
 }
 

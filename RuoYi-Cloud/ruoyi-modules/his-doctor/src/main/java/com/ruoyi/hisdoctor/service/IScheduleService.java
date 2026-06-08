@@ -75,4 +75,28 @@ public interface IScheduleService
      * @return 结果
      */
     public int updateScheduleStatus(Long scheduleId, String status);
+
+    /**
+     * 减少排班预约人数
+     * 
+     * @param scheduleId 排班ID
+     * @return 结果
+     */
+    public int decrementReservedNumber(Long scheduleId);
+
+    /**
+     * 预约排班（检查可用性并增加预约人数）
+     * 
+     * @param scheduleId 排班ID
+     * @return 结果
+     */
+    public boolean bookSchedule(Long scheduleId);
+
+    /**
+     * 取消排班预约（减少预约人数）
+     * 
+     * @param scheduleId 排班ID
+     * @return 结果
+     */
+    public boolean cancelSchedule(Long scheduleId);
 }

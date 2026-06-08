@@ -83,8 +83,8 @@
     </dependencies>
 
     <build>
-        <!-- 打包名称和模块名保持一致 -->
         <finalName>${project.artifactId}</finalName>
+
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

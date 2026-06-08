@@ -88,7 +88,12 @@
 
     <!-- 根据医生ID查询挂号费 -->
     <select id="selectRegisterFeeByDoctorId" resultType="java.math.BigDecimal">
-        select outpatient_fee from doctor where doctor_id = #{doctorId}
+        select rl.fee from doctor d left join regist_level rl on d.level_id = rl.level_id where d.doctor_id = #{doctorId}
+    </select>
+
+    <!-- 根据医生ID查询挂号级别ID -->
+    <select id="selectLevelIdByDoctorId" resultType="java.lang.Long">
+        select level_id from doctor where doctor_id = #{doctorId}
     </select>
 
     <select id="selectRegisterLevelList" resultType="java.util.Map">
@@ -104,9 +109,9 @@
         order by order_num, dept_id
     </select>
 
-    <!-- 医生下拉：返回doctorId、doctor_name（之前已经改好联表doctor） -->
+    <!-- 医生下拉：返回doctorId、doctor_name、level_id -->
     <select id="selectDoctorListByDeptId" resultType="java.util.Map">
-        select d.doctor_id as doctorId, d.doctor_name as doctorName
+        select d.doctor_id as doctorId, d.doctor_name as doctorName, d.level_id as levelId
         from doctor d
                  inner join sys_user u on d.user_id = u.user_id
         where u.del_flag = '0' and u.status = '0' and u.dept_id = #{deptId}
@@ -178,26 +183,4 @@
             #{registerId}
         </foreach>
     </delete>
-
-    <select id="selectScheduleById" resultType="java.util.Map">
-        select schedule_id as scheduleId, doctor_id as doctorId, schedule_date as scheduleDate, 
-               time_slot as timeSlot, max_number as maxNumber, reserved_number as reservedNumber, status
-        from schedule
-        where schedule_id = #{scheduleId}
-    </select>
-
-    <update id="incrementScheduleReservedNumber">
-        update schedule set reserved_number = reserved_number + 1, update_time = now()
-        where schedule_id = #{scheduleId}
-    </update>
-
-    <update id="decrementScheduleReservedNumber">
-        update schedule set reserved_number = reserved_number - 1, update_time = now()
-        where schedule_id = #{scheduleId}
-    </update>
-
-    <update id="updateScheduleStatus">
-        update schedule set status = #{status}, update_time = now()
-        where schedule_id = #{scheduleId}
-    </update>
 </mapper>

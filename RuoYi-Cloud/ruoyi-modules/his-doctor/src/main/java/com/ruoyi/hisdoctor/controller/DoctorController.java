@@ -156,4 +156,15 @@ public class DoctorController extends BaseController
         doctor.setUserId(userId);
         return toAjax(doctorService.completeDoctor(doctor));
     }
+
+    /**
+     * 查询医生信息列表（患者端使用，无需权限）
+     */
+    @GetMapping("/open/list")
+    public TableDataInfo openList(Doctor doctor)
+    {
+        startPage();
+        List<Doctor> list = doctorService.selectDoctorList(doctor);
+        return getDataTable(list);
+    }
 }
