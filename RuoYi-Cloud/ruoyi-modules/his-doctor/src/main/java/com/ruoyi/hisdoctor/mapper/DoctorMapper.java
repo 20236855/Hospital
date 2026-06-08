@@ -1,6 +1,7 @@
 package com.ruoyi.hisdoctor.mapper;
 
 import java.util.List;
+import java.util.Map;
 import com.ruoyi.hisdoctor.domain.Doctor;
 
 /**
@@ -66,4 +67,19 @@ public interface DoctorMapper
      * @return 医生信息
      */
     public Doctor selectDoctorByUserId(Long userId);
+
+    /**
+     * 查询可创建医生档案的系统用户
+     *
+     * @return 系统用户列表
+     */
+    public List<Map<String, Object>> selectAvailableDoctorUsers();
+
+    /**
+     * 查询医生角色用户昵称
+     *
+     * @param userId 用户ID
+     * @return 用户昵称
+     */
+    public String selectDoctorUserNickName(Long userId);
 }

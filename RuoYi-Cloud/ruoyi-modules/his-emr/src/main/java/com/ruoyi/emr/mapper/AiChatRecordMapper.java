@@ -1,0 +1,22 @@
+package com.ruoyi.emr.mapper;
+
+import java.util.List;
+import org.apache.ibatis.annotations.Param;
+import com.ruoyi.emr.domain.AiChatRecord;
+
+/**
+ * AI问诊记忆Mapper接口
+ */
+public interface AiChatRecordMapper
+{
+    public int insertAiChatRecord(AiChatRecord aiChatRecord);
+
+    public List<AiChatRecord> selectRecentRecords(@Param("patientId") Long patientId,
+                                                  @Param("sessionId") String sessionId,
+                                                  @Param("limit") Integer limit);
+
+    public List<AiChatRecord> selectLongTermMemories(@Param("patientId") Long patientId,
+                                                     @Param("limit") Integer limit);
+    
+    public List<String> selectDistinctSessionByPatientId(@Param("patientId") Long patientId);
+}

@@ -7,7 +7,6 @@ import com.ruoyi.common.core.constant.CacheConstants;
 import com.ruoyi.common.core.constant.Constants;
 import com.ruoyi.common.core.constant.SecurityConstants;
 import com.ruoyi.common.core.constant.UserConstants;
-import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.core.enums.UserStatus;
 import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.text.Convert;
@@ -21,10 +20,11 @@ import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.his.api.RemoteDoctorService;
 import com.ruoyi.system.api.domain.SysUser;
 import com.ruoyi.system.api.model.LoginUser;
+import com.ruoyi.common.core.domain.R;
 
 /**
  * 登录校验方法
- * 
+ *
  * @author ruoyi
  */
 @Component
@@ -35,7 +35,7 @@ public class SysLoginService
 
     @Autowired
     private RemotePatientService remotePatientService;
-    
+
     @Autowired
     private RemoteDoctorService remoteDoctorService;
 
@@ -103,14 +103,14 @@ public class SysLoginService
         passwordService.validate(user, password);
         recordLogService.recordLogininfor(username, Constants.LOGIN_SUCCESS, "登录成功");
         recordLoginInfo(user.getUserId());
-        
+
         // 判断是否需要完善信息 - 通过角色标识判断用户类型
         boolean isPatient = false;
         boolean isDoctor = false;
         boolean needComplete = false;
         Long userId = user.getUserId();
         Long deptId = null;
-        
+
         // 检查用户角色标识
         if (userInfo.getRoles() != null)
         {
@@ -126,7 +126,7 @@ public class SysLoginService
                 }
             }
         }
-        
+
         if (isPatient) {
             R<Map<String, Object>> patientR = remotePatientService.getPatientByUserId(userId, SecurityConstants.INNER);
             if (R.FAIL == patientR.getCode()) {
@@ -162,7 +162,7 @@ public class SysLoginService
                 throw new ServiceException("对不起，您的账号：" + username + " 待审核");
             }
         }
-        
+
         userInfo.setNeedCompleteInfo(needComplete);
         return userInfo;
     }

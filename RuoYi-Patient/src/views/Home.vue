@@ -185,7 +185,7 @@
             </div>
             <span>健康资讯</span>
           </div>
-          <div class="service-item" @click="showToast('在线问诊')">
+          <div class="service-item" @click="goToChat">
             <div class="service-icon">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8ed6f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -283,6 +283,14 @@ const goToRegister = () => {
 
 const goToRecord = () => {
   router.push('/record')
+}
+
+const goToChat = () => {
+  // 清除旧的 AI 会话数据
+  localStorage.removeItem('aiChatSessionId')
+  // 清除旧的 patientId（如果需要）
+  // localStorage.removeItem('patientId')
+  router.push('/chat')
 }
 
 onMounted(() => {

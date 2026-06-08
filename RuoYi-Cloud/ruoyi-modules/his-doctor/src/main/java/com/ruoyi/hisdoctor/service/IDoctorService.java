@@ -1,6 +1,7 @@
 package com.ruoyi.hisdoctor.service;
 
 import java.util.List;
+import java.util.Map;
 import com.ruoyi.hisdoctor.domain.Doctor;
 
 /**
@@ -26,6 +27,13 @@ public interface IDoctorService
      * @return 医生信息集合
      */
     public List<Doctor> selectDoctorList(Doctor doctor);
+
+    /**
+     * 查询可创建医生档案的系统用户
+     *
+     * @return 系统用户集合
+     */
+    public List<Map<String, Object>> selectAvailableDoctorUsers();
 
     /**
      * 新增医生信息

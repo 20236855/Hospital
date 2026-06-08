@@ -29,7 +29,15 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
     @Override
     public MedicalRecord selectMedicalRecordByRecordId(Long recordId)
     {
-        return medicalRecordMapper.selectMedicalRecordByRecordId(recordId);
+        MedicalRecord record = medicalRecordMapper.selectMedicalRecordByRecordId(recordId);
+        // 调试日志
+        if (record != null) {
+            System.out.println("查询病历详情 - recordId: " + recordId + 
+                ", encounterId: " + record.getEncounterId() + 
+                ", doctorName: " + record.getDoctorName() + 
+                ", deptName: " + record.getDeptName());
+        }
+        return record;
     }
 
     /**
@@ -41,7 +49,19 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
     @Override
     public List<MedicalRecord> selectMedicalRecordList(MedicalRecord medicalRecord)
     {
-        return medicalRecordMapper.selectMedicalRecordList(medicalRecord);
+        List<MedicalRecord> list = medicalRecordMapper.selectMedicalRecordList(medicalRecord);
+        // 调试日志
+        if (list != null && !list.isEmpty()) {
+            System.out.println("查询病历列表 - 数量: " + list.size());
+            for (int i = 0; i < Math.min(list.size(), 3); i++) {
+                MedicalRecord r = list.get(i);
+                System.out.println("  recordId: " + r.getRecordId() + 
+                    ", encounterId: " + r.getEncounterId() + 
+                    ", doctorName: " + r.getDoctorName() + 
+                    ", deptName: " + r.getDeptName());
+            }
+        }
+        return list;
     }
 
     /**

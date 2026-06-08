@@ -200,14 +200,15 @@ function handleRegister() {
       loading.value = true
       const submitData = { ...registerForm.value }
       delete submitData.confirmPassword
-      register(submitData).then(res => {
-        const username = registerForm.value.username
-        const message = registerForm.value.userType === 'doctor'
-          ? `<font color='red'>恭喜你，您的账号 ${username} 注册成功！账号需要管理员审核后才能登录。</font>`
-          : `<font color='red'>恭喜你，您的账号 ${username} 注册成功！</font>`
-        ElMessageBox.alert(message, "系统提示", {
+      register(submitData).then(() => {
+        const message = buildRegisterSuccessMessage(registerForm.value)
+        ElMessageBox.alert(message, "注册成功", {
           dangerouslyUseHTMLString: true,
           type: "success",
+          customClass: "register-success-message-box",
+          confirmButtonText: "去登录",
+          closeOnClickModal: false,
+          closeOnPressEscape: false
         }).then(() => {
           router.push("/login")
         }).catch(() => {})
@@ -219,6 +220,50 @@ function handleRegister() {
       })
     }
   })
+}
+
+function buildRegisterSuccessMessage(form) {
+  const isDoctor = form.userType === 'doctor'
+  const username = escapeHtml(form.username)
+  const identity = isDoctor ? '医护人员' : '就诊患者'
+  const title = isDoctor ? '账号已提交审核' : '账号已创建完成'
+  const desc = isDoctor
+    ? '管理员审核通过后即可登录系统，请留意审核结果。'
+    : '现在可以前往登录，首次登录后请继续完善个人就诊资料。'
+  const tag = isDoctor ? '等待审核' : '可立即登录'
+
+  return `
+    <div class="register-success-card">
+      <div class="success-mark">
+        <span></span>
+      </div>
+      <div class="success-content">
+        <div class="success-tag">${tag}</div>
+        <h3>${title}</h3>
+        <p>${desc}</p>
+        <div class="success-summary">
+          <div>
+            <span>账号</span>
+            <strong>${username}</strong>
+          </div>
+          <div>
+            <span>身份</span>
+            <strong>${identity}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, match => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[match]))
 }
 
 function getCode() {
@@ -236,4 +281,144 @@ getCode()
 
 <style lang='scss'>
 @use "@/assets/styles/auth-medical.scss";
+
+.register-success-message-box {
+  width: min(430px, calc(100vw - 32px));
+  border-radius: 8px;
+  border: 1px solid rgba(33, 150, 136, 0.16);
+  overflow: hidden;
+
+  .el-message-box__header {
+    padding: 18px 22px 0;
+  }
+
+  .el-message-box__title {
+    color: #163b46;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .el-message-box__status {
+    display: none;
+  }
+
+  .el-message-box__content {
+    padding: 16px 22px 8px;
+  }
+
+  .el-message-box__btns {
+    padding: 8px 22px 22px;
+
+    .el-button {
+      min-width: 116px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+  }
+}
+
+.register-success-card {
+  display: flex;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f0fbf8, #f5fbff);
+  border: 1px solid #d9efea;
+}
+
+.success-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #15a884, #168ba1);
+  box-shadow: 0 10px 24px rgba(21, 151, 139, 0.26);
+
+  span {
+    width: 22px;
+    height: 12px;
+    border-left: 3px solid #fff;
+    border-bottom: 3px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
+  }
+}
+
+.success-content {
+  flex: 1;
+  min-width: 0;
+
+  h3 {
+    margin: 8px 0 8px;
+    color: #173b46;
+    font-size: 20px;
+    line-height: 1.35;
+  }
+
+  p {
+    margin: 0;
+    color: #61727a;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+}
+
+.success-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #0b7c72;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ddf5ef;
+}
+
+.success-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+
+  div {
+    min-width: 0;
+    padding: 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(22, 139, 161, 0.12);
+  }
+
+  span {
+    display: block;
+    color: #7b8a91;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+
+  strong {
+    display: block;
+    overflow: hidden;
+    color: #244752;
+    font-size: 14px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-success-card {
+    display: block;
+  }
+
+  .success-mark {
+    margin-bottom: 14px;
+  }
+
+  .success-summary {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

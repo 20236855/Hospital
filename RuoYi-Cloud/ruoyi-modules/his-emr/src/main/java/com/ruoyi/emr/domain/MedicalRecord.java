@@ -1,5 +1,6 @@
 package com.ruoyi.emr.domain;
 
+import java.util.Date;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.ruoyi.common.core.annotation.Excel;
@@ -21,6 +22,9 @@ public class MedicalRecord extends BaseEntity
     /** 接诊ID */
     @Excel(name = "接诊ID")
     private Long encounterId;
+
+    /** 患者ID，仅用于按患者查询病历 */
+    private Long patientId;
 
     /** 主诉 */
     @Excel(name = "主诉")
@@ -54,6 +58,52 @@ public class MedicalRecord extends BaseEntity
     @Excel(name = "医生建议")
     private String doctorAdvice;
 
+    // ====== 以下为VO字段，用于返回给前端 ======
+
+    /** 医生姓名 */
+    private String doctorName;
+
+    /** 科室名称 */
+    private String deptName;
+
+    /** 就诊类型（用于前端展示） */
+    private String visitType;
+
+    /** 就诊时间（用于前端展示） */
+    private Date date;
+
+    public String getDoctorName() {
+        return doctorName;
+    }
+
+    public void setDoctorName(String doctorName) {
+        this.doctorName = doctorName;
+    }
+
+    public String getDeptName() {
+        return deptName;
+    }
+
+    public void setDeptName(String deptName) {
+        this.deptName = deptName;
+    }
+
+    public String getVisitType() {
+        return visitType;
+    }
+
+    public void setVisitType(String visitType) {
+        this.visitType = visitType;
+    }
+
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
     public void setRecordId(Long recordId) 
     {
         this.recordId = recordId;
@@ -72,6 +122,16 @@ public class MedicalRecord extends BaseEntity
     public Long getEncounterId() 
     {
         return encounterId;
+    }
+
+    public void setPatientId(Long patientId)
+    {
+        this.patientId = patientId;
+    }
+
+    public Long getPatientId()
+    {
+        return patientId;
     }
 
     public void setChiefComplaint(String chiefComplaint) 
@@ -159,6 +219,7 @@ public class MedicalRecord extends BaseEntity
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("recordId", getRecordId())
             .append("encounterId", getEncounterId())
+            .append("patientId", getPatientId())
             .append("chiefComplaint", getChiefComplaint())
             .append("presentIllness", getPresentIllness())
             .append("pastHistory", getPastHistory())

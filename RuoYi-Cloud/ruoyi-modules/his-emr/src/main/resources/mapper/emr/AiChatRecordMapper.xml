@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.AiChatRecordMapper">
+
+    <resultMap type="AiChatRecord" id="AiChatRecordResult">
+        <result property="recordId"    column="record_id"    />
+        <result property="userId"      column="user_id"      />
+        <result property="patientId"   column="patient_id"   />
+        <result property="sessionId"   column="session_id"   />
+        <result property="role"        column="role"         />
+        <result property="content"     column="content"      />
+        <result property="memoryType"  column="memory_type"  />
+        <result property="createTime"  column="create_time"  />
+        <result property="updateTime"  column="update_time"  />
+    </resultMap>
+
+    <sql id="selectAiChatRecordVo">
+        select record_id, user_id, patient_id, session_id, `role`, content, memory_type, create_time, update_time
+        from ai_chat_record
+    </sql>
+
+    <insert id="insertAiChatRecord" parameterType="AiChatRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into ai_chat_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="patientId != null">patient_id,</if>
+            <if test="sessionId != null">session_id,</if>
+            <if test="role != null">`role`,</if>
+            <if test="content != null">content,</if>
+            <if test="memoryType != null">memory_type,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="patientId != null">#{patientId},</if>
+            <if test="sessionId != null">#{sessionId},</if>
+            <if test="role != null">#{role},</if>
+            <if test="content != null">#{content},</if>
+            <if test="memoryType != null">#{memoryType},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <select id="selectRecentRecords" resultMap="AiChatRecordResult">
+        select * from (
+            <include refid="selectAiChatRecordVo"/>
+            where patient_id = #{patientId}
+              and memory_type = 'short'
+              <if test="sessionId != null and sessionId != ''">
+                and session_id = #{sessionId}
+              </if>
+            order by create_time desc, record_id desc
+            limit #{limit}
+        ) t
+        order by t.create_time asc, t.record_id asc
+    </select>
+
+    <select id="selectLongTermMemories" resultMap="AiChatRecordResult">
+        <include refid="selectAiChatRecordVo"/>
+        where patient_id = #{patientId}
+          and memory_type = 'long'
+        order by create_time desc, record_id desc
+        limit #{limit}
+    </select>
+    
+    <select id="selectDistinctSessionByPatientId" resultType="java.lang.String">
+        SELECT DISTINCT session_id FROM ai_chat_record
+        WHERE patient_id = #{patientId}
+          and memory_type = 'short'
+        GROUP BY session_id
+        ORDER BY MAX(create_time) DESC
+    </select>
+</mapper>

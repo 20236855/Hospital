@@ -50,6 +50,16 @@ public class DoctorController extends BaseController
     }
 
     /**
+     * 查询可创建医生档案的系统用户
+     */
+    @RequiresPermissions("hisdoctor:doctor:add")
+    @GetMapping("/availableUsers")
+    public AjaxResult availableUsers()
+    {
+        return success(doctorService.selectAvailableDoctorUsers());
+    }
+
+    /**
      * 导出医生信息列表
      */
     @RequiresPermissions("hisdoctor:doctor:export")

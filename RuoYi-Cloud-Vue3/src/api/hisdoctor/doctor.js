@@ -9,6 +9,14 @@ export function listDoctor(query) {
   })
 }
 
+// 查询可创建医生档案的系统用户
+export function listAvailableDoctorUsers() {
+  return request({
+    url: '/hisdoctor/doctor/availableUsers',
+    method: 'get'
+  })
+}
+
 // 查询医生信息详细
 export function getDoctor(doctorId) {
   return request({

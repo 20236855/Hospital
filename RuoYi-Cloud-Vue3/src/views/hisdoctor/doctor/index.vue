@@ -10,11 +10,15 @@
         />
       </el-form-item>
       <el-form-item label="所属科室" prop="deptId">
-        <el-input
+        <el-tree-select
           v-model="queryParams.deptId"
-          placeholder="请输入所属科室"
+          :data="deptOptions"
+          :props="{ value: 'deptId', label: 'deptName', children: 'children' }"
+          value-key="deptId"
+          placeholder="请选择所属科室"
           clearable
-          @keyup.enter="handleQuery"
+          check-strictly
+          style="width: 220px"
         />
       </el-form-item>
       <el-form-item label="医生工号" prop="doctorNo">
@@ -125,7 +129,11 @@
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="医生ID" align="center" prop="doctorId" />
       <el-table-column label="系统用户ID" align="center" prop="userId" />
-      <el-table-column label="所属科室" align="center" prop="deptId" />
+      <el-table-column label="所属科室" align="center" prop="deptId">
+        <template #default="scope">
+          <span>{{ getDeptName(scope.row.deptId) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="医生工号" align="center" prop="doctorNo" />
       <el-table-column label="医生姓名" align="center" prop="doctorName" />
       <el-table-column label="性别" align="center" prop="gender" />
@@ -157,23 +165,45 @@
       <el-form ref="doctorRef" :model="form" :rules="rules" label-width="100px">
         <el-row>
           <el-col :span="24">
-            <el-form-item label="系统用户ID" prop="userId">
-              <el-input v-model="form.userId" placeholder="请输入系统用户ID" />
+            <el-form-item label="医生姓名" prop="userId">
+              <el-select
+                v-model="form.userId"
+                placeholder="请选择医生账号"
+                filterable
+                clearable
+                :disabled="form.doctorId != null"
+                style="width: 100%"
+                @change="handleDoctorUserChange"
+              >
+                <el-option
+                  v-for="item in doctorUserOptions"
+                  :key="item.userId"
+                  :label="item.nickName"
+                  :value="item.userId"
+                >
+                  <span>{{ item.nickName }}</span>
+                  <span class="doctor-user-option">{{ item.userName }}</span>
+                </el-option>
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="所属科室" prop="deptId">
-              <el-input v-model="form.deptId" placeholder="请输入所属科室" />
+              <el-tree-select
+                v-model="form.deptId"
+                :data="deptOptions"
+                :props="{ value: 'deptId', label: 'deptName', children: 'children' }"
+                value-key="deptId"
+                placeholder="请选择所属科室"
+                clearable
+                check-strictly
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="医生工号" prop="doctorNo">
-              <el-input v-model="form.doctorNo" placeholder="请输入医生工号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="医生姓名" prop="doctorName">
-              <el-input v-model="form.doctorName" placeholder="请输入医生姓名" />
+              <el-input v-model="form.doctorNo" :placeholder="doctorNoPlaceholder" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -224,7 +254,8 @@
 </template>
 
 <script setup name="Doctor">
-import { listDoctor, getDoctor, delDoctor, addDoctor, updateDoctor } from "@/api/hisdoctor/doctor"
+import { listDoctor, getDoctor, delDoctor, addDoctor, updateDoctor, listAvailableDoctorUsers } from "@/api/hisdoctor/doctor"
+import { listDept } from "@/api/system/dept"
 
 const { proxy } = getCurrentInstance()
 
@@ -237,6 +268,9 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
+const deptOptions = ref([])
+const deptList = ref([])
+const doctorUserOptions = ref([])
 
 const data = reactive({
   form: {},
@@ -258,21 +292,62 @@ const data = reactive({
   },
   rules: {
     userId: [
-      { required: true, message: "系统用户ID不能为空", trigger: "blur" }
+      { required: true, message: "医生账号不能为空", trigger: "change" }
     ],
     deptId: [
-      { required: true, message: "所属科室不能为空", trigger: "blur" }
-    ],
-    doctorNo: [
-      { required: true, message: "医生工号不能为空", trigger: "blur" }
-    ],
-    doctorName: [
-      { required: true, message: "医生姓名不能为空", trigger: "blur" }
+      { required: true, message: "所属科室不能为空", trigger: "change" }
     ],
   }
 })
 
 const { queryParams, form, rules } = toRefs(data)
+
+const doctorNoPlaceholder = computed(() => {
+  return form.value.deptId ? `保存后自动生成：D${form.value.deptId}******` : "选择科室后保存自动生成"
+})
+
+/** 查询部门下拉树 */
+function getDeptOptions() {
+  listDept().then(response => {
+    const rows = response.data || []
+    deptList.value = rows
+    deptOptions.value = proxy.handleTree(JSON.parse(JSON.stringify(rows)), "deptId")
+  })
+}
+
+function getDeptName(deptId) {
+  const dept = deptList.value.find(item => String(item.deptId) === String(deptId))
+  return dept ? dept.deptName : deptId
+}
+
+function getDoctorUserOptions() {
+  return listAvailableDoctorUsers().then(response => {
+    doctorUserOptions.value = response.data || []
+  })
+}
+
+function handleDoctorUserChange(userId) {
+  const user = doctorUserOptions.value.find(item => String(item.userId) === String(userId))
+  form.value.doctorName = user ? user.nickName : null
+  if (user && !form.value.phone) {
+    form.value.phone = user.phonenumber || null
+  }
+}
+
+function ensureDoctorUserOption(row) {
+  if (!row?.userId) {
+    return
+  }
+  const exists = doctorUserOptions.value.some(item => String(item.userId) === String(row.userId))
+  if (!exists) {
+    doctorUserOptions.value.push({
+      userId: row.userId,
+      nickName: row.doctorName || row.userId,
+      userName: row.userId,
+      phonenumber: row.phone
+    })
+  }
+}
 
 /** 查询医生信息列表 */
 function getList() {
@@ -334,6 +409,7 @@ function handleSelectionChange(selection) {
 /** 新增按钮操作 */
 function handleAdd() {
   reset()
+  getDoctorUserOptions()
   open.value = true
   title.value = "添加医生信息"
 }
@@ -344,6 +420,7 @@ function handleUpdate(row) {
   const _doctorId = row.doctorId || ids.value
   getDoctor(_doctorId).then(response => {
     form.value = response.data
+    ensureDoctorUserOption(form.value)
     open.value = true
     title.value = "修改医生信息"
   })
@@ -360,9 +437,11 @@ function submitForm() {
           getList()
         })
       } else {
+        form.value.doctorNo = null
         addDoctor(form.value).then(() => {
           proxy.$modal.msgSuccess("新增成功")
           open.value = false
+          getDoctorUserOptions()
           getList()
         })
       }
@@ -377,6 +456,7 @@ function handleDelete(row) {
     return delDoctor(_doctorIds)
   }).then(() => {
     getList()
+    getDoctorUserOptions()
     proxy.$modal.msgSuccess("删除成功")
   }).catch(() => {})
 }
@@ -388,5 +468,15 @@ function handleExport() {
   }, `doctor_${new Date().getTime()}.xlsx`)
 }
 
+getDeptOptions()
+getDoctorUserOptions()
 getList()
 </script>
+
+<style scoped>
+.doctor-user-option {
+  float: right;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+</style>

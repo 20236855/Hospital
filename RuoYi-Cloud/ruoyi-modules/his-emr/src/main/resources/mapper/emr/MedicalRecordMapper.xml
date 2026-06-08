@@ -7,6 +7,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="MedicalRecord" id="MedicalRecordResult">
         <result property="recordId"    column="record_id"    />
         <result property="encounterId"    column="encounter_id"    />
+        <result property="patientId"    column="patient_id"    />
         <result property="chiefComplaint"    column="chief_complaint"    />
         <result property="presentIllness"    column="present_illness"    />
         <result property="pastHistory"    column="past_history"    />
@@ -17,30 +18,97 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="doctorAdvice"    column="doctor_advice"    />
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
+        <!-- VO字段 -->
+        <result property="doctorName"    column="doctor_name"    />
+        <result property="deptName"    column="dept_name"    />
+        <result property="visitType"    column="encounter_type"    />
+        <result property="date"    column="visit_time"    />
     </resultMap>
 
     <sql id="selectMedicalRecordVo">
-        select record_id, encounter_id, chief_complaint, present_illness, past_history, allergy_history, physical_exam, diagnosis_opinion, treatment_plan, doctor_advice, create_time, update_time from medical_record
+        select mr.record_id,
+               mr.encounter_id,
+               e.patient_id,
+               mr.chief_complaint,
+               mr.present_illness,
+               mr.past_history,
+               mr.allergy_history,
+               mr.physical_exam,
+               mr.diagnosis_opinion,
+               mr.treatment_plan,
+               mr.doctor_advice,
+               mr.create_time,
+               mr.update_time,
+               d.doctor_name,
+               sd.dept_name,
+               e.encounter_type,
+               e.visit_time
+        from medical_record mr
+        left join encounter e on e.encounter_id = mr.encounter_id
+        left join doctor d on d.doctor_id = e.doctor_id
+        left join sys_dept sd on sd.dept_id = e.dept_id
     </sql>
 
     <select id="selectMedicalRecordList" parameterType="MedicalRecord" resultMap="MedicalRecordResult">
-        <include refid="selectMedicalRecordVo"/>
+        select mr.record_id,
+               mr.encounter_id,
+               e.patient_id,
+               mr.chief_complaint,
+               mr.present_illness,
+               mr.past_history,
+               mr.allergy_history,
+               mr.physical_exam,
+               mr.diagnosis_opinion,
+               mr.treatment_plan,
+               mr.doctor_advice,
+               mr.create_time,
+               mr.update_time,
+               d.doctor_name,
+               sd.dept_name,
+               e.encounter_type,
+               e.visit_time
+        from medical_record mr
+        left join encounter e on e.encounter_id = mr.encounter_id
+        left join doctor d on d.doctor_id = e.doctor_id
+        left join sys_dept sd on sd.dept_id = e.dept_id
         <where>  
-            <if test="encounterId != null "> and encounter_id = #{encounterId}</if>
-            <if test="chiefComplaint != null  and chiefComplaint != ''"> and chief_complaint = #{chiefComplaint}</if>
-            <if test="presentIllness != null  and presentIllness != ''"> and present_illness = #{presentIllness}</if>
-            <if test="pastHistory != null  and pastHistory != ''"> and past_history = #{pastHistory}</if>
-            <if test="allergyHistory != null  and allergyHistory != ''"> and allergy_history = #{allergyHistory}</if>
-            <if test="physicalExam != null  and physicalExam != ''"> and physical_exam = #{physicalExam}</if>
-            <if test="diagnosisOpinion != null  and diagnosisOpinion != ''"> and diagnosis_opinion = #{diagnosisOpinion}</if>
-            <if test="treatmentPlan != null  and treatmentPlan != ''"> and treatment_plan = #{treatmentPlan}</if>
-            <if test="doctorAdvice != null  and doctorAdvice != ''"> and doctor_advice = #{doctorAdvice}</if>
+            <if test="patientId != null "> and e.patient_id = #{patientId}</if>
+            <if test="encounterId != null "> and mr.encounter_id = #{encounterId}</if>
+            <if test="chiefComplaint != null  and chiefComplaint != ''"> and mr.chief_complaint = #{chiefComplaint}</if>
+            <if test="presentIllness != null  and presentIllness != ''"> and mr.present_illness = #{presentIllness}</if>
+            <if test="pastHistory != null  and pastHistory != ''"> and mr.past_history = #{pastHistory}</if>
+            <if test="allergyHistory != null  and allergyHistory != ''"> and mr.allergy_history = #{allergyHistory}</if>
+            <if test="physicalExam != null  and physicalExam != ''"> and mr.physical_exam = #{physicalExam}</if>
+            <if test="diagnosisOpinion != null  and diagnosisOpinion != ''"> and mr.diagnosis_opinion = #{diagnosisOpinion}</if>
+            <if test="treatmentPlan != null  and treatmentPlan != ''"> and mr.treatment_plan = #{treatmentPlan}</if>
+            <if test="doctorAdvice != null  and doctorAdvice != ''"> and mr.doctor_advice = #{doctorAdvice}</if>
         </where>
+        order by mr.create_time desc, mr.record_id desc
     </select>
     
     <select id="selectMedicalRecordByRecordId" parameterType="Long" resultMap="MedicalRecordResult">
-        <include refid="selectMedicalRecordVo"/>
-        where record_id = #{recordId}
+        select mr.record_id,
+               mr.encounter_id,
+               e.patient_id,
+               mr.chief_complaint,
+               mr.present_illness,
+               mr.past_history,
+               mr.allergy_history,
+               mr.physical_exam,
+               mr.diagnosis_opinion,
+               mr.treatment_plan,
+               mr.doctor_advice,
+               mr.create_time,
+               mr.update_time,
+               d.doctor_name,
+               sd.dept_name,
+               e.encounter_type,
+               e.visit_time
+        from medical_record mr
+        left join encounter e on e.encounter_id = mr.encounter_id
+        left join doctor d on d.doctor_id = e.doctor_id
+        left join sys_dept sd on sd.dept_id = e.dept_id
+        where mr.record_id = #{recordId}
     </select>
 
     <insert id="insertMedicalRecord" parameterType="MedicalRecord" useGeneratedKeys="true" keyProperty="recordId">

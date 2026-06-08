@@ -33,6 +33,7 @@ const useUserStore = defineStore(
       id: '',
       name: '',
       nickName: '',
+      phonenumber: '',
       avatar: '',
       roles: [],
       permissions: [],
@@ -74,6 +75,7 @@ const useUserStore = defineStore(
             this.id = user.userId
             this.name = user.userName
             this.nickName = user.nickName
+            this.phonenumber = user.phonenumber || ''
             this.avatar = avatar
             // 直接使用后端返回的userType
             this.userType = res.userType || ''

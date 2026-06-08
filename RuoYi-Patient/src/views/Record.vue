@@ -58,34 +58,34 @@
               </div>
               <div class="card-content">
                 <div class="card-header">
-                  <div class="doctor-info">
-                    <span class="doctor-avatar">{{ (item.doctorName || '医生').charAt(0) }}</span>
-                    <div class="doctor-details">
-                      <span class="doctor-name">{{ item.doctorName || '医生' }}</span>
-                      <span class="dept-name">{{ item.department || '内科' }}</span>
+                    <div class="doctor-info">
+                        <span class="doctor-avatar">{{ (item.doctorName || '医生').charAt(0) }}</span>
+                        <div class="doctor-details">
+                            <span class="doctor-name">{{ item.doctorName || '医生' }}</span>
+                            <span class="dept-name">{{ item.deptName || '内科' }}</span>
+                        </div>
                     </div>
-                  </div>
-                  <div class="visit-type">
-                    <span class="type-tag">{{ item.visitType || '门诊' }}</span>
-                  </div>
+                    <div class="visit-type">
+                        <span class="type-tag">{{ item.visitType || '门诊' }}</span>
+                    </div>
                 </div>
                 <div class="card-body">
-                  <div class="diagnosis-section">
-                    <span class="diagnosis-label">诊断</span>
-                    <span class="diagnosis-text">{{ item.diagnosis || '常见病症，建议多休息，多喝水' }}</span>
-                  </div>
+                    <div class="diagnosis-section">
+                        <span class="diagnosis-label">诊断</span>
+                        <span class="diagnosis-text">{{ item.diagnosisOpinion || '常见病症，建议多休息，多喝水' }}</span>
+                    </div>
                 </div>
                 <div class="card-footer">
-                  <span class="visit-time">
-                    <van-icon name="clock-o" />
-                    {{ formatTime(item.date) }}
-                  </span>
-                  <span class="view-more">
-                    查看详情
-                    <van-icon name="arrow" />
-                  </span>
+                    <span class="visit-time">
+                        <van-icon name="clock-o" />
+                        {{ formatTime(item.date) }}
+                    </span>
+                    <span class="view-more">
+                        查看详情
+                        <van-icon name="arrow" />
+                    </span>
                 </div>
-              </div>
+            </div>
             </div>
           </div>
         </van-list>
@@ -98,14 +98,104 @@
       <van-tabbar-item icon="notes-o" to="/record">病历</van-tabbar-item>
       <van-tabbar-item icon="user-o" to="/profile">我的</van-tabbar-item>
     </van-tabbar>
+
+    <van-popup
+      v-model:show="showDetailPopup"
+      position="bottom"
+      round
+      :style="{ height: '80%' }"
+      closeable
+    >
+      <div v-if="currentRecord" class="detail-popup">
+        <div class="detail-header">
+          <div class="detail-title">病历详情</div>
+          <div class="detail-date">{{ formatFullDate(currentRecord.date) }}</div>
+        </div>
+
+        <div class="detail-content">
+            <div class="detail-section">
+                <div class="section-title">
+                    <van-icon name="medal" />
+                    就诊信息
+                </div>
+                <div class="section-content">
+                    <div class="info-row">
+                        <span class="info-label">就诊医生</span>
+                        <span class="info-value">{{ currentRecord.doctorName || '未知' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">就诊科室</span>
+                        <span class="info-value">{{ currentRecord.deptName || '未知' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">就诊类型</span>
+                        <span class="info-value">{{ currentRecord.visitType || '门诊' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="section-title">
+                    <van-icon name="chat-o" />
+                    主诉
+                </div>
+                <div class="section-content">
+                    <div class="text-content">{{ currentRecord.chiefComplaint || '暂无记录' }}</div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="section-title">
+                    <van-icon name="description" />
+                    现病史
+                </div>
+                <div class="section-content">
+                    <div class="text-content">{{ currentRecord.presentIllness || '暂无记录' }}</div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="section-title">
+                    <van-icon name="balance-o" />
+                    诊断意见
+                </div>
+                <div class="section-content">
+                    <div class="diagnosis-box">
+                        {{ currentRecord.diagnosisOpinion || '暂无记录' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="section-title">
+                    <van-icon name="notes-o" />
+                    治疗方案
+                </div>
+                <div class="section-content">
+                    <div class="text-content">{{ currentRecord.treatmentPlan || '暂无记录' }}</div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="section-title">
+                    <van-icon name="balance-o" />
+                    医生建议
+                </div>
+                <div class="section-content">
+                    <div class="text-content">{{ currentRecord.doctorAdvice || '暂无记录' }}</div>
+                </div>
+            </div>
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
-import { getMedicalRecordList } from '@/api/emr'
+import { showToast, showLoadingToast, closeToast } from 'vant'
+import { getMedicalRecordList, getMedicalRecord } from '@/api/emr'
 
 const router = useRouter()
 const active = ref(2)
@@ -114,6 +204,8 @@ const loading = ref(false)
 const finished = ref(false)
 const recordList = ref([])
 const pageNum = ref(1)
+const showDetailPopup = ref(false)
+const currentRecord = ref(null)
 
 const formatDate = (dateStr) => {
   if (!dateStr) return { day: '--', month: '--' }
@@ -131,12 +223,31 @@ const formatTime = (dateStr) => {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
+const formatFullDate = (dateStr) => {
+  if (!dateStr) return '--'
+  const date = new Date(dateStr.replace(/-/g, '/'))
+  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+const getStoredPatientId = () => {
+  const value = localStorage.getItem('patientId')
+  console.log('从 localStorage 获取 patientId:', value)
+  return value ? Number(value) : null
+}
+
 const onLoad = async () => {
   try {
+    const patientId = getStoredPatientId()
+    console.log('查询病历列表 - patientId:', patientId)
+    
     const res = await getMedicalRecordList({
       pageNum: pageNum.value,
-      pageSize: 10
+      pageSize: 10,
+      patientId: patientId
     })
+    
+    console.log('查询病历列表返回:', res)
+    
     if (pageNum.value === 1) {
       recordList.value = res.rows || []
     } else {
@@ -162,8 +273,24 @@ const onRefresh = async () => {
   refreshing.value = false
 }
 
-const viewDetail = (item) => {
-  showToast('查看病历详情功能开发中')
+const viewDetail = async (item) => {
+  try {
+    showLoadingToast({
+      message: '加载中...',
+      forbidClick: true,
+      duration: 0
+    })
+    
+    const res = await getMedicalRecord(item.recordId)
+    currentRecord.value = res.data || item
+    showDetailPopup.value = true
+  } catch (error) {
+    console.error(error)
+    currentRecord.value = item
+    showDetailPopup.value = true
+  } finally {
+    closeToast()
+  }
 }
 
 const goBack = () => {
@@ -553,5 +680,103 @@ onMounted(() => {
 @keyframes floatSoft {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
+}
+
+.detail-popup {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f8fcfd;
+}
+
+.detail-header {
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #68c7a9, #8ed6f2);
+  color: white;
+  
+  .detail-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  
+  .detail-date {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+}
+
+.detail-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-section {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(104, 199, 169, 0.08);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #4f7380;
+  margin-bottom: 12px;
+  
+  .van-icon {
+    color: #68c7a9;
+    font-size: 18px;
+  }
+}
+
+.section-content {
+  padding-left: 4px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(213, 237, 243, 0.5);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.info-label {
+  font-size: 14px;
+  color: #8e9fa8;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #4f7380;
+  font-weight: 500;
+}
+
+.text-content {
+  font-size: 14px;
+  color: #5f7580;
+  line-height: 1.8;
+}
+
+.diagnosis-box {
+  background: linear-gradient(135deg, rgba(104, 199, 169, 0.1), rgba(142, 214, 242, 0.1));
+  border-left: 4px solid #68c7a9;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #4f7380;
+  font-weight: 500;
+  line-height: 1.8;
 }
 </style>

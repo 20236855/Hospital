@@ -25,6 +25,12 @@ mybatis:
   typeAliasesPackage: com.ruoyi.emr.domain
   mapper-locations: classpath:mapper/**/*.xml
 
+ai:
+  deepseek:
+    api-key: ${DEEPSEEK_API_KEY:}
+    api-url: https://api.deepseek.com/chat/completions
+    model: deepseek-chat
+
 management:
   health:
     redis:
