@@ -241,13 +241,17 @@ const checkAndRedirect = async () => {
     const res = await getInfo()
     if (res.user && res.user.userId) {
       const patientRes = await getPatientByUserId(res.user.userId)
-      if (!patientRes.data) {
+      const patient = patientRes?.data
+      const hasPatient = patient && Object.keys(patient).length > 0
+      if (!hasPatient) {
         showToast('请先完善患者信息')
         setTimeout(() => {
           router.push('/patient-complete')
         }, 1000)
         return
       }
+      localStorage.setItem('patientId', patient.patientId)
+      localStorage.setItem('patientName', patient.name)
     }
     router.push('/')
   } catch (error) {

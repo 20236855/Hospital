@@ -49,6 +49,18 @@ public class SysDeptServiceImpl implements ISysDeptService
     }
 
     /**
+     * 查询部门管理数据（不受数据权限过滤）
+     * 
+     * @param dept 部门信息
+     * @return 部门信息集合
+     */
+    @Override
+    public List<SysDept> selectDeptListNoDataScope(SysDept dept)
+    {
+        return deptMapper.selectDeptList(dept);
+    }
+
+    /**
      * 查询部门树结构信息
      * 
      * @param dept 部门信息

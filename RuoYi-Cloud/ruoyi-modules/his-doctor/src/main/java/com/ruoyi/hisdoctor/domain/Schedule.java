@@ -25,7 +25,7 @@ public class Schedule extends BaseEntity
     private Long doctorId;
 
     /** 排班日期 */
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     @Excel(name = "排班日期", width = 30, dateFormat = "yyyy-MM-dd")
     private Date scheduleDate;
 
@@ -40,6 +40,10 @@ public class Schedule extends BaseEntity
     /** 已预约人数 */
     @Excel(name = "已预约人数")
     private Long reservedNumber;
+
+    /** 可预约人数 */
+    @Excel(name = "可预约人数")
+    private Long availableNumber;
 
     /** 状态 */
     @Excel(name = "状态")
@@ -105,6 +109,21 @@ public class Schedule extends BaseEntity
         return reservedNumber;
     }
 
+    public Long getAvailableNumber()
+    {
+        if (this.maxNumber == null || this.reservedNumber == null)
+        {
+            return null;
+        }
+        long available = this.maxNumber - this.reservedNumber;
+        return available >= 0 ? available : 0;
+    }
+
+    public void setAvailableNumber(Long availableNumber)
+    {
+        this.availableNumber = availableNumber;
+    }
+
     public void setStatus(String status) 
     {
         this.status = status;
@@ -124,6 +143,7 @@ public class Schedule extends BaseEntity
             .append("timeSlot", getTimeSlot())
             .append("maxNumber", getMaxNumber())
             .append("reservedNumber", getReservedNumber())
+            .append("availableNumber", getAvailableNumber())
             .append("status", getStatus())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())

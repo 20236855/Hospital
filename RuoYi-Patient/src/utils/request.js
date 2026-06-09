@@ -3,7 +3,7 @@ import { showToast } from 'vant'
 
 const request = axios.create({
   baseURL: import.meta.env.VITE_APP_BASE_API,
-  timeout: 10000
+  timeout: 60000
 })
 
 request.interceptors.request.use(

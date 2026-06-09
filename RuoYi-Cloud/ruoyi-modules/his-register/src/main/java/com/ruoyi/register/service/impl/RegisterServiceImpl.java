@@ -8,6 +8,11 @@ import java.util.Map;
 import com.ruoyi.common.core.utils.DateUtils;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.core.exception.ServiceException;
+import com.ruoyi.common.core.constant.SecurityConstants;
+import com.ruoyi.common.core.domain.R;
+import com.ruoyi.his.api.RemoteScheduleService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,8 +29,13 @@ import com.ruoyi.register.service.IRegisterService;
 @Service
 public class RegisterServiceImpl implements IRegisterService
 {
+    private static final Logger log = LoggerFactory.getLogger(RegisterServiceImpl.class);
+
     @Autowired
     private RegisterMapper registerMapper;
+
+    @Autowired
+    private RemoteScheduleService remoteScheduleService;
 
     /**
      * 查询挂号
@@ -85,9 +95,68 @@ public class RegisterServiceImpl implements IRegisterService
      * @return 结果
      */
     @Override
-    @Transactional
-    public int insertRegister(Register register)
-    {
+    public int insertRegister(Register register) {
+        long startTime = System.currentTimeMillis();
+        log.info("[挂号请求] 开始处理挂号请求，patientId={}, doctorId={}, scheduleId={}, deptId={}", 
+                register.getPatientId(), register.getDoctorId(), register.getScheduleId(), register.getDeptId());
+        
+        try {
+            // 第一步：在事务中插入挂号记录
+            int rows = insertRegisterInternal(register);
+            
+            // 第二步：事务提交后，再调用远程服务（避免锁冲突）
+            if (rows > 0 && register.getScheduleId() != null) {
+                log.info("[挂号请求] 开始远程调用排班预约服务，scheduleId={}", register.getScheduleId());
+                long remoteStartTime = System.currentTimeMillis();
+                
+                try {
+                    R<Boolean> result = remoteScheduleService.bookSchedule(register.getScheduleId(), SecurityConstants.INNER);
+                    long remoteEndTime = System.currentTimeMillis();
+                    log.info("[挂号请求] 远程调用完成，耗时={}ms, result={}", (remoteEndTime - remoteStartTime), result);
+                    
+                    if (result == null) {
+                        log.error("[挂号请求] 排班预约失败：远程调用返回 null，scheduleId={}", register.getScheduleId());
+                        throw new ServiceException("排班预约失败，请稍后重试");
+                    }
+                    if (!R.isSuccess(result)) {
+                        log.error("[挂号请求] 排班预约失败：远程调用失败，scheduleId={}, code={}, message={}", 
+                                register.getScheduleId(), result.getCode(), result.getMsg());
+                        throw new ServiceException(result.getMsg() != null ? result.getMsg() : "排班预约失败，请稍后重试");
+                    }
+                    if (Boolean.FALSE.equals(result.getData())) {
+                        log.error("[挂号请求] 排班预约失败：远程调用返回 false，scheduleId={}", register.getScheduleId());
+                        throw new ServiceException("排班预约失败，请稍后重试");
+                    }
+                    
+                    log.info("[挂号请求] 排班预约成功！scheduleId={}", register.getScheduleId());
+                } catch (Exception e) {
+                    log.error("[挂号请求] 远程调用排班服务异常：{}", e.getMessage(), e);
+                    throw new ServiceException("排班预约失败，请稍后重试");
+                }
+            }
+            
+            long endTime = System.currentTimeMillis();
+            log.info("[挂号请求] 挂号请求处理完成，总耗时={}ms", (endTime - startTime));
+            return rows;
+        } catch (ServiceException e) {
+            long endTime = System.currentTimeMillis();
+            log.error("[挂号请求] 挂号失败（业务异常）：{}，耗时={}ms", e.getMessage(), (endTime - startTime));
+            throw e;
+        } catch (Exception e) {
+            long endTime = System.currentTimeMillis();
+            log.error("[挂号请求] 挂号失败（系统异常）：{}，耗时={}ms", e.getMessage(), (endTime - startTime), e);
+            throw new ServiceException("挂号失败，请稍后重试");
+        }
+    }
+
+    /**
+     * 内部方法：插入挂号记录（事务内）
+     * 
+     * @param register 挂号
+     * @return 结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    protected int insertRegisterInternal(Register register) {
         register.setRegisterNo(buildRegisterNo());
         if (StringUtils.isEmpty(register.getRegisterType())) {
             register.setRegisterType("online");
@@ -124,7 +193,13 @@ public class RegisterServiceImpl implements IRegisterService
         }
 
         register.setCreateTime(DateUtils.getNowDate());
-        return registerMapper.insertRegister(register);
+        log.info("[挂号请求] 准备插入挂号记录，registerNo={}, registerFee={}, levelId={}", 
+                register.getRegisterNo(), register.getRegisterFee(), register.getLevelId());
+        
+        int rows = registerMapper.insertRegister(register);
+        log.info("[挂号请求] 挂号记录插入成功，影响行数={}, registerId={}", rows, register.getRegisterId());
+        
+        return rows;
     }
 
     /**
@@ -141,7 +216,14 @@ public class RegisterServiceImpl implements IRegisterService
         register.setRegisterType(null);
         setRegisterFeeByLevel(register);
         register.setUpdateTime(DateUtils.getNowDate());
-        return registerMapper.updateRegister(register);
+        int rows = registerMapper.updateRegister(register);
+        if (rows > 0 && register.getScheduleId() != null) {
+            R<Boolean> result = remoteScheduleService.cancelSchedule(register.getScheduleId(), SecurityConstants.INNER);
+            if (result == null || !R.isSuccess(result) || Boolean.FALSE.equals(result.getData())) {
+                throw new ServiceException("退号失败，请稍后重试");
+            }
+        }
+        return rows;
     }
 
     /**

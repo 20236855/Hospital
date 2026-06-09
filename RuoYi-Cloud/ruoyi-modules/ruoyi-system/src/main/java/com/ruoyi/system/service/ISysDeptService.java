@@ -20,6 +20,14 @@ public interface ISysDeptService
     public List<SysDept> selectDeptList(SysDept dept);
 
     /**
+     * 查询部门管理数据（不受数据权限过滤）
+     * 
+     * @param dept 部门信息
+     * @return 部门信息集合
+     */
+    public List<SysDept> selectDeptListNoDataScope(SysDept dept);
+
+    /**
      * 查询部门树结构信息
      * 
      * @param dept 部门信息
