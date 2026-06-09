@@ -227,9 +227,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { getPatientByUserId } from '@/api/patient'
+import { getPatientList } from '@/api/patient'
 import { getRegisterList } from '@/api/register'
-import { getInfo } from '@/api/user'
 
 const router = useRouter()
 const active = ref(0)
@@ -252,18 +251,14 @@ const loadUserData = async () => {
       username.value = '患者'
     }
     
-    // 如果本地没有患者档案，就按当前登录用户查一次，避免拉全量列表
+    // 尝试获取患者列表（如果没有patientId）
     if (!savedPatientId) {
-      const userRes = await getInfo()
-      const userId = userRes?.user?.userId
-      if (userId) {
-        const patientRes = await getPatientByUserId(userId)
-        const patient = patientRes?.data
-        if (patient) {
-          localStorage.setItem('patientId', patient.patientId)
-          localStorage.setItem('patientName', patient.name)
-          username.value = patient.name
-        }
+      const patientRes = await getPatientList({ pageNum: 1, pageSize: 10 })
+      if (patientRes.rows && patientRes.rows.length > 0) {
+        const patient = patientRes.rows.find(p => p.name === savedUsername) || patientRes.rows[0]
+        localStorage.setItem('patientId', patient.patientId)
+        localStorage.setItem('patientName', patient.name)
+        username.value = patient.name
       }
     }
     

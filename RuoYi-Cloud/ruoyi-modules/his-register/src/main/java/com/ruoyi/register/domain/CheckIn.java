@@ -37,6 +37,9 @@ public class CheckIn extends BaseEntity
     @Excel(name = "签到状态")
     private String status;
 
+    /** Patient ID for permission filtering. */
+    private Long patientId;
+
     public void setCheckInId(Long checkInId) 
     {
         this.checkInId = checkInId;
@@ -87,6 +90,16 @@ public class CheckIn extends BaseEntity
         return status;
     }
 
+    public void setPatientId(Long patientId)
+    {
+        this.patientId = patientId;
+    }
+
+    public Long getPatientId()
+    {
+        return patientId;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -95,6 +108,7 @@ public class CheckIn extends BaseEntity
             .append("queueNo", getQueueNo())
             .append("checkInTime", getCheckInTime())
             .append("status", getStatus())
+            .append("patientId", getPatientId())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())
             .toString();

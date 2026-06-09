@@ -25,6 +25,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="queueNo != null "> and queue_no = #{queueNo}</if>
             <if test="checkInTime != null "> and check_in_time = #{checkInTime}</if>
             <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="patientId != null ">
+                and exists (
+                    select 1
+                    from register r
+                    where r.register_id = check_in.register_id
+                      and r.patient_id = #{patientId}
+                )
+            </if>
         </where>
     </select>
     

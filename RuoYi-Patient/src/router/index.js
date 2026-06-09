@@ -14,18 +14,6 @@ const routes = [
     meta: { title: '登录' }
   },
   {
-    path: '/register-account',
-    name: 'RegisterAccount',
-    component: () => import('@/views/RegisterAccount.vue'),
-    meta: { title: '注册账户' }
-  },
-  {
-    path: '/patient-complete',
-    name: 'PatientComplete',
-    component: () => import('@/views/PatientComplete.vue'),
-    meta: { title: '完善信息', requiresAuth: true }
-  },
-  {
     path: '/register',
     name: 'Register',
     component: () => import('@/views/Register.vue'),

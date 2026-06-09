@@ -80,6 +80,11 @@
             <artifactId>ruoyi-common-security</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-api-his</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

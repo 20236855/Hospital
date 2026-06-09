@@ -25,6 +25,14 @@ export function getDoctor(doctorId) {
   })
 }
 
+// 根据用户ID查询医生信息
+export function getDoctorByUserId(userId) {
+  return request({
+    url: '/hisdoctor/doctor/userId/' + userId,
+    method: 'get'
+  })
+}
+
 // 新增医生信息
 export function addDoctor(data) {
   return request({

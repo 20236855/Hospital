@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="医生ID" prop="doctorId">
+      <el-form-item v-if="!isDoctorUser" label="医生ID" prop="doctorId">
         <el-input
           v-model="queryParams.doctorId"
           placeholder="请输入医生ID"
@@ -124,7 +124,7 @@
         <el-row>
           <el-col :span="24">
             <el-form-item label="医生ID" prop="doctorId">
-              <el-input v-model="form.doctorId" placeholder="请输入医生ID" />
+              <el-input v-model="form.doctorId" placeholder="请输入医生ID" :disabled="isDoctorUser" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -165,9 +165,12 @@
 </template>
 
 <script setup name="Schedule">
+import useUserStore from '@/store/modules/user'
+import { getDoctorByUserId } from "@/api/hisdoctor/doctor"
 import { listSchedule, getSchedule, delSchedule, addSchedule, updateSchedule } from "@/api/hisdoctor/schedule"
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
 
 const scheduleList = ref([])
 const open = ref(false)
@@ -178,6 +181,8 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
+const currentDoctorId = ref(null)
+const isDoctorUser = computed(() => userStore.userType === 'doctor' || userStore.roles.includes('doctor'))
 
 const data = reactive({
   form: {},
@@ -209,7 +214,15 @@ const { queryParams, form, rules } = toRefs(data)
 /** 查询医生排班列表 */
 function getList() {
   loading.value = true
-  listSchedule(queryParams.value).then(response => {
+  const params = { ...queryParams.value }
+  if (isDoctorUser.value) {
+    if (!currentDoctorId.value) {
+      loading.value = false
+      return
+    }
+    params.doctorId = currentDoctorId.value
+  }
+  listSchedule(params).then(response => {
     scheduleList.value = response.rows
     total.value = response.total
     loading.value = false
@@ -226,7 +239,7 @@ function cancel() {
 function reset() {
   form.value = {
     scheduleId: null,
-    doctorId: null,
+    doctorId: isDoctorUser.value ? currentDoctorId.value : null,
     scheduleDate: null,
     timeSlot: null,
     maxNumber: null,
@@ -260,6 +273,9 @@ function handleSelectionChange(selection) {
 /** 新增按钮操作 */
 function handleAdd() {
   reset()
+  if (isDoctorUser.value) {
+    form.value.doctorId = currentDoctorId.value
+  }
   open.value = true
   title.value = "添加医生排班"
 }
@@ -270,6 +286,9 @@ function handleUpdate(row) {
   const _scheduleId = row.scheduleId || ids.value
   getSchedule(_scheduleId).then(response => {
     form.value = response.data
+    if (isDoctorUser.value) {
+      form.value.doctorId = currentDoctorId.value
+    }
     open.value = true
     title.value = "修改医生排班"
   })
@@ -279,6 +298,9 @@ function handleUpdate(row) {
 function submitForm() {
   proxy.$refs["scheduleRef"].validate(valid => {
     if (valid) {
+      if (isDoctorUser.value) {
+        form.value.doctorId = currentDoctorId.value
+      }
       if (form.value.scheduleId != null) {
         updateSchedule(form.value).then(() => {
           proxy.$modal.msgSuccess("修改成功")
@@ -309,10 +331,25 @@ function handleDelete(row) {
 
 /** 导出按钮操作 */
 function handleExport() {
-  proxy.download('hisdoctor/schedule/export', {
-    ...queryParams.value
-  }, `schedule_${new Date().getTime()}.xlsx`)
+  const params = { ...queryParams.value }
+  if (isDoctorUser.value) {
+    params.doctorId = currentDoctorId.value
+  }
+  proxy.download('hisdoctor/schedule/export', params, `schedule_${new Date().getTime()}.xlsx`)
 }
 
-getList()
+function loadCurrentDoctor() {
+  if (!isDoctorUser.value) {
+    getList()
+    return
+  }
+  getDoctorByUserId(userStore.id).then(response => {
+    const doctor = response.data
+    currentDoctorId.value = doctor ? doctor.doctorId : null
+    queryParams.value.doctorId = currentDoctorId.value
+    getList()
+  })
+}
+
+loadCurrentDoctor()
 </script>

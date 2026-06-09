@@ -1,6 +1,8 @@
 package com.ruoyi.emr.controller;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,11 +13,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.ruoyi.common.core.constant.SecurityConstants;
+import com.ruoyi.common.core.domain.R;
+import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
+import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.emr.domain.MedicalRecord;
 import com.ruoyi.emr.service.IMedicalRecordService;
+import com.ruoyi.his.api.RemotePatientService;
+import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
 import com.ruoyi.common.core.utils.poi.ExcelUtil;
@@ -34,6 +42,9 @@ public class MedicalRecordController extends BaseController
     @Autowired
     private IMedicalRecordService medicalRecordService;
 
+    @Autowired
+    private RemotePatientService remotePatientService;
+
     /**
      * 查询电子病历列表
      */
@@ -41,6 +52,7 @@ public class MedicalRecordController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(MedicalRecord medicalRecord)
     {
+        applyPatientScope(medicalRecord);
         startPage();
         List<MedicalRecord> list = medicalRecordService.selectMedicalRecordList(medicalRecord);
         return getDataTable(list);
@@ -54,6 +66,7 @@ public class MedicalRecordController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, MedicalRecord medicalRecord)
     {
+        applyPatientScope(medicalRecord);
         List<MedicalRecord> list = medicalRecordService.selectMedicalRecordList(medicalRecord);
         ExcelUtil<MedicalRecord> util = new ExcelUtil<MedicalRecord>(MedicalRecord.class);
         util.exportExcel(response, list, "电子病历数据");
@@ -66,7 +79,9 @@ public class MedicalRecordController extends BaseController
     @GetMapping(value = "/{recordId}")
     public AjaxResult getInfo(@PathVariable("recordId") Long recordId)
     {
-        return success(medicalRecordService.selectMedicalRecordByRecordId(recordId));
+        MedicalRecord medicalRecord = medicalRecordService.selectMedicalRecordByRecordId(recordId);
+        checkPatientScope(medicalRecord);
+        return success(medicalRecord);
     }
 
     /**
@@ -77,6 +92,7 @@ public class MedicalRecordController extends BaseController
     @PostMapping
     public AjaxResult add(@RequestBody MedicalRecord medicalRecord)
     {
+        checkPatientReadonly();
         return toAjax(medicalRecordService.insertMedicalRecord(medicalRecord));
     }
 
@@ -88,6 +104,7 @@ public class MedicalRecordController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody MedicalRecord medicalRecord)
     {
+        checkPatientReadonly();
         return toAjax(medicalRecordService.updateMedicalRecord(medicalRecord));
     }
 
@@ -99,6 +116,56 @@ public class MedicalRecordController extends BaseController
 	@DeleteMapping("/{recordIds}")
     public AjaxResult remove(@PathVariable Long[] recordIds)
     {
+        checkPatientReadonly();
         return toAjax(medicalRecordService.deleteMedicalRecordByRecordIds(recordIds));
+    }
+
+    private void applyPatientScope(MedicalRecord medicalRecord)
+    {
+        if (isPatientUser())
+        {
+            medicalRecord.setPatientId(getCurrentPatientId());
+        }
+    }
+
+    private void checkPatientScope(MedicalRecord medicalRecord)
+    {
+        if (isPatientUser() && (medicalRecord == null || !Objects.equals(medicalRecord.getPatientId(), getCurrentPatientId())))
+        {
+            throw new ServiceException("无权限访问其他患者信息");
+        }
+    }
+
+    private void checkPatientReadonly()
+    {
+        if (isPatientUser())
+        {
+            throw new ServiceException("患者无权限修改电子病历信息");
+        }
+    }
+
+    private Long getCurrentPatientId()
+    {
+        R<Map<String, Object>> patientR = remotePatientService.getPatientByUserId(SecurityUtils.getUserId(), SecurityConstants.INNER);
+        if (R.isError(patientR))
+        {
+            throw new ServiceException(patientR.getMsg());
+        }
+        Map<String, Object> patient = patientR.getData();
+        Object patientId = patient == null ? null : patient.get("patientId");
+        if (patientId == null)
+        {
+            throw new ServiceException("当前患者档案不存在，请先完善患者信息");
+        }
+        return patientId instanceof Number ? ((Number) patientId).longValue() : Long.valueOf(patientId.toString());
+    }
+
+    private boolean isPatientUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("patient");
     }
 }

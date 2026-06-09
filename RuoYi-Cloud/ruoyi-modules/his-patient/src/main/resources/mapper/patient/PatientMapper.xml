@@ -48,6 +48,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="allergyHistory != null  and allergyHistory != ''"> and allergy_history = #{allergyHistory}</if>
             <if test="pastHistory != null  and pastHistory != ''"> and past_history = #{pastHistory}</if>
             <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="userId != null"> and user_id = #{userId}</if>
         </where>
     </select>
     

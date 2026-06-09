@@ -1,6 +1,8 @@
 package com.ruoyi.payment.controller;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,11 +13,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.ruoyi.common.core.constant.SecurityConstants;
+import com.ruoyi.common.core.domain.R;
+import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
+import com.ruoyi.common.security.utils.SecurityUtils;
+import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.payment.domain.Payment;
 import com.ruoyi.payment.service.IPaymentService;
+import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
 import com.ruoyi.common.core.utils.poi.ExcelUtil;
@@ -34,6 +42,9 @@ public class PaymentController extends BaseController
     @Autowired
     private IPaymentService paymentService;
 
+    @Autowired
+    private RemotePatientService remotePatientService;
+
     /**
      * 查询收费列表
      */
@@ -41,6 +52,7 @@ public class PaymentController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(Payment payment)
     {
+        applyPatientScope(payment);
         startPage();
         List<Payment> list = paymentService.selectPaymentList(payment);
         return getDataTable(list);
@@ -54,6 +66,7 @@ public class PaymentController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, Payment payment)
     {
+        applyPatientScope(payment);
         List<Payment> list = paymentService.selectPaymentList(payment);
         ExcelUtil<Payment> util = new ExcelUtil<Payment>(Payment.class);
         util.exportExcel(response, list, "收费数据");
@@ -66,7 +79,9 @@ public class PaymentController extends BaseController
     @GetMapping(value = "/{paymentId}")
     public AjaxResult getInfo(@PathVariable("paymentId") Long paymentId)
     {
-        return success(paymentService.selectPaymentByPaymentId(paymentId));
+        Payment payment = paymentService.selectPaymentByPaymentId(paymentId);
+        checkPatientScope(payment);
+        return success(payment);
     }
 
     /**
@@ -77,6 +92,7 @@ public class PaymentController extends BaseController
     @PostMapping
     public AjaxResult add(@RequestBody Payment payment)
     {
+        applyPatientScope(payment);
         return toAjax(paymentService.insertPayment(payment));
     }
 
@@ -88,6 +104,8 @@ public class PaymentController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody Payment payment)
     {
+        checkPatientScope(paymentService.selectPaymentByPaymentId(payment.getPaymentId()));
+        applyPatientScope(payment);
         return toAjax(paymentService.updatePayment(payment));
     }
 
@@ -99,6 +117,54 @@ public class PaymentController extends BaseController
 	@DeleteMapping("/{paymentIds}")
     public AjaxResult remove(@PathVariable Long[] paymentIds)
     {
+        if (isPatientUser())
+        {
+            for (Long paymentId : paymentIds)
+            {
+                checkPatientScope(paymentService.selectPaymentByPaymentId(paymentId));
+            }
+        }
         return toAjax(paymentService.deletePaymentByPaymentIds(paymentIds));
+    }
+
+    private void applyPatientScope(Payment payment)
+    {
+        if (isPatientUser())
+        {
+            payment.setPatientId(getCurrentPatientId());
+        }
+    }
+
+    private void checkPatientScope(Payment payment)
+    {
+        if (isPatientUser() && (payment == null || !Objects.equals(payment.getPatientId(), getCurrentPatientId())))
+        {
+            throw new ServiceException("无权限访问其他患者信息");
+        }
+    }
+
+    private Long getCurrentPatientId()
+    {
+        R<Map<String, Object>> patientR = remotePatientService.getPatientByUserId(SecurityUtils.getUserId(), SecurityConstants.INNER);
+        if (R.isError(patientR))
+        {
+            throw new ServiceException(patientR.getMsg());
+        }
+        Map<String, Object> patient = patientR.getData();
+        Object patientId = patient == null ? null : patient.get("patientId");
+        if (patientId == null)
+        {
+            throw new ServiceException("当前患者档案不存在，请先完善患者信息");
+        }
+        return patientId instanceof Number ? ((Number) patientId).longValue() : Long.valueOf(patientId.toString());
+    }
+
+    private boolean isPatientUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("patient");
     }
 }

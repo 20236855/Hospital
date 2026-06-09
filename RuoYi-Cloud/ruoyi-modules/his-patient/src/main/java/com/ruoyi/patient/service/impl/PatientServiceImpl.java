@@ -91,7 +91,7 @@ public class PatientServiceImpl implements IPatientService
     }
 
     /**
-     * 自助完善患者信息：如果已存在则更新，否则新增
+     * 自助完善患者信息：只保存业务档案，不创建系统用户。
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -101,58 +101,16 @@ public class PatientServiceImpl implements IPatientService
         {
             throw new ServiceException("当前登录用户不能为空");
         }
-        
-        // 计算年龄
-        if (patient.getBirthday() != null && patient.getAge() == null)
+        if (patientMapper.selectPatientByUserId(patient.getUserId()) != null)
         {
-            patient.setAge(calculateAge(patient.getBirthday()));
+            throw new ServiceException("患者档案已存在，请勿重复完善");
         }
-        
-        Patient existPatient = patientMapper.selectPatientByUserId(patient.getUserId());
-        if (existPatient != null)
+        if (StringUtils.isEmpty(patient.getPatientNo()))
         {
-            // 更新现有档案
-            patient.setPatientId(existPatient.getPatientId());
-            patient.setPatientNo(existPatient.getPatientNo());
-            patient.setUserId(existPatient.getUserId());
-            patient.setUpdateTime(DateUtils.getNowDate());
-            return patientMapper.updatePatient(patient);
+            patient.setPatientNo(generatePatientNo());
         }
-        else
-        {
-            // 新增档案
-            if (StringUtils.isEmpty(patient.getPatientNo()))
-            {
-                patient.setPatientNo(generatePatientNo());
-            }
-            patient.setCreateTime(DateUtils.getNowDate());
-            return patientMapper.insertPatient(patient);
-        }
-    }
-
-    /**
-     * 根据出生日期计算年龄
-     */
-    private Long calculateAge(Date birthday)
-    {
-        if (birthday == null) return null;
-        
-        java.util.Calendar cal = java.util.Calendar.getInstance();
-        int yearNow = cal.get(java.util.Calendar.YEAR);
-        int monthNow = cal.get(java.util.Calendar.MONTH);
-        int dayNow = cal.get(java.util.Calendar.DAY_OF_MONTH);
-        
-        cal.setTime(birthday);
-        int yearBirth = cal.get(java.util.Calendar.YEAR);
-        int monthBirth = cal.get(java.util.Calendar.MONTH);
-        int dayBirth = cal.get(java.util.Calendar.DAY_OF_MONTH);
-        
-        long age = yearNow - yearBirth;
-        if (monthNow < monthBirth || (monthNow == monthBirth && dayNow < dayBirth))
-        {
-            age--;
-        }
-        return age;
+        patient.setCreateTime(DateUtils.getNowDate());
+        return patientMapper.insertPatient(patient);
     }
 
     /**

@@ -16,7 +16,7 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isPatientUser">
         <el-button
           type="primary"
           plain
@@ -25,7 +25,7 @@
           v-hasPermi="['emr:record:add']"
         >新增</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isPatientUser">
         <el-button
           type="success"
           plain
@@ -35,7 +35,7 @@
           v-hasPermi="['emr:record:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isPatientUser">
         <el-button
           type="danger"
           plain
@@ -45,7 +45,7 @@
           v-hasPermi="['emr:record:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isPatientUser">
         <el-button
           type="warning"
           plain
@@ -58,7 +58,7 @@
     </el-row>
 
     <el-table v-loading="loading" :data="recordList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
+      <el-table-column v-if="!isPatientUser" type="selection" width="55" align="center" />
       <el-table-column label="病历ID" align="center" prop="recordId" />
       <el-table-column label="接诊ID" align="center" prop="encounterId" />
       <el-table-column label="主诉" align="center" prop="chiefComplaint" />
@@ -69,7 +69,7 @@
       <el-table-column label="诊断意见" align="center" prop="diagnosisOpinion" />
       <el-table-column label="治疗方案" align="center" prop="treatmentPlan" />
       <el-table-column label="医生建议" align="center" prop="doctorAdvice" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column v-if="!isPatientUser" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['emr:record:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['emr:record:remove']">删除</el-button>
@@ -164,8 +164,11 @@
 
 <script setup name="Record">
 import { listRecord, getRecord, delRecord, addRecord, updateRecord } from "@/api/emr/record"
+import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
+const isPatientUser = computed(() => userStore.userType === "patient" || userStore.roles.includes("patient"))
 
 const recordList = ref([])
 const open = ref(false)
@@ -257,6 +260,7 @@ function handleSelectionChange(selection) {
 
 /** 新增按钮操作 */
 function handleAdd() {
+  if (isPatientUser.value) return
   reset()
   open.value = true
   title.value = "添加电子病历"
@@ -264,6 +268,7 @@ function handleAdd() {
 
 /** 修改按钮操作 */
 function handleUpdate(row) {
+  if (isPatientUser.value) return
   reset()
   const _recordId = row.recordId || ids.value
   getRecord(_recordId).then(response => {
@@ -275,6 +280,7 @@ function handleUpdate(row) {
 
 /** 提交按钮 */
 function submitForm() {
+  if (isPatientUser.value) return
   proxy.$refs["recordRef"].validate(valid => {
     if (valid) {
       if (form.value.recordId != null) {
@@ -296,6 +302,7 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
+  if (isPatientUser.value) return
   const _recordIds = row.recordId || ids.value
   proxy.$modal.confirm('是否确认删除电子病历编号为"' + _recordIds + '"的数据项？').then(function() {
     return delRecord(_recordIds)
@@ -307,6 +314,7 @@ function handleDelete(row) {
 
 /** 导出按钮操作 */
 function handleExport() {
+  if (isPatientUser.value) return
   proxy.download('emr/record/export', {
     ...queryParams.value
   }, `record_${new Date().getTime()}.xlsx`)

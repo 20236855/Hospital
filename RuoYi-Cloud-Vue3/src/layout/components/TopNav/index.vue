@@ -4,9 +4,10 @@
     mode="horizontal"
     @select="handleSelect"
     :ellipsis="false"
+    :active-text-color="'#3a8d82'"
   >
     <template v-for="(item, index) in topMenus">
-      <el-menu-item :style="{'--theme': theme}" :index="item.path" :key="index" v-if="index < visibleNumber">
+      <el-menu-item :style="{'--theme': '#3a8d82'}" :index="item.path" :key="index" v-if="index < visibleNumber">
         <svg-icon
         v-if="item.meta && item.meta.icon && item.meta.icon !== '#'"
         :icon-class="item.meta.icon"/>
@@ -185,9 +186,10 @@ onMounted(() => {
   margin: 0 10px !important;
 }
 
-.topmenu-container.el-menu--horizontal > .el-menu-item.is-active, .el-menu--horizontal > .el-sub-menu.is-active .el-submenu__title {
-  border-bottom: 2px solid #{'var(--theme)'} !important;
-  color: #303133;
+.topmenu-container.el-menu--horizontal > .el-menu-item.is-active,
+.topmenu-container.el-menu--horizontal > .el-sub-menu.is-active > .el-sub-menu__title {
+  border-bottom: 2px solid #3a8d82 !important;
+  color: #3a8d82 !important;
 }
 
 /* sub-menu item */

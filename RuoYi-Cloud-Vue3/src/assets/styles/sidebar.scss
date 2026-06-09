@@ -24,9 +24,9 @@
     left: 0;
     z-index: 1001;
     overflow: hidden;
-    -webkit-box-shadow: 8px 0 26px rgba(13, 48, 78, 0.16);
-    box-shadow: 8px 0 26px rgba(13, 48, 78, 0.16);
-    background: linear-gradient(180deg, #123a5d 0%, #0d304e 100%);
+    -webkit-box-shadow: 8px 0 26px rgba(20, 70, 62, 0.22);
+    box-shadow: 8px 0 26px rgba(20, 70, 62, 0.22);
+    background: linear-gradient(180deg, #1a4d45 0%, #123d36 100%);
 
     // reset element-ui css
     .horizontal-collapse-transition {
@@ -93,10 +93,10 @@
       line-height: 44px !important;
       margin: 4px 10px;
       border-radius: 8px;
-      color: rgba(224, 241, 247, 0.78) !important;
+      color: rgba(245, 252, 250, 0.94) !important;
 
       &:hover {
-        background-color: rgba(126, 204, 222, 0.14) !important;
+        background-color: rgba(120, 210, 180, 0.25) !important;
         color: #ffffff !important;
       }
     }
@@ -108,31 +108,39 @@
     & .nest-menu .el-sub-menu>.el-sub-menu__title,
     & .el-sub-menu .el-menu-item {
       min-width: vars.$base-sidebar-width !important;
+      color: rgba(240, 250, 246, 0.90) !important;
 
       &:hover {
-        background-color: rgba(0, 0, 0, 0.06);
+        background-color: rgba(0, 0, 0, 0.08);
+        color: #ffffff !important;
       }
     }
 
     & .theme-dark .nest-menu .el-sub-menu>.el-sub-menu__title,
     & .theme-dark .el-sub-menu .el-menu-item {
       background-color: vars.$base-sub-menu-background;
+      color: rgba(245, 252, 250, 0.94) !important;
 
       &:hover {
         background-color: vars.$base-sub-menu-hover !important;
+        color: #ffffff !important;
       }
     }
 
-    // theme-dark 深色主题
+    // theme-dark 深色主题（文字更亮更清晰）
     &.theme-dark {
-      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.45);
       border-right: none;
+
+      .el-menu-item {
+        color: rgba(245, 252, 250, 0.94) !important;
+      }
 
       .el-menu-item.is-active {
         position: relative;
         margin: 4px 10px;
         border-radius: 8px;
-        background: linear-gradient(90deg, rgba(103, 183, 200, 0.28), rgba(103, 183, 200, 0.12)) !important;
+        background: linear-gradient(90deg, rgba(130, 220, 185, 0.38), rgba(130, 220, 185, 0.18)) !important;
         color: #ffffff !important;
 
         &::before {
@@ -141,14 +149,14 @@
           inset: 8px auto 8px 0;
           width: 3px;
           border-radius: 0 3px 3px 0;
-          background-color: #9bd4df;
+          background-color: #b8e6d4;
           pointer-events: none;
           z-index: 1;
         }
       }
 
       .el-sub-menu.is-active > .el-sub-menu__title {
-        color: var(--current-color, #409eff) !important;
+        color: #ffffff !important;
       }
 
       .el-menu-item:not(.is-active),
@@ -167,24 +175,24 @@
         }
 
         &:hover::before {
-          background-color: rgba(126, 204, 222, 0.14);
+          background-color: rgba(120, 210, 180, 0.25);
         }
       }
     }
     
     // theme-light 浅色主题
     &.theme-light {
-      border-right: 1px solid #dcebf1;
-      box-shadow: 8px 0 24px rgba(25, 74, 105, 0.08);
-      background: #fbfdfe;
+      border-right: 1px solid #cfe6dd;
+      box-shadow: 8px 0 24px rgba(20, 70, 62, 0.10);
+      background: #fbfefc;
 
       .el-menu-item,
       .el-sub-menu__title {
-        color: #315a78;
+        color: #2f5d55;
       }
 
       .el-menu-item.is-active {
-        color: #0b6387 !important;
+        color: #3a8d82 !important;
         position: relative;
         margin: 4px 10px;
         border-radius: 8px;
@@ -193,29 +201,29 @@
           content: '';
           position: absolute;
           inset: 0;
-          background-color: #eef8fb;
+          background-color: #e8f5f0;
           pointer-events: none;
           z-index: 1;
         }
       }
 
       .el-sub-menu.is-active > .el-sub-menu__title {
-        color: var(--current-color, #409eff) !important;
+        color: #3a8d82 !important;
       }
 
       .el-menu-item:not(.is-active):hover,
       .submenu-title-noDropdown:hover,
       .el-sub-menu__title:hover {
-        background-color: #eef8fb;
-        color: #123a5d !important;
+        background-color: #e6f5ee;
+        color: #1a4d45 !important;
       }
 
       .nest-menu .el-sub-menu > .el-sub-menu__title,
       .el-sub-menu .el-menu-item {
-        background-color: #f8fcfd;
+        background-color: #f3faf6;
 
         &:hover {
-          background-color: #eef8fb;
+          background-color: #e6f5ee;
         }
       }
     }

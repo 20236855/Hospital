@@ -117,7 +117,7 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isPatientUser">
         <el-button
           type="primary"
           plain
@@ -126,7 +126,7 @@
           v-hasPermi="['patient:patient:add']"
         >新增</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isPatientUser">
         <el-button
           type="success"
           plain
@@ -136,7 +136,7 @@
           v-hasPermi="['patient:patient:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isPatientUser">
         <el-button
           type="danger"
           plain
@@ -159,7 +159,7 @@
     </el-row>
 
     <el-table v-loading="loading" :data="patientList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
+      <el-table-column v-if="!isPatientUser" type="selection" width="55" align="center" />
       <el-table-column label="病历号" align="center" prop="patientNo" width="120" />
       <el-table-column label="患者姓名" align="center" prop="name" width="100" />
       <el-table-column label="性别" align="center" prop="gender" width="80" />
@@ -180,7 +180,7 @@
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="150">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['patient:patient:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['patient:patient:remove']">删除</el-button>
+          <el-button v-if="!isPatientUser" link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['patient:patient:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -305,9 +305,11 @@
 </template>
 
 <script setup name="Patient">
-import { listPatient, getPatient, delPatient, addPatient, updatePatient, getPatientByUserId } from "@/api/patient/patient"
+import useUserStore from '@/store/modules/user'
+import { listPatient, getPatient, delPatient, addPatient, updatePatient } from "@/api/patient/patient"
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
 
 const patientList = ref([])
 const open = ref(false)
@@ -318,6 +320,7 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
+const isPatientUser = computed(() => userStore.userType === 'patient' || userStore.roles.includes('patient'))
 
 const data = reactive({
   form: {},
@@ -367,7 +370,11 @@ const { queryParams, form, rules } = toRefs(data)
 /** 查询患者列表 */
 function getList() {
   loading.value = true
-  listPatient(queryParams.value).then(response => {
+  const params = { ...queryParams.value }
+  if (isPatientUser.value) {
+    params.userId = userStore.id
+  }
+  listPatient(params).then(response => {
     patientList.value = response.rows
     total.value = response.total
     loading.value = false
@@ -420,6 +427,9 @@ function resetQuery() {
 
 /** 多选框选中数据 */
 function handleSelectionChange(selection) {
+  if (isPatientUser.value) {
+    return
+  }
   ids.value = selection.map(item => item.patientId)
   single.value = selection.length != 1
   multiple.value = !selection.length
@@ -427,6 +437,10 @@ function handleSelectionChange(selection) {
 
 /** 新增按钮操作 */
 function handleAdd() {
+  if (isPatientUser.value) {
+    proxy.$modal.msgWarning("患者账号只能修改自己的信息")
+    return
+  }
   reset()
   open.value = true
   title.value = "添加患者"
@@ -471,6 +485,10 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
+  if (isPatientUser.value) {
+    proxy.$modal.msgWarning("患者账号不能删除患者档案")
+    return
+  }
   const _patientIds = row.patientId || ids.value
   proxy.$modal.confirm('是否确认删除患者编号为"' + _patientIds + '"的数据项？').then(function() {
     return delPatient(_patientIds)
@@ -482,6 +500,10 @@ function handleDelete(row) {
 
 /** 导出按钮操作 */
 function handleExport() {
+  if (isPatientUser.value) {
+    proxy.$modal.msgWarning("患者账号不能导出患者档案")
+    return
+  }
   proxy.download('patient/patient/export', {
     ...queryParams.value
   }, `patient_${new Date().getTime()}.xlsx`)

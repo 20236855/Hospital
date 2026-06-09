@@ -6,7 +6,7 @@
       <span class="ambient-cross cross-three"></span>
     </div>
 
-    <section class="home-header">
+    <section v-if="isAdminOrDoctor" class="home-header">
       <div class="header-copy">
         <div class="eyebrow">
           <span class="live-dot"></span>
@@ -62,7 +62,7 @@
       </div>
     </section>
 
-    <section class="metric-grid">
+    <section v-if="isAdminOrDoctor" class="metric-grid">
       <article v-for="(item, index) in coreMetrics" :key="item.label" class="metric-card" :style="{ '--delay': `${index * 90}ms` }">
         <div class="metric-top">
           <div class="metric-icon" :class="item.tone">
@@ -81,7 +81,7 @@
       </article>
     </section>
 
-    <section class="insight-strip">
+    <section v-if="isAdminOrDoctor" class="insight-strip">
       <div v-for="item in insightCards" :key="item.label" class="insight-item">
         <span>{{ item.label }}</span>
         <strong>{{ item.value }}</strong>
@@ -89,7 +89,7 @@
       </div>
     </section>
 
-    <section class="dashboard-layout">
+    <section v-if="isAdminOrDoctor" class="dashboard-layout">
       <div class="panel business-flow">
         <div class="panel-head">
           <div>
@@ -243,7 +243,7 @@
         :key="item.key"
         :ref="el => setShowcaseRef(el, index)"
         class="showcase-section"
-        :class="[item.motion, item.layout, { 'is-active': activeShowcaseIndex === index }]"
+        :class="[item.motion, item.layout, item.extraClass, { 'is-active': activeShowcaseIndex === index }]"
       >
         <div class="showcase-inner">
           <div class="showcase-art">
@@ -317,6 +317,16 @@ const showCompleteInfoDialog = ref(false)
 // 用户类型文本
 const userTypeText = computed(() => {
   return userStore.userType === 'doctor' ? '医生' : '患者'
+})
+
+// 是否为患者用户（患者端不显示运营数据）
+const isPatient = computed(() => {
+  return userStore.userType === 'patient'
+})
+
+// 是否为管理员或医生（显示完整数据概览）
+const isAdminOrDoctor = computed(() => {
+  return userStore.userType === 'admin' || userStore.userType === 'doctor' || userStore.roles?.some(role => role.roleKey?.includes('admin') || role.roleKey?.includes('doctor'))
 })
 
 // 页面加载时检查是否需要完善信息
@@ -428,7 +438,8 @@ const showcaseSections = [
     image: 'https://pic1.imgdb.cn/item/6a203e949ecef740178671a2.png',
     motion: 'showcase-from-bottom',
     layout: 'copy-left',
-    chips: ['CT 影像', '数据判读']
+    chips: ['CT 影像', '数据判读'],
+    extraClass: 'section-adjust-up'
   },
   {
     key: 'medicine-guide',
@@ -1678,6 +1689,15 @@ onBeforeUnmount(() => {
 .showcase-from-corner {
   --showcase-x: 90vw;
   --showcase-y: -68vh;
+}
+
+.section-adjust-up {
+  padding-top: 20px;
+  align-content: start;
+
+  .showcase-inner {
+    margin-top: -60px;
+  }
 }
 
 .showcase-section.is-active {

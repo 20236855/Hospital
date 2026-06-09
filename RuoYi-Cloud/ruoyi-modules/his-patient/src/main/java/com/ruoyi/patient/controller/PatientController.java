@@ -1,6 +1,7 @@
 package com.ruoyi.patient.controller;
 
 import java.util.List;
+import java.util.Objects;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.core.domain.R;
+import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.security.annotation.InnerAuth;
@@ -19,6 +21,7 @@ import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.patient.domain.Patient;
 import com.ruoyi.patient.service.IPatientService;
+import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
 import com.ruoyi.common.core.utils.poi.ExcelUtil;
@@ -31,7 +34,7 @@ import com.ruoyi.common.core.web.page.TableDataInfo;
  * @date 2026-05-29
  */
 @RestController
-@RequestMapping({"/patient", ""})
+@RequestMapping("/patient")
 public class PatientController extends BaseController
 {
     @Autowired
@@ -40,9 +43,11 @@ public class PatientController extends BaseController
     /**
      * 查询患者列表
      */
+    @RequiresPermissions("patient:patient:list")
     @GetMapping("/list")
     public TableDataInfo list(Patient patient)
     {
+        applyPatientScope(patient);
         startPage();
         List<Patient> list = patientService.selectPatientList(patient);
         return getDataTable(list);
@@ -54,7 +59,9 @@ public class PatientController extends BaseController
     @GetMapping(value = "/idCard/{idCard}")
     public AjaxResult getByIdCard(@PathVariable("idCard") String idCard)
     {
-        return success(patientService.selectPatientByIdCard(idCard));
+        Patient patient = patientService.selectPatientByIdCard(idCard);
+        checkPatientScope(patient);
+        return success(patient);
     }
 
     /**
@@ -63,6 +70,10 @@ public class PatientController extends BaseController
     @GetMapping(value = "/userId/{userId}")
     public AjaxResult getByUserId(@PathVariable("userId") Long userId)
     {
+        if (isPatientUser() && !Objects.equals(SecurityUtils.getUserId(), userId))
+        {
+            throw new ServiceException("无权限访问其他患者信息");
+        }
         return success(patientService.getPatientByUserId(userId));
     }
 
@@ -74,6 +85,7 @@ public class PatientController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, Patient patient)
     {
+        applyPatientScope(patient);
         List<Patient> list = patientService.selectPatientList(patient);
         ExcelUtil<Patient> util = new ExcelUtil<Patient>(Patient.class);
         util.exportExcel(response, list, "患者数据");
@@ -86,7 +98,9 @@ public class PatientController extends BaseController
     @GetMapping(value = "/{patientId}")
     public AjaxResult getInfo(@PathVariable("patientId") Long patientId)
     {
-        return success(patientService.selectPatientByPatientId(patientId));
+        Patient patient = patientService.selectPatientByPatientId(patientId);
+        checkPatientScope(patient);
+        return success(patient);
     }
 
     @InnerAuth
@@ -134,6 +148,10 @@ public class PatientController extends BaseController
     @PostMapping
     public AjaxResult add(@RequestBody Patient patient)
     {
+        if (isPatientUser())
+        {
+            throw new ServiceException("患者账号不能新增患者档案");
+        }
         return toAjax(patientService.insertPatient(patient));
     }
 
@@ -145,6 +163,11 @@ public class PatientController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody Patient patient)
     {
+        checkPatientScope(patientService.selectPatientByPatientId(patient.getPatientId()));
+        if (isPatientUser())
+        {
+            patient.setUserId(SecurityUtils.getUserId());
+        }
         return toAjax(patientService.updatePatient(patient));
     }
 
@@ -156,6 +179,10 @@ public class PatientController extends BaseController
 	@DeleteMapping("/{patientIds}")
     public AjaxResult remove(@PathVariable Long[] patientIds)
     {
+        if (isPatientUser())
+        {
+            throw new ServiceException("患者账号不能删除患者档案");
+        }
         return toAjax(patientService.deletePatientByPatientIds(patientIds));
     }
     
@@ -169,5 +196,30 @@ public class PatientController extends BaseController
         Long userId = SecurityUtils.getUserId();
         patient.setUserId(userId);
         return toAjax(patientService.completePatient(patient));
+    }
+
+    private void applyPatientScope(Patient patient)
+    {
+        if (isPatientUser())
+        {
+            patient.setUserId(SecurityUtils.getUserId());
+        }
+    }
+
+    private void checkPatientScope(Patient patient)
+    {
+        if (isPatientUser() && (patient == null || !Objects.equals(patient.getUserId(), SecurityUtils.getUserId())))
+        {
+            throw new ServiceException("无权限访问其他患者信息");
+        }
+    }
+
+    private boolean isPatientUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("patient");
     }
 }

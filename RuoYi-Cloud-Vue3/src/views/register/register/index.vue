@@ -553,19 +553,10 @@ function handleDeptChange(deptId) {
 async function handleDoctorChange(doctorId) {
   if (!doctorId) {
     form.value.registerFee = null
-    form.value.levelId = null
     return
   }
-  // 从医生列表中找到对应的levelId
-  const selectedDoctor = doctorList.value.find(d => d.doctorId === doctorId)
-  if (selectedDoctor && selectedDoctor.levelId) {
-    form.value.levelId = selectedDoctor.levelId
-    // 从levelList中找到对应的费用
-    const selectedLevel = levelList.value.find(l => l.id === selectedDoctor.levelId)
-    if (selectedLevel) {
-      form.value.registerFee = selectedLevel.registerFee
-    }
-  }
+  const res = await getRegisterFee(doctorId)
+  form.value.registerFee = res.data
 }
 
 async function handleIdCardBlur() {

@@ -23,14 +23,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectDoctorVo">
-        select d.doctor_id, d.user_id, d.dept_id, d.doctor_no, d.doctor_name, d.gender, d.phone, d.level_id, rl.level_name, d.specialty, d.introduction, d.avatar, d.status, d.create_time, d.update_time 
+        select d.doctor_id, d.user_id, d.dept_id, d.doctor_no, d.doctor_name, d.gender, d.phone, d.level_id,
+               rl.level_name, d.specialty, d.introduction, d.avatar, d.status, d.create_time, d.update_time
         from doctor d
-        left join regist_level rl on d.level_id = rl.level_id
+        left join regist_level rl on rl.level_id = d.level_id
     </sql>
 
     <select id="selectDoctorList" parameterType="Doctor" resultMap="DoctorResult">
         <include refid="selectDoctorVo"/>
-        <where>  
+        <where>
             <if test="userId != null "> and d.user_id = #{userId}</if>
             <if test="deptId != null "> and d.dept_id = #{deptId}</if>
             <if test="doctorNo != null  and doctorNo != ''"> and d.doctor_no = #{doctorNo}</if>
@@ -44,7 +45,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="status != null  and status != ''"> and d.status = #{status}</if>
         </where>
     </select>
-    
+
     <select id="selectDoctorByDoctorId" parameterType="Long" resultMap="DoctorResult">
         <include refid="selectDoctorVo"/>
         where d.doctor_id = #{doctorId}
@@ -98,7 +99,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="status != null">status,</if>
             <if test="createTime != null">create_time,</if>
             <if test="updateTime != null">update_time,</if>
-        </trim>
+         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="userId != null">#{userId},</if>
             <if test="deptId != null">#{deptId},</if>
@@ -113,7 +114,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="status != null">#{status},</if>
             <if test="createTime != null">#{createTime},</if>
             <if test="updateTime != null">#{updateTime},</if>
-        </trim>
+         </trim>
     </insert>
 
     <update id="updateDoctor" parameterType="Doctor">

@@ -40,8 +40,8 @@ defineProps({
   height: auto;
   padding: 14px 0;
   overflow: hidden;
-  border-bottom: 1px solid rgba(181, 213, 226, 0.16);
-  background: #123a5d;
+  border-bottom: 1px solid rgba(165, 213, 196, 0.18);
+  background: #1a4d45;
 
   .sidebar-logo-link {
     display: flex;
@@ -82,7 +82,7 @@ defineProps({
   }
 
   .brand-desc {
-    color: rgba(221, 242, 248, 0.76);
+    color: rgba(221, 248, 242, 0.76);
     font-size: 12px;
     line-height: 1.4;
     padding-left: 52px; /* logo宽度 + gap */

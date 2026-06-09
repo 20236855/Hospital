@@ -224,9 +224,9 @@ async function toggleTheme(event) {
   align-items: center;
   box-sizing: border-box;
   padding: 0 16px 0 6px;
-  border-bottom: 1px solid rgba(121, 162, 184, 0.2);
+  border-bottom: 1px solid rgba(110, 170, 150, 0.22);
   background: var(--navbar-bg);
-  box-shadow: 0 8px 24px rgba(25, 74, 105, 0.06);
+  box-shadow: 0 8px 24px rgba(20, 70, 62, 0.08);
 
   .hamburger-container {
     display: flex;
@@ -235,15 +235,15 @@ async function toggleTheme(event) {
     height: 40px;
     margin-right: 12px;
     border-radius: 8px;
-    color: #315a78;
+    color: #2a4d45;
     cursor: pointer;
     line-height: 58px;
     transition: background 0.2s, color 0.2s;
     -webkit-tap-highlight-color: transparent;
 
     &:hover {
-      background: #eef7fb;
-      color: #0f6387;
+      background: #e6f5ee;
+      color: #1a6a62;
     }
   }
 
@@ -262,14 +262,14 @@ async function toggleTheme(event) {
     line-height: 1.2;
 
     span {
-      color: #12395b;
+      color: #183d36;
       font-size: 16px;
       font-weight: 700;
     }
 
     strong {
       margin-top: 3px;
-      color: #7b8da0;
+      color: #6b8d82;
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0;
@@ -314,7 +314,7 @@ async function toggleTheme(event) {
       height: 36px;
       padding: 0 8px;
       border-radius: 8px;
-      color: #315a78;
+      color: #2a4d45;
       font-size: 17px;
       vertical-align: text-bottom;
 
@@ -323,8 +323,8 @@ async function toggleTheme(event) {
         transition: background 0.2s, color 0.2s;
 
         &:hover {
-          background: #eef7fb;
-          color: #0f6387;
+          background: #e6f5ee;
+          color: #1a6a62;
         }
       }
 
@@ -353,9 +353,9 @@ async function toggleTheme(event) {
           height: auto;
           min-height: 38px;
           padding: 6px 10px 6px 6px;
-          border: 1px solid rgba(121, 162, 184, 0.24);
+          border: 1px solid rgba(110, 170, 150, 0.26);
           border-radius: 8px;
-          background: #f8fcfd;
+          background: #f3faf6;
 
         .user-avatar {
           width: 30px;
@@ -372,7 +372,7 @@ async function toggleTheme(event) {
           
           .user-nickname {
             position: static;
-            color: #183a59;
+            color: #183d36;
             font-size: 14px;
             font-weight: 700;
             line-height: 1.2;
@@ -380,7 +380,7 @@ async function toggleTheme(event) {
           
           .user-role {
             position: static;
-            color: #7b8da0;
+            color: #6b8d82;
             font-size: 11px;
             font-weight: 500;
             line-height: 1.2;
@@ -405,16 +405,16 @@ async function toggleTheme(event) {
   gap: 6px;
   height: 34px;
   padding: 0 12px;
-  border: 1px solid rgba(46, 119, 168, 0.18);
+  border: 1px solid rgba(35, 114, 104, 0.20);
   border-radius: 8px;
-  background: #eef8fb;
-  color: #175a7d;
+  background: #e6f5ee;
+  color: #1a4d45;
   font-size: 13px;
   font-weight: 700;
 
   &--soft {
-    background: #f4fbfa;
-    color: #2b7678;
+    background: #f0faf5;
+    color: #237268;
   }
 }
 

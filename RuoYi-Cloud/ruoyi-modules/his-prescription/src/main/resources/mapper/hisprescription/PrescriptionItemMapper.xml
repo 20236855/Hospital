@@ -36,6 +36,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="frequency != null  and frequency != ''"> and frequency = #{frequency}</if>
             <if test="useDays != null "> and use_days = #{useDays}</if>
             <if test="itemTip != null  and itemTip != ''"> and item_tip = #{itemTip}</if>
+            <if test="patientId != null ">
+                and exists (
+                    select 1
+                    from prescription p
+                    where p.prescription_id = prescription_item.prescription_id
+                      and p.patient_id = #{patientId}
+                )
+            </if>
         </where>
     </select>
     

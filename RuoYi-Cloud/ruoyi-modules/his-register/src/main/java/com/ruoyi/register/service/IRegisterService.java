@@ -47,12 +47,12 @@ public interface IRegisterService
     public List<Map<String, Object>> selectDoctorListByDeptId(Long deptId);
 
     /**
-     * 根据医生ID查询挂号费
+     * 根据挂号级别ID查询挂号费
      *
-     * @param doctorId 医生ID
+     * @param levelId 挂号级别ID
      * @return 挂号费
      */
-    public BigDecimal getRegisterFeeByDoctorId(Long doctorId);
+    public BigDecimal getRegisterFeeByLevelId(Long levelId);
 
     /**
      * 新增挂号

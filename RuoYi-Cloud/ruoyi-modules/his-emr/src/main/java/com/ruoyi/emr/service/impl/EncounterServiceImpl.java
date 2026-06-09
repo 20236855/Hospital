@@ -208,7 +208,21 @@ public class EncounterServiceImpl implements IEncounterService
         }
         if (checkInTime != null)
         {
-            encounterVo.setCheckInTime((java.util.Date) checkInTime);
+            if (checkInTime instanceof java.util.Date)
+            {
+                encounterVo.setCheckInTime((java.util.Date) checkInTime);
+            }
+            else
+            {
+                try
+                {
+                    encounterVo.setCheckInTime(com.ruoyi.common.core.utils.DateUtils.parseDate(checkInTime.toString()));
+                }
+                catch (Exception e)
+                {
+                    // ignore
+                }
+            }
         }
     }
 

@@ -4,16 +4,22 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import com.ruoyi.common.core.constant.SecurityConstants;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
+import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.security.annotation.InnerAuth;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
+import com.ruoyi.common.security.utils.SecurityUtils;
+import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.register.domain.Register;
 import com.ruoyi.register.service.IRegisterService;
 import com.ruoyi.common.core.domain.R;
+import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
 import com.ruoyi.common.core.utils.poi.ExcelUtil;
@@ -32,6 +38,9 @@ public class RegisterController extends BaseController
     @Autowired
     private IRegisterService registerService;
 
+    @Autowired
+    private RemotePatientService remotePatientService;
+
     /**
      * 查询挂号列表
      */
@@ -39,6 +48,7 @@ public class RegisterController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(Register register)
     {
+        applyPatientScope(register);
         startPage();
         List<Register> list = registerService.selectRegisterList(register);
         return getDataTable(list);
@@ -72,15 +82,15 @@ public class RegisterController extends BaseController
     }
 
     /**
-     * 根据医生ID获取挂号费
+     * 根据挂号级别ID获取挂号费
      */
     @GetMapping("/getFee")
-    public AjaxResult getFee(@RequestParam Long doctorId)
+    public AjaxResult getFee(@RequestParam Long levelId)
     {
-        if(doctorId == null){
-            return AjaxResult.error("医生不能为空");
+        if(levelId == null){
+            return AjaxResult.error("挂号级别不能为空");
         }
-        BigDecimal fee = registerService.getRegisterFeeByDoctorId(doctorId);
+        BigDecimal fee = registerService.getRegisterFeeByLevelId(levelId);
         return success(fee);
     }
 
@@ -92,6 +102,7 @@ public class RegisterController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, Register register)
     {
+        applyPatientScope(register);
         List<Register> list = registerService.selectRegisterList(register);
         ExcelUtil<Register> util = new ExcelUtil<Register>(Register.class);
         util.exportExcel(response, list, "挂号数据");
@@ -104,7 +115,9 @@ public class RegisterController extends BaseController
     @GetMapping(value = "/{registerId}")
     public AjaxResult getInfo(@PathVariable("registerId") Long registerId)
     {
-        return success(registerService.selectRegisterByRegisterId(registerId));
+        Register register = registerService.selectRegisterByRegisterId(registerId);
+        checkPatientScope(register);
+        return success(register);
     }
 
     /**
@@ -132,6 +145,7 @@ public class RegisterController extends BaseController
     @PostMapping
     public AjaxResult add(@RequestBody Register register)
     {
+        applyPatientScope(register);
         return toAjax(registerService.insertRegister(register));
     }
 
@@ -143,6 +157,8 @@ public class RegisterController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody Register register)
     {
+        checkPatientScope(registerService.selectRegisterByRegisterId(register.getRegisterId()));
+        applyPatientScope(register);
         return toAjax(registerService.updateRegister(register));
     }
 
@@ -154,6 +170,13 @@ public class RegisterController extends BaseController
 	@DeleteMapping("/{registerIds}")
     public AjaxResult remove(@PathVariable Long[] registerIds)
     {
+        if (isPatientUser())
+        {
+            for (Long registerId : registerIds)
+            {
+                checkPatientScope(registerService.selectRegisterByRegisterId(registerId));
+            }
+        }
         return toAjax(registerService.deleteRegisterByRegisterIds(registerIds));
     }
 
@@ -165,7 +188,49 @@ public class RegisterController extends BaseController
     @PutMapping("/cancel/{registerId}")
     public AjaxResult cancel(@PathVariable Long registerId)
     {
+        checkPatientScope(registerService.selectRegisterByRegisterId(registerId));
         return toAjax(registerService.cancelRegister(registerId));
+    }
+
+    private void applyPatientScope(Register register)
+    {
+        if (isPatientUser())
+        {
+            register.setPatientId(getCurrentPatientId());
+        }
+    }
+
+    private void checkPatientScope(Register register)
+    {
+        if (isPatientUser() && (register == null || !Objects.equals(register.getPatientId(), getCurrentPatientId())))
+        {
+            throw new ServiceException("无权限访问其他患者信息");
+        }
+    }
+
+    private Long getCurrentPatientId()
+    {
+        R<Map<String, Object>> patientR = remotePatientService.getPatientByUserId(SecurityUtils.getUserId(), SecurityConstants.INNER);
+        if (R.isError(patientR))
+        {
+            throw new ServiceException(patientR.getMsg());
+        }
+        Map<String, Object> patient = patientR.getData();
+        Object patientId = patient == null ? null : patient.get("patientId");
+        if (patientId == null)
+        {
+            throw new ServiceException("当前患者档案不存在，请先完善患者信息");
+        }
+        return patientId instanceof Number ? ((Number) patientId).longValue() : Long.valueOf(patientId.toString());
+    }
+
+    private boolean isPatientUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("patient");
     }
 }
 

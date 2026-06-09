@@ -59,6 +59,9 @@ public class PrescriptionItem extends BaseEntity
     @Excel(name = "单种药品嘱托")
     private String itemTip;
 
+    /** 患者ID，仅用于数据权限过滤 */
+    private Long patientId;
+
     public void setItemId(Long itemId) 
     {
         this.itemId = itemId;
@@ -169,6 +172,16 @@ public class PrescriptionItem extends BaseEntity
         return itemTip;
     }
 
+    public void setPatientId(Long patientId)
+    {
+        this.patientId = patientId;
+    }
+
+    public Long getPatientId()
+    {
+        return patientId;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -183,6 +196,7 @@ public class PrescriptionItem extends BaseEntity
             .append("frequency", getFrequency())
             .append("useDays", getUseDays())
             .append("itemTip", getItemTip())
+            .append("patientId", getPatientId())
             .append("createTime", getCreateTime())
             .toString();
     }
