@@ -256,7 +256,6 @@
                 clearable
                 :disabled="!form.deptId"
                 style="width: 100%"
-                @change="handleDoctorChange"
               >
                 <el-option
                   v-for="item in doctorList"
@@ -278,6 +277,7 @@
                 filterable
                 clearable
                 style="width: 100%"
+                @change="handleLevelChange"
               >
                 <el-option
                   v-for="item in levelList"
@@ -290,7 +290,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="挂号费用" prop="registerFee">
-              <el-input v-model="form.registerFee" disabled placeholder="选择医生后自动带出" />
+              <el-input v-model="form.registerFee" disabled placeholder="选择级别后自动带出" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -550,12 +550,12 @@ function handleDeptChange(deptId) {
   getDoctorOptions(deptId)
 }
 
-async function handleDoctorChange(doctorId) {
-  if (!doctorId) {
+async function handleLevelChange(levelId) {
+  if (!levelId) {
     form.value.registerFee = null
     return
   }
-  const res = await getRegisterFee(doctorId)
+  const res = await getRegisterFee(levelId)
   form.value.registerFee = res.data
 }
 

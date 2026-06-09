@@ -54,6 +54,9 @@ public class Payment extends BaseEntity
     @Excel(name = "缴费时间", width = 30, dateFormat = "yyyy-MM-dd")
     private Date payTime;
 
+    /** Department ID for nurse scope filtering. */
+    private Long deptId;
+
     public void setPaymentId(Long paymentId) 
     {
         this.paymentId = paymentId;
@@ -134,14 +137,24 @@ public class Payment extends BaseEntity
         return operatorId;
     }
 
-    public void setPayTime(Date payTime) 
+    public void setPayTime(Date payTime)
     {
         this.payTime = payTime;
     }
 
-    public Date getPayTime() 
+    public Date getPayTime()
     {
         return payTime;
+    }
+
+    public void setDeptId(Long deptId)
+    {
+        this.deptId = deptId;
+    }
+
+    public Long getDeptId()
+    {
+        return deptId;
     }
 
     @Override
@@ -156,6 +169,7 @@ public class Payment extends BaseEntity
             .append("payStatus", getPayStatus())
             .append("operatorId", getOperatorId())
             .append("payTime", getPayTime())
+            .append("deptId", getDeptId())
             .append("remark", getRemark())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())

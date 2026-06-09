@@ -34,6 +34,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="payStatus != null  and payStatus != ''"> and pay_status = #{payStatus}</if>
             <if test="operatorId != null "> and operator_id = #{operatorId}</if>
             <if test="payTime != null "> and pay_time = #{payTime}</if>
+            <if test="deptId != null ">
+                and exists (
+                    select 1
+                    from register r
+                    where r.register_id = payment.register_id
+                      and r.dept_id = #{deptId}
+                )
+            </if>
         </where>
     </select>
     

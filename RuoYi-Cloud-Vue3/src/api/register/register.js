@@ -41,12 +41,12 @@ export function listRegisterDoctor(deptId) {
   })
 }
 
-// 根据医生ID获取挂号费
-export function getRegisterFee(doctorId) {
+// 根据挂号级别ID获取挂号费
+export function getRegisterFee(levelId) {
   return request({
     url: '/register/register/getFee',
     method: 'get',
-    params: { doctorId }
+    params: { levelId }
   })
 }
 

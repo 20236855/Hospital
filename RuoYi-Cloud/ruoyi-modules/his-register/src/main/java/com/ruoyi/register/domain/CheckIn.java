@@ -40,6 +40,9 @@ public class CheckIn extends BaseEntity
     /** Patient ID for permission filtering. */
     private Long patientId;
 
+    /** Department ID for nurse scope filtering. */
+    private Long deptId;
+
     public void setCheckInId(Long checkInId) 
     {
         this.checkInId = checkInId;
@@ -100,6 +103,16 @@ public class CheckIn extends BaseEntity
         return patientId;
     }
 
+    public void setDeptId(Long deptId)
+    {
+        this.deptId = deptId;
+    }
+
+    public Long getDeptId()
+    {
+        return deptId;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -109,6 +122,7 @@ public class CheckIn extends BaseEntity
             .append("checkInTime", getCheckInTime())
             .append("status", getStatus())
             .append("patientId", getPatientId())
+            .append("deptId", getDeptId())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())
             .toString();

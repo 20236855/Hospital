@@ -21,6 +21,7 @@ import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.his.api.RemotePatientService;
+import com.ruoyi.his.api.RemoteRegisterService;
 import com.ruoyi.payment.domain.Payment;
 import com.ruoyi.payment.service.IPaymentService;
 import com.ruoyi.system.api.model.LoginUser;
@@ -45,6 +46,9 @@ public class PaymentController extends BaseController
     @Autowired
     private RemotePatientService remotePatientService;
 
+    @Autowired
+    private RemoteRegisterService remoteRegisterService;
+
     /**
      * 查询收费列表
      */
@@ -53,6 +57,7 @@ public class PaymentController extends BaseController
     public TableDataInfo list(Payment payment)
     {
         applyPatientScope(payment);
+        applyNurseScope(payment);
         startPage();
         List<Payment> list = paymentService.selectPaymentList(payment);
         return getDataTable(list);
@@ -67,6 +72,7 @@ public class PaymentController extends BaseController
     public void export(HttpServletResponse response, Payment payment)
     {
         applyPatientScope(payment);
+        applyNurseScope(payment);
         List<Payment> list = paymentService.selectPaymentList(payment);
         ExcelUtil<Payment> util = new ExcelUtil<Payment>(Payment.class);
         util.exportExcel(response, list, "收费数据");
@@ -81,6 +87,7 @@ public class PaymentController extends BaseController
     {
         Payment payment = paymentService.selectPaymentByPaymentId(paymentId);
         checkPatientScope(payment);
+        checkNurseScope(payment);
         return success(payment);
     }
 
@@ -93,6 +100,7 @@ public class PaymentController extends BaseController
     public AjaxResult add(@RequestBody Payment payment)
     {
         applyPatientScope(payment);
+        checkNurseScope(payment);
         return toAjax(paymentService.insertPayment(payment));
     }
 
@@ -105,6 +113,7 @@ public class PaymentController extends BaseController
     public AjaxResult edit(@RequestBody Payment payment)
     {
         checkPatientScope(paymentService.selectPaymentByPaymentId(payment.getPaymentId()));
+        checkNurseScope(paymentService.selectPaymentByPaymentId(payment.getPaymentId()));
         applyPatientScope(payment);
         return toAjax(paymentService.updatePayment(payment));
     }
@@ -122,6 +131,13 @@ public class PaymentController extends BaseController
             for (Long paymentId : paymentIds)
             {
                 checkPatientScope(paymentService.selectPaymentByPaymentId(paymentId));
+            }
+        }
+        if (isNurseUser())
+        {
+            for (Long paymentId : paymentIds)
+            {
+                checkNurseScope(paymentService.selectPaymentByPaymentId(paymentId));
             }
         }
         return toAjax(paymentService.deletePaymentByPaymentIds(paymentIds));
@@ -166,5 +182,60 @@ public class PaymentController extends BaseController
                 && loginUser != null
                 && loginUser.getRoles() != null
                 && loginUser.getRoles().contains("patient");
+    }
+
+    private boolean isNurseUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("medical");
+    }
+
+    private Long getNurseDeptId()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (loginUser == null || loginUser.getSysUser() == null)
+        {
+            return null;
+        }
+        return loginUser.getSysUser().getDeptId();
+    }
+
+    private void applyNurseScope(Payment payment)
+    {
+        if (isNurseUser())
+        {
+            Long deptId = getNurseDeptId();
+            if (deptId != null)
+            {
+                payment.setDeptId(deptId);
+            }
+        }
+    }
+
+    private void checkNurseScope(Payment payment)
+    {
+        if (isNurseUser() && payment != null && payment.getRegisterId() != null)
+        {
+            Long nurseDeptId = getNurseDeptId();
+            if (nurseDeptId == null)
+            {
+                return;
+            }
+            R<Map<String, Object>> registerR = remoteRegisterService.getRegisterInfo(payment.getRegisterId(), SecurityConstants.INNER);
+            if (R.isError(registerR) || registerR.getData() == null)
+            {
+                throw new ServiceException("无权限操作其他科室收费信息");
+            }
+            Object deptIdObj = registerR.getData().get("deptId");
+            Long registerDeptId = deptIdObj instanceof Number ? ((Number) deptIdObj).longValue()
+                    : (deptIdObj != null ? Long.valueOf(deptIdObj.toString()) : null);
+            if (registerDeptId == null || !Objects.equals(registerDeptId, nurseDeptId))
+            {
+                throw new ServiceException("无权限操作其他科室收费信息");
+            }
+        }
     }
 }

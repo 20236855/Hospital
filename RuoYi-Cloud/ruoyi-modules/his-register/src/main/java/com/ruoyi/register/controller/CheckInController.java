@@ -60,6 +60,7 @@ public class CheckInController extends BaseController
     public TableDataInfo list(CheckIn checkIn)
     {
         applyPatientScope(checkIn);
+        applyNurseScope(checkIn);
         startPage();
         List<CheckIn> list = checkInService.selectCheckInList(checkIn);
         return getDataTable(list);
@@ -74,6 +75,7 @@ public class CheckInController extends BaseController
     public void export(HttpServletResponse response, CheckIn checkIn)
     {
         applyPatientScope(checkIn);
+        applyNurseScope(checkIn);
         List<CheckIn> list = checkInService.selectCheckInList(checkIn);
         ExcelUtil<CheckIn> util = new ExcelUtil<CheckIn>(CheckIn.class);
         util.exportExcel(response, list, "签到数据");
@@ -88,6 +90,7 @@ public class CheckInController extends BaseController
     {
         CheckIn checkIn = checkInService.selectCheckInByCheckInId(checkInId);
         checkPatientScope(checkIn);
+        checkNurseScope(checkIn);
         return success(checkIn);
     }
 
@@ -117,6 +120,7 @@ public class CheckInController extends BaseController
     public AjaxResult add(@RequestBody CheckIn checkIn)
     {
         checkPatientReadonly();
+        checkNurseScope(checkIn);
         return toAjax(checkInService.insertCheckIn(checkIn));
     }
 
@@ -129,6 +133,7 @@ public class CheckInController extends BaseController
     public AjaxResult edit(@RequestBody CheckIn checkIn)
     {
         checkPatientReadonly();
+        checkNurseScope(checkIn);
         return toAjax(checkInService.updateCheckIn(checkIn));
     }
 
@@ -141,6 +146,10 @@ public class CheckInController extends BaseController
     public AjaxResult remove(@PathVariable Long[] checkInIds)
     {
         checkPatientReadonly();
+        for (Long checkInId : checkInIds)
+        {
+            checkNurseScope(checkInService.selectCheckInByCheckInId(checkInId));
+        }
         return toAjax(checkInService.deleteCheckInByCheckInIds(checkInIds));
     }
 
@@ -200,5 +209,52 @@ public class CheckInController extends BaseController
                 && loginUser != null
                 && loginUser.getRoles() != null
                 && loginUser.getRoles().contains("patient");
+    }
+
+    private boolean isNurseUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("medical");
+    }
+
+    private Long getNurseDeptId()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (loginUser == null || loginUser.getSysUser() == null)
+        {
+            return null;
+        }
+        return loginUser.getSysUser().getDeptId();
+    }
+
+    private void applyNurseScope(CheckIn checkIn)
+    {
+        if (isNurseUser())
+        {
+            Long deptId = getNurseDeptId();
+            if (deptId != null)
+            {
+                checkIn.setDeptId(deptId);
+            }
+        }
+    }
+
+    private void checkNurseScope(CheckIn checkIn)
+    {
+        if (isNurseUser() && checkIn != null)
+        {
+            Long nurseDeptId = getNurseDeptId();
+            if (nurseDeptId != null && checkIn.getRegisterId() != null)
+            {
+                Register register = registerService.selectRegisterByRegisterId(checkIn.getRegisterId());
+                if (register == null || !Objects.equals(register.getDeptId(), nurseDeptId))
+                {
+                    throw new ServiceException("无权限操作其他科室签到信息");
+                }
+            }
+        }
     }
 }

@@ -49,6 +49,7 @@ public class RegisterController extends BaseController
     public TableDataInfo list(Register register)
     {
         applyPatientScope(register);
+        applyNurseScope(register);
         startPage();
         List<Register> list = registerService.selectRegisterList(register);
         return getDataTable(list);
@@ -103,6 +104,7 @@ public class RegisterController extends BaseController
     public void export(HttpServletResponse response, Register register)
     {
         applyPatientScope(register);
+        applyNurseScope(register);
         List<Register> list = registerService.selectRegisterList(register);
         ExcelUtil<Register> util = new ExcelUtil<Register>(Register.class);
         util.exportExcel(response, list, "挂号数据");
@@ -117,6 +119,7 @@ public class RegisterController extends BaseController
     {
         Register register = registerService.selectRegisterByRegisterId(registerId);
         checkPatientScope(register);
+        checkNurseScope(register);
         return success(register);
     }
 
@@ -133,6 +136,7 @@ public class RegisterController extends BaseController
         {
             result.put("registerNo", register.getRegisterNo());
             result.put("patientId", register.getPatientId());
+            result.put("deptId", register.getDeptId());
         }
         return R.ok(result);
     }
@@ -146,6 +150,7 @@ public class RegisterController extends BaseController
     public AjaxResult add(@RequestBody Register register)
     {
         applyPatientScope(register);
+        applyNurseScope(register);
         return toAjax(registerService.insertRegister(register));
     }
 
@@ -158,7 +163,9 @@ public class RegisterController extends BaseController
     public AjaxResult edit(@RequestBody Register register)
     {
         checkPatientScope(registerService.selectRegisterByRegisterId(register.getRegisterId()));
+        checkNurseScope(registerService.selectRegisterByRegisterId(register.getRegisterId()));
         applyPatientScope(register);
+        applyNurseScope(register);
         return toAjax(registerService.updateRegister(register));
     }
 
@@ -177,6 +184,13 @@ public class RegisterController extends BaseController
                 checkPatientScope(registerService.selectRegisterByRegisterId(registerId));
             }
         }
+        if (isNurseUser())
+        {
+            for (Long registerId : registerIds)
+            {
+                checkNurseScope(registerService.selectRegisterByRegisterId(registerId));
+            }
+        }
         return toAjax(registerService.deleteRegisterByRegisterIds(registerIds));
     }
 
@@ -189,6 +203,7 @@ public class RegisterController extends BaseController
     public AjaxResult cancel(@PathVariable Long registerId)
     {
         checkPatientScope(registerService.selectRegisterByRegisterId(registerId));
+        checkNurseScope(registerService.selectRegisterByRegisterId(registerId));
         return toAjax(registerService.cancelRegister(registerId));
     }
 
@@ -231,6 +246,49 @@ public class RegisterController extends BaseController
                 && loginUser != null
                 && loginUser.getRoles() != null
                 && loginUser.getRoles().contains("patient");
+    }
+
+    private boolean isNurseUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("medical");
+    }
+
+    private Long getNurseDeptId()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (loginUser == null || loginUser.getSysUser() == null)
+        {
+            return null;
+        }
+        return loginUser.getSysUser().getDeptId();
+    }
+
+    private void applyNurseScope(Register register)
+    {
+        if (isNurseUser())
+        {
+            Long deptId = getNurseDeptId();
+            if (deptId != null)
+            {
+                register.setDeptId(deptId);
+            }
+        }
+    }
+
+    private void checkNurseScope(Register register)
+    {
+        if (isNurseUser() && register != null)
+        {
+            Long nurseDeptId = getNurseDeptId();
+            if (nurseDeptId != null && !Objects.equals(register.getDeptId(), nurseDeptId))
+            {
+                throw new ServiceException("无权限操作其他科室挂号信息");
+            }
+        }
     }
 }
 
