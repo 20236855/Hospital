@@ -53,6 +53,11 @@
         <!-- RuoYi 核心依赖（必须保留） -->
         <dependency>
             <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-common-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-common-datasource</artifactId>
         </dependency>
 

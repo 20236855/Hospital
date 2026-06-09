@@ -66,7 +66,7 @@
               :key="dept.deptId"
               class="dept-item"
               :class="{ selected: form.department === dept.deptName }"
-              @click="selectDepartment(dept.deptName)"
+              @click="selectDepartment(dept)"
             >
               <span class="dept-emoji">{{ getDeptEmoji(dept.deptName) }}</span>
               <span class="dept-name">{{ dept.deptName }}</span>
@@ -144,7 +144,9 @@
               class="schedule-card"
               :class="{ 
                 selected: form.scheduleId === schedule.scheduleId, 
-                full: schedule.reservedNumber >= schedule.maxNumber || schedule.status === 1 
+                disabled: !isScheduleSelectable(schedule),
+                full: isScheduleFull(schedule),
+                past: isSchedulePast(schedule)
               }"
               @click="selectSchedule(schedule)"
             >
@@ -155,8 +157,9 @@
                 {{ getTimeSlotText(schedule.timeSlot) }}
               </div>
               <div class="schedule-status">
-                <span v-if="schedule.reservedNumber >= schedule.maxNumber || schedule.status === 1" class="status-full">已满</span>
-                <span v-else class="status-available">可预约 {{ schedule.maxNumber - schedule.reservedNumber }}/{{ schedule.maxNumber }}</span>
+                <span v-if="isScheduleFull(schedule)" class="status-full">已满</span>
+                <span v-else-if="isSchedulePast(schedule)" class="status-past">已过期</span>
+                <span v-else class="status-available">{{ getScheduleAvailableText(schedule) }}</span>
               </div>
             </div>
           </div>
@@ -206,12 +209,52 @@
             <van-icon name="arrow-left" />
             上一步
           </van-button>
-          <van-button class="submit-btn" @click="submitRegister" :loading="loading">
-            确认预约
+          <van-button 
+            class="submit-btn" 
+            :class="{ 'success-btn': success }"
+            @click="submitRegister" 
+            :loading="loading && !success"
+            :disabled="success"
+          >
+            <template v-if="success">
+              <van-icon name="success" /> 预约成功！
+            </template>
+            <template v-else>
+              确认预约
+            </template>
           </van-button>
         </div>
       </div>
     </div>
+
+    <!-- 预约成功弹窗 -->
+    <van-dialog
+      v-model:show="showSuccessDialog"
+      title="预约成功"
+      confirm-button-text="查看我的预约"
+      :show-cancel-button="false"
+      @confirm="goToHome"
+    >
+      <div class="dialog-content">
+        <div class="dialog-title">就诊信息</div>
+        <div class="dialog-item">
+          <span class="dialog-label">科室：</span>
+          <span class="dialog-value">{{ form.department || '未选择' }}</span>
+        </div>
+        <div class="dialog-item">
+          <span class="dialog-label">医生：</span>
+          <span class="dialog-value">{{ form.doctorName || '未选择' }}</span>
+        </div>
+        <div class="dialog-item">
+          <span class="dialog-label">就诊时间：</span>
+          <span class="dialog-value">{{ formatScheduleDate(selectedSchedule?.scheduleDate) }} {{ getTimeSlotText(selectedSchedule?.timeSlot) }}</span>
+        </div>
+        <div class="dialog-item">
+          <span class="dialog-label">挂号类型：</span>
+          <span class="dialog-value">网上预约挂号</span>
+        </div>
+      </div>
+    </van-dialog>
 
     <van-tabbar v-model="active" class="custom-tabbar">
       <van-tabbar-item icon="home-o" to="/">首页</van-tabbar-item>
@@ -230,10 +273,13 @@ import { createRegister, getDoctorList, getDeptList, getScheduleList } from '@/a
 import { getPatientByUserId } from '@/api/patient'
 import { getInfo } from '@/api/user'
 
+console.log('[Register] module loaded')
 const router = useRouter()
 const active = ref(1)
 const step = ref(1)
 const loading = ref(false)
+const success = ref(false)
+const showSuccessDialog = ref(false)
 
 const form = ref({
     department: '',
@@ -245,7 +291,6 @@ const form = ref({
 
 const departmentList = ref([])
 const doctorList = ref([])
-const allDoctorList = ref([])
 const scheduleList = ref([])
 
 const selectedSchedule = computed(() => {
@@ -267,18 +312,6 @@ const getDeptEmoji = (dept) => {
     return emojiMap[dept] || '🏥'
 }
 
-const findDeptIdByName = (deptName) => {
-    const dept = departmentList.value.find(d => d.deptName === deptName)
-    return dept ? dept.deptId : null
-}
-
-const filteredDoctorList = computed(() => {
-    if (!form.value.department) return allDoctorList.value
-    const deptId = findDeptIdByName(form.value.department)
-    if (!deptId) return allDoctorList.value
-    return allDoctorList.value.filter(doc => doc.deptId === deptId)
-})
-
 const formatScheduleDate = (dateStr) => {
     if (!dateStr) return ''
     const date = new Date(dateStr)
@@ -295,11 +328,139 @@ const getTimeSlotText = (timeSlot) => {
     return timeSlot
 }
 
+const getScheduleReservedNumber = (schedule) => {
+  const reserved = schedule?.reservedNumber ?? schedule?.reserved_number
+  if (reserved != null) {
+    return Number(reserved)
+  }
+  const max = getScheduleMaxNumber(schedule)
+  const available = schedule?.availableNumber ?? schedule?.available_number
+  if (max != null && available != null) {
+    return Math.max(Number(max) - Number(available), 0)
+  }
+  return 0
+}
+
+const getScheduleMaxNumber = (schedule) => {
+  const max = schedule?.maxNumber ?? schedule?.max_number
+  if (max != null) {
+    return Number(max)
+  }
+  const reserved = schedule?.reservedNumber ?? schedule?.reserved_number
+  const available = schedule?.availableNumber ?? schedule?.available_number
+  if (reserved != null && available != null) {
+    return Math.max(Number(reserved) + Number(available), 0)
+  }
+  return 0
+}
+
+const isScheduleFull = (schedule) => {
+  if (!schedule) return true
+  const reserved = getScheduleReservedNumber(schedule)
+  const max = getScheduleMaxNumber(schedule)
+  const status = schedule.status
+  if (status === '1' || status === 1 || String(status).toLowerCase() === '已满' || String(status).toLowerCase() === 'full') return true
+  return max > 0 && reserved >= max
+}
+
+const isSchedulePast = (schedule) => {
+  if (!schedule?.scheduleDate) return true
+  const target = new Date(schedule.scheduleDate)
+  if (Number.isNaN(target.getTime())) return true
+  
+  const today = new Date()
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate())
+  
+  // 如果目标日期在今天之前，返回true（已过去）
+  if (targetStart < todayStart) {
+    return true
+  }
+  
+  // 如果目标日期在今天之后，返回false（未过去）
+  if (targetStart > todayStart) {
+    return false
+  }
+  
+  // 如果是今天，需要检查时间段
+  const currentHour = today.getHours()
+  const timeSlot = schedule?.timeSlot
+  
+  // 上午时段：08:00-12:00，如果当前时间超过12点，则上午已过去
+  if (timeSlot === 'morning' && currentHour >= 12) {
+    return true
+  }
+  
+  // 下午时段：14:00-17:30，如果当前时间超过17:30，则下午已过去
+  if (timeSlot === 'afternoon' && currentHour >= 18) {
+    return true
+  }
+  
+  return false
+}
+
+const isScheduleSelectable = (schedule) => !isSchedulePast(schedule) && !isScheduleFull(schedule)
+
+const getScheduleAvailableText = (schedule) => {
+  const max = getScheduleMaxNumber(schedule)
+  const reserved = getScheduleReservedNumber(schedule)
+  const available = Number(schedule?.availableNumber ?? schedule?.available_number ?? Math.max(max - reserved, 0))
+  console.log('[Register] getScheduleAvailableText', {
+    scheduleId: schedule?.scheduleId ?? schedule?.schedule_id,
+    max,
+    reserved,
+    available,
+    status: schedule?.status
+  })
+  if (max <= 0) {
+    return '已预约 0/0'
+  }
+  return `已预约 ${reserved}/${max}`
+}
+
+const logScheduleDebug = (schedule) => {
+  const max = getScheduleMaxNumber(schedule)
+  const reserved = getScheduleReservedNumber(schedule)
+  const available = Number(schedule?.availableNumber ?? schedule?.available_number ?? Math.max(max - reserved, 0))
+  console.log('[Register] schedule debug', {
+    scheduleId: schedule?.scheduleId ?? schedule?.schedule_id,
+    scheduleDate: schedule?.scheduleDate ?? schedule?.schedule_date,
+    timeSlot: schedule?.timeSlot ?? schedule?.time_slot,
+    max,
+    reserved,
+    available,
+    status: schedule?.status,
+    raw: schedule
+  })
+  return schedule
+}
+
+const normalizeSchedule = (schedule) => {
+  const max = getScheduleMaxNumber(schedule)
+  const reserved = getScheduleReservedNumber(schedule)
+  const available = Number(schedule?.availableNumber ?? schedule?.available_number ?? Math.max(max - reserved, 0))
+  return {
+    ...schedule,
+    maxNumber: max,
+    reservedNumber: reserved,
+    availableNumber: available,
+    scheduleId: schedule.scheduleId ?? schedule.schedule_id,
+    scheduleDate: schedule.scheduleDate ?? schedule.schedule_date,
+    timeSlot: schedule.timeSlot ?? schedule.time_slot,
+    status: schedule.status
+  }
+}
+
 const loadDepartments = async () => {
     try {
         const res = await getDeptList()
         if (res.data && res.data.length > 0) {
-            departmentList.value = res.data.filter(dept => dept.deptId > 100)
+            departmentList.value = res.data.filter(dept => {
+                const isRootByParent = dept.parentId !== undefined && String(dept.parentId) === '0'
+                const isRootByName = dept.deptName === '智慧医院' || dept.deptName === '智慧医院总部门'
+                const isRootById = dept.deptId === 200
+                return !isRootByParent && !isRootByName && !isRootById
+            })
         }
         if (departmentList.value.length === 0) {
             departmentList.value = [
@@ -324,59 +485,79 @@ const loadDepartments = async () => {
     }
 }
 
-const loadDoctors = async () => {
+const loadDoctors = async (deptId) => {
     try {
-        const res = await getDoctorList({ pageNum: 1, pageSize: 50 })
-        allDoctorList.value = res.rows || []
-        doctorList.value = allDoctorList.value
+        const params = { pageNum: 1, pageSize: 50 }
+        if (deptId) {
+            params.deptId = deptId
+        }
+        const res = await getDoctorList(params)
+        doctorList.value = res.rows || []
     } catch (error) {
         console.error('加载医生失败', error)
-        allDoctorList.value = []
         doctorList.value = []
     }
 }
 
 const loadSchedules = async () => {
-    if (!form.value.doctorId) return
+    if (!form.value.doctorId) {
+        console.log('[Register] loadSchedules skipped, no doctorId')
+        return
+    }
+    console.log('[Register] loadSchedules start', { doctorId: form.value.doctorId })
     try {
         const res = await getScheduleList({ doctorId: form.value.doctorId })
-        scheduleList.value = res.rows || []
+        const rows = res.rows || []
+        console.log('[Register] loadSchedules raw rows', rows)
+        scheduleList.value = rows
+            .map(normalizeSchedule)
+            .map(logScheduleDebug)
+            .filter(item => !isSchedulePast(item))
+            .sort((a, b) => new Date(a.scheduleDate) - new Date(b.scheduleDate))
+        console.log('[Register] loadSchedules final scheduleList', scheduleList.value)
     } catch (error) {
         console.error('加载排班失败', error)
         scheduleList.value = []
     }
 }
 
-const selectDepartment = (dept) => {
-    form.value.department = dept
-    form.value.deptId = findDeptIdByName(dept)
+const selectDepartment = async (dept) => {
+    form.value.department = dept.deptName
+    form.value.deptId = dept.deptId
     form.value.doctorId = null
     form.value.doctorName = ''
     form.value.scheduleId = null
+    await loadDoctors(dept.deptId)
 }
 
 const selectDoctor = (doctor) => {
     form.value.doctorId = doctor.doctorId || doctor.id
     form.value.doctorName = doctor.doctorName || doctor.name
     form.value.scheduleId = null
+    console.log('[Register] selectDoctor', { doctorId: form.value.doctorId, doctorName: form.value.doctorName })
 }
 
 const selectSchedule = (schedule) => {
-    if (schedule.reservedNumber >= schedule.maxNumber || schedule.status === 1) {
-        showToast('该排班已满，请选择其他时间')
+    if (!isScheduleSelectable(schedule)) {
+      if (isSchedulePast(schedule)) {
+        showToast('只能选择今天及以后的排班时间')
         return
+      }
+      showToast('该排班已约满或已关闭，请选择其他时间')
+      return
     }
     form.value.scheduleId = schedule.scheduleId
 }
 
 const nextStep = async () => {
+    console.log('[Register] nextStep', { step: step.value, department: form.value.department, doctorId: form.value.doctorId, scheduleId: form.value.scheduleId })
     if (step.value === 3 && !form.value.scheduleId) {
         showToast('请选择排班时间')
         return
     }
     step.value++
-    if (step.value === 2) {
-        doctorList.value = filteredDoctorList.value
+    if (step.value === 2 && !doctorList.value.length && form.value.deptId) {
+        await loadDoctors(form.value.deptId)
     }
     if (step.value === 3) {
         await loadSchedules()
@@ -389,6 +570,7 @@ const prevStep = () => {
 
 const submitRegister = async () => {
     loading.value = true
+    success.value = false
     try {
         const patientId = localStorage.getItem('patientId')
         const registerData = {
@@ -401,18 +583,20 @@ const submitRegister = async () => {
         }
         console.log('提交的预约数据:', registerData)
         await createRegister(registerData)
-        await showDialog({
-            title: '预约成功',
-            message: `您已成功预约${form.value.doctorName}医生，就诊时间：${formatScheduleDate(selectedSchedule.value?.scheduleDate)} ${getTimeSlotText(selectedSchedule.value?.timeSlot)}`,
-            confirmButtonText: '确定',
-            theme: 'success'
-        })
-        router.push('/')
+        
+        // 预约成功，设置状态
+        success.value = true
+        loading.value = false
+        
+        // 显示预约成功弹窗
+        showSuccessDialog.value = true
     } catch (error) {
         console.error(error)
-        showToast(error.msg || '预约失败，请稍后重试')
+        showToast(error?.message || '预约失败，请稍后重试')
     } finally {
-        loading.value = false
+        if (!success.value) {
+            loading.value = false
+        }
     }
 }
 
@@ -422,6 +606,11 @@ const goBack = () => {
     } else {
         router.back()
     }
+}
+
+const goToHome = () => {
+    showSuccessDialog.value = false
+    router.push('/')
 }
 
 const ensurePatientId = async () => {
@@ -448,7 +637,6 @@ const ensurePatientId = async () => {
 onMounted(() => {
     ensurePatientId()
     loadDepartments()
-    loadDoctors()
 })
 </script>
 
@@ -905,10 +1093,22 @@ onMounted(() => {
     background: linear-gradient(135deg, rgba(104, 199, 169, 0.1), rgba(142, 214, 242, 0.1));
   }
 
+  &.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: rgba(220, 230, 236, 0.9);
+  }
+
   &.full {
     opacity: 0.5;
     cursor: not-allowed;
     background: rgba(240, 83, 145, 0.08);
+  }
+
+  &.past {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(150, 160, 170, 0.08);
   }
 }
 
@@ -934,17 +1134,10 @@ onMounted(() => {
   .status-full {
     color: #f05391;
   }
-}
 
-.confirm-info {
-  background: rgba(104, 199, 169, 0.08);
-  border-radius: 16px;
-  padding: 16px;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
+    .status-past {
+      color: #999;
+    }
   justify-content: space-between;
   padding: 10px 0;
   border-bottom: 1px solid rgba(213, 237, 243, 0.6);
@@ -1023,6 +1216,11 @@ onMounted(() => {
 .submit-btn {
   background: linear-gradient(135deg, #8ed6f2, #bfefff);
   box-shadow: 0 8px 24px rgba(142, 214, 242, 0.3);
+  
+  &.success-btn {
+    background: linear-gradient(135deg, #52c41a, #73d13d);
+    box-shadow: 0 8px 24px rgba(82, 196, 26, 0.3);
+  }
 }
 
 .custom-tabbar {
@@ -1034,5 +1232,36 @@ onMounted(() => {
 @keyframes authCrossBreath {
   0%, 100% { opacity: 0.08; transform: scale(1); }
   50% { opacity: 0.18; transform: scale(1.08); }
+}
+
+/* 弹窗内容样式 */
+.dialog-content {
+  padding: 10px;
+}
+
+.dialog-title {
+  font-weight: bold;
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.dialog-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.dialog-label {
+  color: #666;
+  min-width: 60px;
+}
+
+.dialog-value {
+  color: #333;
+  flex: 1;
 }
 </style>

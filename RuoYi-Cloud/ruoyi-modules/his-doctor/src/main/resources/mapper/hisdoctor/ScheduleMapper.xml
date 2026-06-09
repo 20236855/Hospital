@@ -88,8 +88,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
     <update id="incrementReservedNumber" parameterType="Long">
-        update schedule set reserved_number = reserved_number + 1, update_time = now()
+        update schedule
+        set reserved_number = reserved_number + 1,
+            status = case when reserved_number + 1 >= max_number then '1' else status end,
+            update_time = now()
         where schedule_id = #{scheduleId}
+          and reserved_number &lt; max_number
     </update>
 
     <update id="updateScheduleStatus">

@@ -57,10 +57,11 @@ public class SysDeptController extends BaseController
     {
         SysDept dept = new SysDept();
         dept.setStatus(UserConstants.DEPT_NORMAL);
-        List<Map<String, Object>> depts = deptService.selectDeptList(dept).stream().map(item -> {
+        List<Map<String, Object>> depts = deptService.selectDeptListNoDataScope(dept).stream().map(item -> {
             Map<String, Object> option = new LinkedHashMap<>();
             option.put("deptId", item.getDeptId());
             option.put("deptName", item.getDeptName());
+            option.put("parentId", item.getParentId());
             return option;
         }).collect(Collectors.toList());
         return success(depts);

@@ -1,6 +1,9 @@
 package com.ruoyi.hisdoctor.service.impl;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.ruoyi.common.core.utils.DateUtils;
 import com.ruoyi.common.core.exception.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +22,11 @@ import com.ruoyi.hisdoctor.service.IScheduleService;
 @Service
 public class ScheduleServiceImpl implements IScheduleService 
 {
+    private static final Logger log = LoggerFactory.getLogger(ScheduleServiceImpl.class);
+    
+    // 用于跟踪请求
+    private static final AtomicLong requestCounter = new AtomicLong(0);
+    
     @Autowired
     private ScheduleMapper scheduleMapper;
 
@@ -140,24 +148,61 @@ public class ScheduleServiceImpl implements IScheduleService
      * @return 结果
      */
     @Override
-    @Transactional
     public boolean bookSchedule(Long scheduleId)
     {
-        Schedule schedule = scheduleMapper.selectScheduleByScheduleId(scheduleId);
-        if (schedule == null) {
-            throw new ServiceException("排班不存在");
+        long requestId = requestCounter.incrementAndGet();
+        long startTime = System.currentTimeMillis();
+        log.info("[预约请求-{}] 开始处理预约请求，scheduleId={}", requestId, scheduleId);
+        
+        try {
+            // 第一步：查询当前排班状态（事务外查询，避免锁冲突）
+            Schedule scheduleBefore = scheduleMapper.selectScheduleByScheduleId(scheduleId);
+            if (scheduleBefore == null) {
+                log.error("[预约请求-{}] 排班不存在，scheduleId={}", requestId, scheduleId);
+                throw new ServiceException("排班不存在");
+            }
+            log.info("[预约请求-{}] 当前排班状态：scheduleId={}, maxNumber={}, reservedNumber={}, status={}", 
+                    requestId, scheduleId, scheduleBefore.getMaxNumber(), scheduleBefore.getReservedNumber(), scheduleBefore.getStatus());
+            
+            // 检查是否已满
+            if ("1".equals(scheduleBefore.getStatus()) || scheduleBefore.getReservedNumber() >= scheduleBefore.getMaxNumber()) {
+                log.warn("[预约请求-{}] 排班已满，无法预约。当前预约数={}, 最大预约数={}, 状态={}", 
+                        requestId, scheduleBefore.getReservedNumber(), scheduleBefore.getMaxNumber(), scheduleBefore.getStatus());
+                throw new ServiceException("该排班已满，无法预约");
+            }
+            
+            // 第二步：执行更新操作（直接调用Mapper，避免事务冲突）
+            log.info("[预约请求-{}] 开始执行数据库更新操作...", requestId);
+            long updateStartTime = System.currentTimeMillis();
+            int rows = scheduleMapper.incrementReservedNumber(scheduleId);
+            long updateEndTime = System.currentTimeMillis();
+            log.info("[预约请求-{}] 数据库更新完成，耗时={}ms, 影响行数={}", requestId, (updateEndTime - updateStartTime), rows);
+            
+            if (rows == 0) {
+                log.error("[预约请求-{}] 更新失败，影响行数为0，可能被其他请求抢先预约", requestId);
+                // 再次查询状态确认（事务外查询）
+                Schedule scheduleAfter = scheduleMapper.selectScheduleByScheduleId(scheduleId);
+                if (scheduleAfter != null) {
+                    log.error("[预约请求-{}] 更新失败后状态：reservedNumber={}, maxNumber={}, status={}", 
+                            requestId, scheduleAfter.getReservedNumber(), scheduleAfter.getMaxNumber(), scheduleAfter.getStatus());
+                }
+                throw new ServiceException("预约失败，该排班可能已被其他用户预约，请稍后重试");
+            }
+            
+            log.info("[预约请求-{}] 预约成功！", requestId);
+            
+            return true;
+        } catch (ServiceException e) {
+            log.error("[预约请求-{}] 预约失败（业务异常）：{}", requestId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            long endTime = System.currentTimeMillis();
+            log.error("[预约请求-{}] 预约失败（系统异常）：{}，耗时={}ms，完整异常:", requestId, e.getMessage(), (endTime - startTime), e);
+            throw new ServiceException("预约失败，请稍后重试");
+        } finally {
+            long endTime = System.currentTimeMillis();
+            log.info("[预约请求-{}] 预约请求处理结束，总耗时={}ms", requestId, (endTime - startTime));
         }
-        if ("1".equals(schedule.getStatus()) || schedule.getReservedNumber() >= schedule.getMaxNumber()) {
-            throw new ServiceException("该排班已满，无法预约");
-        }
-        // 增加预约人数
-        scheduleMapper.incrementReservedNumber(scheduleId);
-        // 重新查询检查是否已满
-        Schedule updatedSchedule = scheduleMapper.selectScheduleByScheduleId(scheduleId);
-        if (updatedSchedule.getReservedNumber() >= updatedSchedule.getMaxNumber()) {
-            scheduleMapper.updateScheduleStatus(scheduleId, "1");
-        }
-        return true;
     }
 
     /**

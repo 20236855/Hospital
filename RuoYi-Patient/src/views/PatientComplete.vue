@@ -369,7 +369,11 @@ const handleComplete = async () => {
 
   loading.value = true
   try {
-    await completePatient(patientForm.value)
+    const result = await completePatient(patientForm.value)
+    if (result?.data?.patientId) {
+      localStorage.setItem('patientId', result.data.patientId)
+    }
+    localStorage.setItem('patientName', patientForm.value.name)
     showToast('信息保存成功')
     setTimeout(() => {
       router.push('/profile')

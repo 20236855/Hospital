@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { getInfo } from '@/api/user'
+import { getPatientByUserId } from '@/api/patient'
 
 const routes = [
   {
@@ -50,13 +52,36 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from) => {
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) {
-    next('/login')
-  } else {
-    next()
+    return '/login'
   }
+
+  if (to.path === '/patient-complete' && token) {
+    const savedPatientId = localStorage.getItem('patientId')
+    if (savedPatientId) {
+      return '/'
+    }
+
+    try {
+      const res = await getInfo()
+      const userId = res?.user?.userId
+      if (userId) {
+        const patientRes = await getPatientByUserId(userId)
+        const patient = patientRes?.data
+        if (patient && Object.keys(patient).length > 0) {
+          localStorage.setItem('patientId', patient.patientId)
+          localStorage.setItem('patientName', patient.name)
+          return '/'
+        }
+      }
+    } catch (error) {
+      console.error('路由守卫检查患者信息失败', error)
+    }
+  }
+
+  return true
 })
 
 export default router

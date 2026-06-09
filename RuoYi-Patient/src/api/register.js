@@ -12,7 +12,8 @@ export function addRegister(data) {
   return request({
     url: '/register/register',
     method: 'post',
-    data
+    data,
+    timeout: 60000
   })
 }
 

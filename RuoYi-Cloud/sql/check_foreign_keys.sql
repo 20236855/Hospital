@@ -1,0 +1,29 @@
+-- 查看register表的外键约束
+SELECT 
+    CONSTRAINT_NAME,
+    TABLE_NAME,
+    COLUMN_NAME,
+    REFERENCED_TABLE_NAME,
+    REFERENCED_COLUMN_NAME
+FROM information_schema.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = 'ruoyi-vue-pro'
+  AND TABLE_NAME = 'register'
+  AND REFERENCED_TABLE_NAME IS NOT NULL;
+
+-- 查看schedule表的外键约束
+SELECT 
+    CONSTRAINT_NAME,
+    TABLE_NAME,
+    COLUMN_NAME,
+    REFERENCED_TABLE_NAME,
+    REFERENCED_COLUMN_NAME
+FROM information_schema.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = 'ruoyi-vue-pro'
+  AND TABLE_NAME = 'schedule'
+  AND REFERENCED_TABLE_NAME IS NOT NULL;
+
+-- 查看register表的所有约束
+SHOW CREATE TABLE register;
+
+-- 查看schedule表的所有约束
+SHOW CREATE TABLE schedule;
