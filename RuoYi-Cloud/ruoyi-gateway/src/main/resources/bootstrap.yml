@@ -35,6 +35,12 @@ spring:
             - Path=/patient/**
           filters:
             - StripPrefix=0
+        - id: ruoyi-system
+          uri: lb://ruoyi-system
+          predicates:
+            - Path=/system/**
+          filters:
+            - StripPrefix=0
         - id: his-doctor
           uri: lb://his-doctor
           predicates:
