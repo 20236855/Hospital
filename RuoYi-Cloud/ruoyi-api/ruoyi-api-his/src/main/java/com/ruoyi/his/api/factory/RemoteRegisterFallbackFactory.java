@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import com.ruoyi.common.core.domain.R;
 import com.ruoyi.his.api.RemoteRegisterService;
 
-@Component("hisRemoteRegisterFallbackFactory")
+@Component
 public class RemoteRegisterFallbackFactory implements FallbackFactory<RemoteRegisterService>
 {
     private static final Logger log = LoggerFactory.getLogger(RemoteRegisterFallbackFactory.class);

@@ -74,6 +74,10 @@ public class CheckInController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, CheckIn checkIn)
     {
+        if (isNurseUser())
+        {
+            throw new ServiceException("护士岗位不能导出签到信息");
+        }
         applyPatientScope(checkIn);
         applyNurseScope(checkIn);
         List<CheckIn> list = checkInService.selectCheckInList(checkIn);
@@ -133,7 +137,12 @@ public class CheckInController extends BaseController
     public AjaxResult edit(@RequestBody CheckIn checkIn)
     {
         checkPatientReadonly();
-        checkNurseScope(checkIn);
+        CheckIn oldCheckIn = checkInService.selectCheckInByCheckInId(checkIn.getCheckInId());
+        checkNurseScope(oldCheckIn);
+        if (checkIn.getRegisterId() != null)
+        {
+            checkNurseScope(checkIn);
+        }
         return toAjax(checkInService.updateCheckIn(checkIn));
     }
 
@@ -146,6 +155,10 @@ public class CheckInController extends BaseController
     public AjaxResult remove(@PathVariable Long[] checkInIds)
     {
         checkPatientReadonly();
+        if (isNurseUser())
+        {
+            throw new ServiceException("护士岗位不能删除签到信息");
+        }
         for (Long checkInId : checkInIds)
         {
             checkNurseScope(checkInService.selectCheckInByCheckInId(checkInId));
@@ -217,7 +230,24 @@ public class CheckInController extends BaseController
         return !SecurityUtils.isAdmin()
                 && loginUser != null
                 && loginUser.getRoles() != null
-                && loginUser.getRoles().contains("medical");
+                && loginUser.getRoles().contains("doctor")
+                && hasNursePost(loginUser);
+    }
+
+    private boolean hasNursePost(LoginUser loginUser)
+    {
+        if (loginUser == null || loginUser.getSysUser() == null || loginUser.getSysUser().getPostIds() == null)
+        {
+            return false;
+        }
+        for (Long postId : loginUser.getSysUser().getPostIds())
+        {
+            if (Long.valueOf(2L).equals(postId))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Long getNurseDeptId()
@@ -227,18 +257,24 @@ public class CheckInController extends BaseController
         {
             return null;
         }
-        return loginUser.getSysUser().getDeptId();
+        return loginUser.getDeptId() != null ? loginUser.getDeptId() : loginUser.getSysUser().getDeptId();
+    }
+
+    private Long requireNurseDeptId()
+    {
+        Long deptId = getNurseDeptId();
+        if (deptId == null)
+        {
+            throw new ServiceException("当前护士未配置所属科室，不能操作签到信息");
+        }
+        return deptId;
     }
 
     private void applyNurseScope(CheckIn checkIn)
     {
         if (isNurseUser())
         {
-            Long deptId = getNurseDeptId();
-            if (deptId != null)
-            {
-                checkIn.setDeptId(deptId);
-            }
+            checkIn.setDeptId(requireNurseDeptId());
         }
     }
 
@@ -246,8 +282,12 @@ public class CheckInController extends BaseController
     {
         if (isNurseUser() && checkIn != null)
         {
-            Long nurseDeptId = getNurseDeptId();
-            if (nurseDeptId != null && checkIn.getRegisterId() != null)
+            Long nurseDeptId = requireNurseDeptId();
+            if (checkIn.getRegisterId() == null)
+            {
+                throw new ServiceException("签到信息缺少挂号ID，不能校验科室权限");
+            }
+            if (checkIn.getRegisterId() != null)
             {
                 Register register = registerService.selectRegisterByRegisterId(checkIn.getRegisterId());
                 if (register == null || !Objects.equals(register.getDeptId(), nurseDeptId))

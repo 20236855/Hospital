@@ -1,8 +1,8 @@
 package com.ruoyi.system.controller;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.List;
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -151,6 +151,7 @@ public class SysUserController extends BaseController
         Set<String> roles = permissionService.getRolePermission(sysUser);
         // 权限集合
         Set<String> permissions = permissionService.getMenuPermission(sysUser);
+        setUserPostIds(sysUser);
         LoginUser sysUserVo = new LoginUser();
         sysUserVo.setSysUser(sysUser);
         sysUserVo.setRoles(roles);
@@ -207,6 +208,7 @@ public class SysUserController extends BaseController
             user = latestUser;
             loginUser.setSysUser(latestUser);
         }
+        setUserPostIds(user);
         // 角色集合
         Set<String> roles = permissionService.getRolePermission(user);
         // 权限集合
@@ -229,6 +231,7 @@ public class SysUserController extends BaseController
         ajax.put("user", user);
         ajax.put("roles", roles);
         ajax.put("permissions", permissions);
+        ajax.put("postIds", user.getPostIds());
         ajax.put("needCompleteInfo", loginUser.getNeedCompleteInfo());
         ajax.put("deptId", loginUser.getDeptId());
         ajax.put("userType", userType);
@@ -236,6 +239,15 @@ public class SysUserController extends BaseController
         ajax.put("isDefaultModifyPwd", initPasswordIsModify(user.getPwdUpdateDate()));
         ajax.put("isPasswordExpired", passwordIsExpiration(user.getPwdUpdateDate()));
         return ajax;
+    }
+
+    private void setUserPostIds(SysUser user)
+    {
+        if (StringUtils.isNotNull(user) && StringUtils.isNotNull(user.getUserId()))
+        {
+            List<Long> postIds = postService.selectPostListByUserId(user.getUserId());
+            user.setPostIds(postIds.toArray(new Long[0]));
+        }
     }
 
     private void refreshBusinessInfo(LoginUser loginUser, SysUser user, Set<String> roles)

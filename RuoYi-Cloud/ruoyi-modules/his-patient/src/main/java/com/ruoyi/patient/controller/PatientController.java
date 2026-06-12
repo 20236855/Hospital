@@ -85,6 +85,10 @@ public class PatientController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, Patient patient)
     {
+        if (isNurseUser())
+        {
+            throw new ServiceException("护士岗位不能导出患者档案");
+        }
         applyPatientScope(patient);
         List<Patient> list = patientService.selectPatientList(patient);
         ExcelUtil<Patient> util = new ExcelUtil<Patient>(Patient.class);
@@ -183,6 +187,10 @@ public class PatientController extends BaseController
         {
             throw new ServiceException("患者账号不能删除患者档案");
         }
+        if (isNurseUser())
+        {
+            throw new ServiceException("护士岗位不能删除患者档案");
+        }
         return toAjax(patientService.deletePatientByPatientIds(patientIds));
     }
     
@@ -221,5 +229,31 @@ public class PatientController extends BaseController
                 && loginUser != null
                 && loginUser.getRoles() != null
                 && loginUser.getRoles().contains("patient");
+    }
+
+    private boolean isNurseUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("doctor")
+                && hasNursePost(loginUser);
+    }
+
+    private boolean hasNursePost(LoginUser loginUser)
+    {
+        if (loginUser == null || loginUser.getSysUser() == null || loginUser.getSysUser().getPostIds() == null)
+        {
+            return false;
+        }
+        for (Long postId : loginUser.getSysUser().getPostIds())
+        {
+            if (Long.valueOf(2L).equals(postId))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

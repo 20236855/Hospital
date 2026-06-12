@@ -256,7 +256,6 @@
 <script setup name="Doctor">
 import { listDoctor, getDoctor, delDoctor, addDoctor, updateDoctor, listAvailableDoctorUsers } from "@/api/hisdoctor/doctor"
 import { listDept } from "@/api/system/dept"
-import { listDoctor, getDoctor, delDoctor, addDoctor, updateDoctor } from "@/api/hisdoctor/doctor"
 import { listDoctorlevel } from "@/api/hisdoctor/doctorlevel"
 
 const { proxy } = getCurrentInstance()

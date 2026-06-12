@@ -39,7 +39,8 @@ const useUserStore = defineStore(
       permissions: [],
       userType: '',
       needCompleteInfo: false,
-      deptId: null
+      deptId: null,
+      postIds: []
     }),
     actions: {
       // 登录
@@ -81,6 +82,7 @@ const useUserStore = defineStore(
             this.userType = res.userType || ''
             this.needCompleteInfo = res.needCompleteInfo || false
             this.deptId = res.deptId || null
+            this.postIds = res.postIds || user.postIds || []
             cache.session.set('pwrChrtype', res.pwdChrtype)
             /* 初始密码提示 */
             if(res.isDefaultModifyPwd) {
@@ -107,6 +109,7 @@ const useUserStore = defineStore(
             this.token = ''
             this.roles = []
             this.permissions = []
+            this.postIds = []
             removeToken()
             resolve()
           }).catch(error => {

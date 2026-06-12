@@ -136,7 +136,7 @@
           v-hasPermi="['patient:patient:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5" v-if="!isPatientUser">
+      <el-col :span="1.5" v-if="!isPatientUser && !isNurseUser">
         <el-button
           type="danger"
           plain
@@ -146,7 +146,7 @@
           v-hasPermi="['patient:patient:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isNurseUser">
         <el-button
           type="warning"
           plain
@@ -180,7 +180,7 @@
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="150">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['patient:patient:edit']">修改</el-button>
-          <el-button v-if="!isPatientUser" link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['patient:patient:remove']">删除</el-button>
+          <el-button v-if="!isPatientUser && !isNurseUser" link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['patient:patient:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -320,7 +320,9 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
+const NURSE_POST_ID = 2
 const isPatientUser = computed(() => userStore.userType === 'patient' || userStore.roles.includes('patient'))
+const isNurseUser = computed(() => userStore.roles.includes('doctor') && (userStore.postIds || []).some(postId => Number(postId) === NURSE_POST_ID))
 
 const data = reactive({
   form: {},
@@ -489,6 +491,10 @@ function handleDelete(row) {
     proxy.$modal.msgWarning("患者账号不能删除患者档案")
     return
   }
+  if (isNurseUser.value) {
+    proxy.$modal.msgWarning("护士岗位不能删除患者档案")
+    return
+  }
   const _patientIds = row.patientId || ids.value
   proxy.$modal.confirm('是否确认删除患者编号为"' + _patientIds + '"的数据项？').then(function() {
     return delPatient(_patientIds)
@@ -502,6 +508,10 @@ function handleDelete(row) {
 function handleExport() {
   if (isPatientUser.value) {
     proxy.$modal.msgWarning("患者账号不能导出患者档案")
+    return
+  }
+  if (isNurseUser.value) {
+    proxy.$modal.msgWarning("护士岗位不能导出患者档案")
     return
   }
   proxy.download('patient/patient/export', {

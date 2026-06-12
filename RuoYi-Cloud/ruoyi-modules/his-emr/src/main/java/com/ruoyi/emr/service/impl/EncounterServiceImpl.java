@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import com.ruoyi.his.api.RemotePatientService;
-import com.ruoyi.emr.api.RemoteRegisterService;
+import com.ruoyi.his.api.RemoteRegisterService;
 import com.ruoyi.emr.api.RemoteCheckInService;
 import com.ruoyi.emr.mapper.EncounterMapper;
 import com.ruoyi.emr.domain.Encounter;

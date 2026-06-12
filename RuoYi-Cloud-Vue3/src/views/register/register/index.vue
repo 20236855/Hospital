@@ -118,7 +118,7 @@
           v-hasPermi="['register:register:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isNurseUser">
         <el-button
           type="danger"
           plain
@@ -128,7 +128,7 @@
           v-hasPermi="['register:register:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col :span="1.5" v-if="!isNurseUser">
         <el-button
           type="warning"
           plain
@@ -190,7 +190,7 @@
             @click="handleCancelRegister(scope.row)"
             v-hasPermi="['register:register:edit']"
           >退号</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['register:register:remove']">删除</el-button>
+          <el-button v-if="!isNurseUser" link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['register:register:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -377,8 +377,12 @@ import {
   getRegisterFee
 } from "@/api/register/register"
 import { getPatientByIdCard } from "@/api/patient/patient"
+import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
+const NURSE_POST_ID = 2
+const isNurseUser = computed(() => userStore.roles.includes('doctor') && (userStore.postIds || []).some(postId => Number(postId) === NURSE_POST_ID))
 
 const registerList = ref([])
 const levelList = ref([])
@@ -611,6 +615,10 @@ async function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
+  if (isNurseUser.value) {
+    proxy.$modal.msgWarning("护士岗位不能删除挂号信息，请使用退号功能")
+    return
+  }
   const _registerIds = row.registerId || ids.value
   proxy.$modal.confirm('是否确认删除挂号编号为"' + _registerIds + '"的数据项？').then(function() {
     return delRegister(_registerIds)
@@ -622,6 +630,10 @@ function handleDelete(row) {
 
 /** 导出按钮操作 */
 function handleExport() {
+  if (isNurseUser.value) {
+    proxy.$modal.msgWarning("护士岗位不能导出挂号信息")
+    return
+  }
   proxy.download('register/register/export', {
     ...queryParams.value
   }, `register_${new Date().getTime()}.xlsx`)

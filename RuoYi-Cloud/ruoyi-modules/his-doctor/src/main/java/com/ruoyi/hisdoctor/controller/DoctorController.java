@@ -26,7 +26,7 @@ import com.ruoyi.common.core.web.page.TableDataInfo;
 
 /**
  * 医生信息Controller
- * 
+ *
  * @author ruoyi
  * @date 2026-05-30
  */
@@ -81,7 +81,7 @@ public class DoctorController extends BaseController
     {
         return success(doctorService.selectDoctorByDoctorId(doctorId));
     }
-    
+
     /**
      * 根据用户ID查询医生信息
      */
@@ -90,7 +90,7 @@ public class DoctorController extends BaseController
     {
         return success(doctorService.getDoctorByUserId(userId));
     }
-    
+
     /**
      * 内部接口：根据用户ID查询医生
      */
@@ -100,7 +100,7 @@ public class DoctorController extends BaseController
     {
         return R.ok(doctorService.getDoctorByUserId(userId));
     }
-    
+
     /**
      * 内部接口：根据用户ID查询医生（返回Map）
      */
@@ -154,7 +154,7 @@ public class DoctorController extends BaseController
     {
         return toAjax(doctorService.deleteDoctorByDoctorIds(doctorIds));
     }
-    
+
     /**
      * 自助完善医生信息（登录用户使用）
      */
@@ -165,5 +165,16 @@ public class DoctorController extends BaseController
         Long userId = SecurityUtils.getUserId();
         doctor.setUserId(userId);
         return toAjax(doctorService.completeDoctor(doctor));
+    }
+
+    /**
+     * 查询医生信息列表（患者端使用，无需权限）
+     */
+    @GetMapping("/open/list")
+    public TableDataInfo openList(Doctor doctor)
+    {
+        startPage();
+        List<Doctor> list = doctorService.selectDoctorList(doctor);
+        return getDataTable(list);
     }
 }

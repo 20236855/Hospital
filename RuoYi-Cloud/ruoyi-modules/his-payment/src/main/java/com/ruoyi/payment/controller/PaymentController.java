@@ -71,6 +71,10 @@ public class PaymentController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, Payment payment)
     {
+        if (isNurseUser())
+        {
+            throw new ServiceException("护士岗位不能导出收费信息");
+        }
         applyPatientScope(payment);
         applyNurseScope(payment);
         List<Payment> list = paymentService.selectPaymentList(payment);
@@ -101,6 +105,10 @@ public class PaymentController extends BaseController
     {
         applyPatientScope(payment);
         checkNurseScope(payment);
+        if (payment.getOperatorId() == null)
+        {
+            payment.setOperatorId(SecurityUtils.getUserId());
+        }
         return toAjax(paymentService.insertPayment(payment));
     }
 
@@ -135,10 +143,7 @@ public class PaymentController extends BaseController
         }
         if (isNurseUser())
         {
-            for (Long paymentId : paymentIds)
-            {
-                checkNurseScope(paymentService.selectPaymentByPaymentId(paymentId));
-            }
+            throw new ServiceException("护士岗位不能删除收费记录");
         }
         return toAjax(paymentService.deletePaymentByPaymentIds(paymentIds));
     }
@@ -190,7 +195,24 @@ public class PaymentController extends BaseController
         return !SecurityUtils.isAdmin()
                 && loginUser != null
                 && loginUser.getRoles() != null
-                && loginUser.getRoles().contains("medical");
+                && loginUser.getRoles().contains("doctor")
+                && hasNursePost(loginUser);
+    }
+
+    private boolean hasNursePost(LoginUser loginUser)
+    {
+        if (loginUser == null || loginUser.getSysUser() == null || loginUser.getSysUser().getPostIds() == null)
+        {
+            return false;
+        }
+        for (Long postId : loginUser.getSysUser().getPostIds())
+        {
+            if (Long.valueOf(2L).equals(postId))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Long getNurseDeptId()
@@ -200,7 +222,7 @@ public class PaymentController extends BaseController
         {
             return null;
         }
-        return loginUser.getSysUser().getDeptId();
+        return loginUser.getDeptId() != null ? loginUser.getDeptId() : loginUser.getSysUser().getDeptId();
     }
 
     private void applyNurseScope(Payment payment)

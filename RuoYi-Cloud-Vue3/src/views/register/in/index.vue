@@ -51,7 +51,7 @@
           v-hasPermi="['register:in:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5" v-if="!isPatientUser">
+      <el-col :span="1.5" v-if="!isPatientUser && !isNurseUser">
         <el-button
           type="danger"
           plain
@@ -61,7 +61,7 @@
           v-hasPermi="['register:in:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5" v-if="!isPatientUser">
+      <el-col :span="1.5" v-if="!isPatientUser && !isNurseUser">
         <el-button
           type="warning"
           plain
@@ -87,7 +87,7 @@
       <el-table-column v-if="!isPatientUser" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['register:in:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['register:in:remove']">删除</el-button>
+          <el-button v-if="!isNurseUser" link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['register:in:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -142,7 +142,9 @@ import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
+const NURSE_POST_ID = 2
 const isPatientUser = computed(() => userStore.userType === "patient" || userStore.roles.includes("patient"))
+const isNurseUser = computed(() => userStore.roles.includes("doctor") && (userStore.postIds || []).some(postId => Number(postId) === NURSE_POST_ID))
 
 const inList = ref([])
 const open = ref(false)
@@ -267,6 +269,10 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   if (isPatientUser.value) return
+  if (isNurseUser.value) {
+    proxy.$modal.msgWarning("护士岗位不能删除签到信息")
+    return
+  }
   const _checkInIds = row.checkInId || ids.value
   proxy.$modal.confirm('是否确认删除签到编号为"' + _checkInIds + '"的数据项？').then(function() {
     return delIn(_checkInIds)
@@ -279,6 +285,10 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
   if (isPatientUser.value) return
+  if (isNurseUser.value) {
+    proxy.$modal.msgWarning("护士岗位不能导出签到信息")
+    return
+  }
   proxy.download('register/in/export', {
     ...queryParams.value
   }, `in_${new Date().getTime()}.xlsx`)

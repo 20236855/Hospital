@@ -103,6 +103,10 @@ public class RegisterController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, Register register)
     {
+        if (isNurseUser())
+        {
+            throw new ServiceException("护士岗位不能导出挂号信息");
+        }
         applyPatientScope(register);
         applyNurseScope(register);
         List<Register> list = registerService.selectRegisterList(register);
@@ -162,8 +166,9 @@ public class RegisterController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody Register register)
     {
-        checkPatientScope(registerService.selectRegisterByRegisterId(register.getRegisterId()));
-        checkNurseScope(registerService.selectRegisterByRegisterId(register.getRegisterId()));
+        Register oldRegister = registerService.selectRegisterByRegisterId(register.getRegisterId());
+        checkPatientScope(oldRegister);
+        checkNurseScope(oldRegister);
         applyPatientScope(register);
         applyNurseScope(register);
         return toAjax(registerService.updateRegister(register));
@@ -177,19 +182,15 @@ public class RegisterController extends BaseController
 	@DeleteMapping("/{registerIds}")
     public AjaxResult remove(@PathVariable Long[] registerIds)
     {
-        if (isPatientUser())
+        for (Long registerId : registerIds)
         {
-            for (Long registerId : registerIds)
-            {
-                checkPatientScope(registerService.selectRegisterByRegisterId(registerId));
-            }
+            Register register = registerService.selectRegisterByRegisterId(registerId);
+            checkPatientScope(register);
+            checkNurseScope(register);
         }
         if (isNurseUser())
         {
-            for (Long registerId : registerIds)
-            {
-                checkNurseScope(registerService.selectRegisterByRegisterId(registerId));
-            }
+            throw new ServiceException("护士岗位不能删除挂号信息，请使用退号功能");
         }
         return toAjax(registerService.deleteRegisterByRegisterIds(registerIds));
     }
@@ -254,7 +255,24 @@ public class RegisterController extends BaseController
         return !SecurityUtils.isAdmin()
                 && loginUser != null
                 && loginUser.getRoles() != null
-                && loginUser.getRoles().contains("medical");
+                && loginUser.getRoles().contains("doctor")
+                && hasNursePost(loginUser);
+    }
+
+    private boolean hasNursePost(LoginUser loginUser)
+    {
+        if (loginUser == null || loginUser.getSysUser() == null || loginUser.getSysUser().getPostIds() == null)
+        {
+            return false;
+        }
+        for (Long postId : loginUser.getSysUser().getPostIds())
+        {
+            if (Long.valueOf(2L).equals(postId))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Long getNurseDeptId()
@@ -264,18 +282,24 @@ public class RegisterController extends BaseController
         {
             return null;
         }
-        return loginUser.getSysUser().getDeptId();
+        return loginUser.getDeptId() != null ? loginUser.getDeptId() : loginUser.getSysUser().getDeptId();
+    }
+
+    private Long requireNurseDeptId()
+    {
+        Long deptId = getNurseDeptId();
+        if (deptId == null)
+        {
+            throw new ServiceException("当前护士未配置所属科室，不能操作挂号信息");
+        }
+        return deptId;
     }
 
     private void applyNurseScope(Register register)
     {
         if (isNurseUser())
         {
-            Long deptId = getNurseDeptId();
-            if (deptId != null)
-            {
-                register.setDeptId(deptId);
-            }
+            register.setDeptId(requireNurseDeptId());
         }
     }
 
@@ -283,8 +307,8 @@ public class RegisterController extends BaseController
     {
         if (isNurseUser() && register != null)
         {
-            Long nurseDeptId = getNurseDeptId();
-            if (nurseDeptId != null && !Objects.equals(register.getDeptId(), nurseDeptId))
+            Long nurseDeptId = requireNurseDeptId();
+            if (!Objects.equals(register.getDeptId(), nurseDeptId))
             {
                 throw new ServiceException("无权限操作其他科室挂号信息");
             }
