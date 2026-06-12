@@ -183,4 +183,18 @@
             #{registerId}
         </foreach>
     </delete>
+
+    <update id="updateRegisterPayStatus">
+        update register
+        set pay_status = #{payStatus}, update_time = #{updateTime}
+        where register_id = #{registerId}
+    </update>
+
+    <select id="selectExpiredUnpaidRegisters" resultMap="RegisterResult">
+        <include refid="selectRegisterVo"/>
+        where r.register_status = 'registered'
+          and lower(r.pay_status) = 'unpaid'
+          and r.create_time &lt;= #{expireTime}
+        order by r.create_time asc
+    </select>
 </mapper>

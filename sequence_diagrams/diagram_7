@@ -1,0 +1,25 @@
+// Sequence Diagram
+digraph {
+	rankdir=TB splines=ortho
+	node [fillcolor=lightblue shape=box style="rounded,filled"]
+	edge [fontname=Arial fontsize=10]
+	node [fontname=Arial fontsize=10]
+	Client [label="医生端" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Gateway [label="Gateway网关" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	EMR [label="his-emr" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Patient [label="his-patient" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	DB [label=MySQL fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Client -> Gateway [label="GET /emr/record/{encounterId}" penwidth=1 style=solid]
+	Gateway -> EMR [label="获取病历模板" penwidth=1 style=solid]
+	EMR -> Patient [label="获取患者既往史" penwidth=1 style=solid]
+	Patient -> DB [label="SELECT * FROM patient WHERE patientId=?" penwidth=1 style=solid]
+	"Patient-" -> EMR [label="返回患者既往史" penwidth=1 style=solid]
+	"EMR-" -> Gateway [label="返回病历模板+既往史" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="病历模板" penwidth=1 style=solid]
+	Client -> Gateway [label="POST /emr/record" penwidth=1 style=solid]
+	Gateway -> EMR [label="保存病历" penwidth=1 style=solid]
+	EMR -> DB [label="INSERT INTO medical_record" penwidth=1 style=solid]
+	"DB-" -> EMR [label="返回病历ID" penwidth=1 style=solid]
+	"EMR-" -> Gateway [label="保存成功" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="{\"recordId\": 1}" penwidth=1 style=solid]
+}

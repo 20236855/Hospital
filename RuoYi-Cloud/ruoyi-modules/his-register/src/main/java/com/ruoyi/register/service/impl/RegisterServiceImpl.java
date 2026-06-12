@@ -14,6 +14,7 @@ import com.ruoyi.his.api.RemoteScheduleService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.register.mapper.RegisterMapper;
@@ -131,6 +132,9 @@ public class RegisterServiceImpl implements IRegisterService
                     log.info("[挂号请求] 排班预约成功！scheduleId={}", register.getScheduleId());
                 } catch (Exception e) {
                     log.error("[挂号请求] 远程调用排班服务异常：{}", e.getMessage(), e);
+                    if (register.getRegisterId() != null) {
+                        registerMapper.deleteRegisterByRegisterId(register.getRegisterId());
+                    }
                     throw new ServiceException("排班预约失败，请稍后重试");
                 }
             }
@@ -162,6 +166,7 @@ public class RegisterServiceImpl implements IRegisterService
             register.setRegisterType("online");
         }
         register.setRegisterStatus("registered");
+        register.setPayStatus("unpaid");
         // 自动设置备注为"网上预约挂号"
         register.setRemark("网上预约挂号");
         setPatientByIdCard(register);
@@ -291,6 +296,7 @@ public class RegisterServiceImpl implements IRegisterService
         {
             throw new ServiceException("只有已挂号单据可退号");
         }
+        cancelSchedule(register);
         register.setRegisterStatus("cancel");
         register.setUpdateTime(DateUtils.getNowDate());
         return registerMapper.updateRegister(register);
@@ -300,5 +306,62 @@ public class RegisterServiceImpl implements IRegisterService
     public BigDecimal getRegisterFeeByDoctorId(Long doctorId)
     {
         return registerMapper.selectRegisterFeeByDoctorId(doctorId);
+    }
+
+    @Override
+    public int markRegisterPaid(Long registerId)
+    {
+        Register register = registerMapper.selectRegisterByRegisterId(registerId);
+        if (register == null)
+        {
+            throw new ServiceException("挂号记录不存在");
+        }
+        if (!"registered".equals(register.getRegisterStatus()))
+        {
+            throw new ServiceException("当前挂号状态不可支付");
+        }
+        if ("paid".equalsIgnoreCase(register.getPayStatus()))
+        {
+            return 1;
+        }
+        return registerMapper.updateRegisterPayStatus(registerId, "paid", DateUtils.getNowDate());
+    }
+
+    @Override
+    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
+    public int cleanupExpiredUnpaidRegisters()
+    {
+        Date expireTime = DateUtils.addMinutes(DateUtils.getNowDate(), -30);
+        List<Register> expiredList = registerMapper.selectExpiredUnpaidRegisters(expireTime);
+        int cleaned = 0;
+        for (Register register : expiredList)
+        {
+            try
+            {
+                cancelSchedule(register);
+                cleaned += registerMapper.deleteRegisterByRegisterId(register.getRegisterId());
+                log.info("[挂号超时清理] 已删除超时未支付挂号单 registerId={}, scheduleId={}",
+                        register.getRegisterId(), register.getScheduleId());
+            }
+            catch (Exception e)
+            {
+                log.error("[挂号超时清理] 清理失败 registerId={}, scheduleId={}, error={}",
+                        register.getRegisterId(), register.getScheduleId(), e.getMessage(), e);
+            }
+        }
+        return cleaned;
+    }
+
+    private void cancelSchedule(Register register)
+    {
+        if (register.getScheduleId() == null)
+        {
+            return;
+        }
+        R<Boolean> result = remoteScheduleService.cancelSchedule(register.getScheduleId(), SecurityConstants.INNER);
+        if (result == null || !R.isSuccess(result) || Boolean.FALSE.equals(result.getData()))
+        {
+            throw new ServiceException(result != null && result.getMsg() != null ? result.getMsg() : "释放排班号源失败");
+        }
     }
 }

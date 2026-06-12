@@ -2,6 +2,7 @@ package com.ruoyi.register.mapper;
 
 import java.util.List;
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -120,4 +121,22 @@ public interface RegisterMapper
      * @return 结果
      */
     public int deleteRegisterByRegisterIds(Long[] registerIds);
+
+    /**
+     * 更新挂号支付状态
+     *
+     * @param registerId 挂号主键
+     * @param payStatus 支付状态
+     * @param updateTime 更新时间
+     * @return 结果
+     */
+    public int updateRegisterPayStatus(@Param("registerId") Long registerId, @Param("payStatus") String payStatus, @Param("updateTime") Date updateTime);
+
+    /**
+     * 查询超时未支付挂号单
+     *
+     * @param expireTime 超时时间
+     * @return 挂号集合
+     */
+    public List<Register> selectExpiredUnpaidRegisters(@Param("expireTime") Date expireTime);
 }

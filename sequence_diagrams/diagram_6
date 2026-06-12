@@ -1,0 +1,24 @@
+// Sequence Diagram
+digraph {
+	rankdir=TB splines=ortho
+	node [fillcolor=lightblue shape=box style="rounded,filled"]
+	edge [fontname=Arial fontsize=10]
+	node [fontname=Arial fontsize=10]
+	Client [label="医生端" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Gateway [label="Gateway网关" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Encounter [label="his-emr" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Register [label="his-register" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	DB [label=MySQL fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Client -> Gateway [label="GET /emr/encounter/list?doctorId=1" penwidth=1 style=solid]
+	Gateway -> Encounter [label="查询待接诊列表" penwidth=1 style=solid]
+	Encounter -> DB [label="SELECT * FROM encounter WHERE doctorId=? AND statu..." penwidth=1 style=solid]
+	"DB-" -> Encounter [label="返回待接诊列表" penwidth=1 style=solid]
+	"Encounter-" -> Gateway [label="返回接诊列表" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="待接诊患者列表" penwidth=1 style=solid]
+	Client -> Gateway [label="PUT /emr/encounter/start/{encounterId}" penwidth=1 style=solid]
+	Gateway -> Encounter [label="开始接诊" penwidth=1 style=solid]
+	Encounter -> DB [label="UPDATE encounter SET status=IN_PROGRESS" penwidth=1 style=solid]
+	"DB-" -> Encounter [label="更新成功" penwidth=1 style=solid]
+	"Encounter-" -> Gateway [label="接诊开始" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="{\"status\": \"IN_PROGRESS\"}" penwidth=1 style=solid]
+}

@@ -1,0 +1,26 @@
+// Sequence Diagram
+digraph {
+	rankdir=TB splines=ortho
+	node [fillcolor=lightblue shape=box style="rounded,filled"]
+	edge [fontname=Arial fontsize=10]
+	node [fontname=Arial fontsize=10]
+	Client [label="医生端" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Gateway [label="Gateway网关" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Prescription [label="his-prescription" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	EMR [label="his-emr" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	DB [label=MySQL fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Client -> Gateway [label="GET /prescription/drug/list" penwidth=1 style=solid]
+	Gateway -> Prescription [label="获取药品列表" penwidth=1 style=solid]
+	Prescription -> DB [label="SELECT * FROM drug" penwidth=1 style=solid]
+	"DB-" -> Prescription [label="返回药品" penwidth=1 style=solid]
+	"Prescription-" -> Gateway [label="返回药品列表" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="药品列表" penwidth=1 style=solid]
+	Client -> Gateway [label="POST /prescription/item" penwidth=1 style=solid]
+	Gateway -> Prescription [label="创建处方明细" penwidth=1 style=solid]
+	Prescription -> DB [label="INSERT INTO prescription_item" penwidth=1 style=solid]
+	"DB-" -> Prescription [label="返回明细ID" penwidth=1 style=solid]
+	"Prescription-" -> EMR [label="关联病历" penwidth=1 style=solid]
+	EMR -> DB [label="UPDATE medical_record SET prescriptionId=?" penwidth=1 style=solid]
+	"Prescription-" -> Gateway [label="创建成功" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="{\"itemId\": 1}" penwidth=1 style=solid]
+}

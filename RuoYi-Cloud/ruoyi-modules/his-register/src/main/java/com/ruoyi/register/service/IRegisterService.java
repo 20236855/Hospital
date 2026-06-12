@@ -94,4 +94,19 @@ public interface IRegisterService
      */
     public int cancelRegister(Long registerId);
 
+    /**
+     * 标记挂号单已支付
+     *
+     * @param registerId 挂号主键
+     * @return 结果
+     */
+    public int markRegisterPaid(Long registerId);
+
+    /**
+     * 清理超时未支付挂号单
+     *
+     * @return 清理数量
+     */
+    public int cleanupExpiredUnpaidRegisters();
+
 }

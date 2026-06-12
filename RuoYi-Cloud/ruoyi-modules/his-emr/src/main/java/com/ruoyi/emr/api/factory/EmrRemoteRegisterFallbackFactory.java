@@ -12,9 +12,9 @@ import com.ruoyi.emr.api.RemoteRegisterService;
  * Register remote service fallback.
  */
 @Component
-public class RemoteRegisterFallbackFactory implements FallbackFactory<RemoteRegisterService>
+public class EmrRemoteRegisterFallbackFactory implements FallbackFactory<RemoteRegisterService>
 {
-    private static final Logger log = LoggerFactory.getLogger(RemoteRegisterFallbackFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(EmrRemoteRegisterFallbackFactory.class);
 
     @Override
     public RemoteRegisterService create(Throwable throwable)

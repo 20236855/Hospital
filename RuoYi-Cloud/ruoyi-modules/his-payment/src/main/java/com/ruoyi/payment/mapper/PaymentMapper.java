@@ -1,6 +1,7 @@
 package com.ruoyi.payment.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.payment.domain.Payment;
 
 /**
@@ -58,4 +59,20 @@ public interface PaymentMapper
      * @return 结果
      */
     public int deletePaymentByPaymentIds(Long[] paymentIds);
+
+    /**
+     * 查询挂号单已支付收费记录
+     *
+     * @param registerId 挂号ID
+     * @return 收费记录
+     */
+    public Payment selectPaidPaymentByRegisterId(@Param("registerId") Long registerId);
+
+    /**
+     * 查询当天最大收费单号
+     *
+     * @param day 日期前缀
+     * @return 最大收费单号
+     */
+    public String selectMaxPayNo(@Param("day") String day);
 }
