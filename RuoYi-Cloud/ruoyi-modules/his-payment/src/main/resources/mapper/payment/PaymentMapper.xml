@@ -50,6 +50,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where payment_id = #{paymentId}
     </select>
 
+    <select id="selectPaidPaymentByRegisterId" parameterType="Long" resultMap="PaymentResult">
+        <include refid="selectPaymentVo"/>
+        where register_id = #{registerId}
+          and pay_status = 'PAID'
+        order by payment_id desc
+        limit 1
+    </select>
+
+    <select id="selectMaxPayNo" resultType="String">
+        select max(pay_no) from payment where pay_no like concat(#{day},'%')
+    </select>
+
     <insert id="insertPayment" parameterType="Payment" useGeneratedKeys="true" keyProperty="paymentId">
         insert into payment
         <trim prefix="(" suffix=")" suffixOverrides=",">

@@ -13,7 +13,7 @@
         <span class="title-icon float-animation">
           <span class="title-cross"></span>
         </span>
-        <h1>完善患者信息</h1>
+        <h1>{{ pageTitle }}</h1>
       </div>
     </div>
 
@@ -23,7 +23,7 @@
           <div class="header-icon">🏥</div>
           <div class="header-text">
             <h3>患者身份信息</h3>
-            <p>请完整填写您的医疗信息</p>
+            <p>{{ pageDesc }}</p>
           </div>
         </div>
 
@@ -280,13 +280,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { getPatientByUserId, completePatient } from '@/api/patient'
 import { getInfo } from '@/api/user'
 
 const router = useRouter()
+const route = useRoute()
 
 const patientForm = ref({
   name: '',
@@ -305,6 +306,9 @@ const patientForm = ref({
 })
 
 const loading = ref(false)
+const isEditMode = computed(() => route.query.mode === 'edit')
+const pageTitle = computed(() => isEditMode.value ? '个人信息' : '完善患者信息')
+const pageDesc = computed(() => isEditMode.value ? '查看和编辑您的医疗信息' : '请完整填写您的医疗信息')
 const userId = ref(null)
 
 const loadUserInfo = async () => {

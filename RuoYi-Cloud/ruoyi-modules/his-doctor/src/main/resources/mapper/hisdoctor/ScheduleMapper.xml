@@ -104,5 +104,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="decrementReservedNumber" parameterType="Long">
         update schedule set reserved_number = reserved_number - 1, update_time = now()
         where schedule_id = #{scheduleId}
+          and reserved_number &gt; 0
     </update>
 </mapper>

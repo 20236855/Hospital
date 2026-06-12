@@ -27,7 +27,7 @@
             <h2 class="user-name">{{ userName || '患者' }}</h2>
             <p class="user-id">ID: {{ userId || '-' }}</p>
           </div>
-          <div class="edit-btn" @click="showToast('编辑资料功能开发中')">
+          <div class="edit-btn" @click="goToInfo">
             <van-icon name="edit" />
           </div>
         </div>
@@ -195,7 +195,7 @@ const loadUserData = async () => {
 }
 
 const goToInfo = () => {
-  router.push('/patient-complete')
+  router.push({ path: '/patient-complete', query: { mode: 'edit' } })
 }
 
 const goToMyRegister = () => {

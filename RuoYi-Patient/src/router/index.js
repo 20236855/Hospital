@@ -52,7 +52,7 @@ router.beforeEach(async (to, from) => {
     return '/login'
   }
 
-  if (to.path === '/patient-complete' && token) {
+  if (to.path === '/patient-complete' && token && to.query.mode !== 'edit') {
     const savedPatientId = localStorage.getItem('patientId')
     if (savedPatientId) {
       return '/'

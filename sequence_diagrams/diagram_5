@@ -1,0 +1,28 @@
+// Sequence Diagram
+digraph {
+	rankdir=TB splines=ortho
+	node [fillcolor=lightblue shape=box style="rounded,filled"]
+	edge [fontname=Arial fontsize=10]
+	node [fontname=Arial fontsize=10]
+	Client [label="患者端" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Gateway [label="Gateway网关" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	CheckIn [label="his-register" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Register [label="his-register" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	DB [label=MySQL fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Client -> Gateway [label="POST /register/in/checkin" penwidth=1 style=solid]
+	Gateway -> CheckIn [label="签到请求" penwidth=1 style=solid]
+	CheckIn -> Register [label="验证挂号单" penwidth=1 style=solid]
+	Register -> DB [label="SELECT * FROM register WHERE registerId=?" penwidth=1 style=solid]
+	"DB-" -> Register [label="返回挂号记录" penwidth=1 style=solid]
+	condition_start [label="IF: 挂号有效且未签到" fillcolor="#FFF9C4" shape=diamond style=filled]
+	"Register-" -> CheckIn [label="验证通过" penwidth=1 style=solid]
+	CheckIn -> DB [label="INSERT INTO check_in" penwidth=1 style=solid]
+	"DB-" -> CheckIn [label="返回签到记录" penwidth=1 style=solid]
+	"CheckIn-" -> Gateway [label="签到成功" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="{\"queueNo\": 3, \"status\": \"CHECKED_IN\"}" penwidth=1 style=solid]
+	condition_else [label="ELSE: 挂号无效或已签到" fillcolor="#FFECB3" shape=diamond style=filled]
+	"Register-" -> CheckIn [label="验证失败" penwidth=1 style=solid]
+	"CheckIn-" -> Gateway [label="签到失败" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="{\"code\": 500, \"msg\": \"签到失败\"}" penwidth=1 style=solid]
+	condition_end [label=END fillcolor="#FFCDD2" shape=box style="rounded,filled"]
+}

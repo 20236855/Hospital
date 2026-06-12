@@ -1,0 +1,22 @@
+// Sequence Diagram
+digraph {
+	rankdir=TB splines=ortho
+	node [fillcolor=lightblue shape=box style="rounded,filled"]
+	edge [fontname=Arial fontsize=10]
+	node [fontname=Arial fontsize=10]
+	Client [label="前端" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Gateway [label="Gateway网关" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Auth [label="ruoyi-auth" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	System [label="ruoyi-system" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Patient [label="his-patient" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	DB [label=MySQL fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Client -> Gateway [label="POST /auth/register" penwidth=1 style=solid]
+	Gateway -> Auth [label="转发注册请求" penwidth=1 style=solid]
+	Auth -> System [label="创建系统用户" penwidth=1 style=solid]
+	System -> DB [label="INSERT INTO sys_user" penwidth=1 style=solid]
+	Auth -> Patient [label="创建患者档案" penwidth=1 style=solid]
+	Patient -> DB [label="INSERT INTO patient" penwidth=1 style=solid]
+	"Patient-" -> Auth [label="返回患者信息" penwidth=1 style=solid]
+	"Auth-" -> Gateway [label="注册成功" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="{\"code\": 200}" penwidth=1 style=solid]
+}

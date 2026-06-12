@@ -1,0 +1,23 @@
+// Sequence Diagram
+digraph {
+	rankdir=TB splines=ortho
+	node [fillcolor=lightblue shape=box style="rounded,filled"]
+	edge [fontname=Arial fontsize=10]
+	node [fontname=Arial fontsize=10]
+	Client [label="患者端/医生端" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Gateway [label="Gateway网关" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Exam [label="his-exam" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	DB [label=MySQL fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Client -> Gateway [label="GET /exam/apply/list?patientId=1" penwidth=1 style=solid]
+	Gateway -> Exam [label="查询检查申请" penwidth=1 style=solid]
+	Exam -> DB [label="SELECT * FROM exam_apply WHERE patientId=?" penwidth=1 style=solid]
+	"DB-" -> Exam [label="返回申请列表" penwidth=1 style=solid]
+	"Exam-" -> Gateway [label="返回申请列表" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="检查申请列表" penwidth=1 style=solid]
+	Client -> Gateway [label="GET /exam/apply/{applyId}" penwidth=1 style=solid]
+	Gateway -> Exam [label="获取检查详情" penwidth=1 style=solid]
+	Exam -> DB [label="SELECT * FROM exam_apply WHERE applyId=?" penwidth=1 style=solid]
+	"DB-" -> Exam [label="返回申请详情" penwidth=1 style=solid]
+	"Exam-" -> Gateway [label="返回详情(含报告)" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="{\"examResult\": \"...\"}" penwidth=1 style=solid]
+}

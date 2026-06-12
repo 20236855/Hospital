@@ -231,11 +231,16 @@
     <van-dialog
       v-model:show="showSuccessDialog"
       title="预约成功"
-      confirm-button-text="查看我的预约"
-      :show-cancel-button="false"
-      @confirm="goToHome"
+      confirm-button-text="立即支付"
+      cancel-button-text="稍后支付"
+      :show-cancel-button="true"
+      @confirm="payCreatedRegister"
+      @cancel="goToHome"
     >
       <div class="dialog-content">
+        <div class="pay-alert">
+          请在30分钟内支付挂号费，超时未支付将自动取消预约并释放医生号源。
+        </div>
         <div class="dialog-title">就诊信息</div>
         <div class="dialog-item">
           <span class="dialog-label">科室：</span>
@@ -252,6 +257,10 @@
         <div class="dialog-item">
           <span class="dialog-label">挂号类型：</span>
           <span class="dialog-value">网上预约挂号</span>
+        </div>
+        <div class="dialog-item">
+          <span class="dialog-label">挂号费：</span>
+          <span class="dialog-value fee-value">{{ formatMoney(createdRegister?.registerFee) }}</span>
         </div>
       </div>
     </van-dialog>
@@ -272,6 +281,7 @@ import { showToast, showDialog } from 'vant'
 import { createRegister, getDoctorList, getDeptList, getScheduleList } from '@/api/register'
 import { getPatientByUserId } from '@/api/patient'
 import { getInfo } from '@/api/user'
+import { payRegister } from '@/api/payment'
 
 console.log('[Register] module loaded')
 const router = useRouter()
@@ -280,6 +290,7 @@ const step = ref(1)
 const loading = ref(false)
 const success = ref(false)
 const showSuccessDialog = ref(false)
+const createdRegister = ref(null)
 
 const form = ref({
     department: '',
@@ -326,6 +337,11 @@ const getTimeSlotText = (timeSlot) => {
     if (timeSlot === 'morning') return '上午 08:00-12:00'
     if (timeSlot === 'afternoon') return '下午 14:00-17:30'
     return timeSlot
+}
+
+const formatMoney = (amount) => {
+  const value = Number(amount || 0)
+  return `￥${value.toFixed(2)}`
 }
 
 const getScheduleReservedNumber = (schedule) => {
@@ -582,7 +598,8 @@ const submitRegister = async () => {
             registerType: 'online'
         }
         console.log('提交的预约数据:', registerData)
-        await createRegister(registerData)
+        const result = await createRegister(registerData)
+        createdRegister.value = result?.data || null
         
         // 预约成功，设置状态
         success.value = true
@@ -611,6 +628,27 @@ const goBack = () => {
 const goToHome = () => {
     showSuccessDialog.value = false
     router.push('/')
+}
+
+const payCreatedRegister = async () => {
+    const registerId = createdRegister.value?.registerId
+    if (!registerId) {
+        showToast('未获取到挂号单号，请在我的预约中支付')
+        goToHome()
+        return
+    }
+    try {
+        await payRegister(registerId, '微信')
+        await showDialog({
+            title: '支付成功',
+            message: `已支付挂号费 ${formatMoney(createdRegister.value?.registerFee)}`,
+            confirmButtonText: '确定'
+        })
+        goToHome()
+    } catch (error) {
+        showToast(error?.message || '支付失败，请稍后重试')
+        showSuccessDialog.value = true
+    }
 }
 
 const ensurePatientId = async () => {
@@ -1248,6 +1286,16 @@ onMounted(() => {
   border-bottom: 1px solid #eee;
 }
 
+.pay-alert {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 152, 0, 0.1);
+  color: #b36b00;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .dialog-item {
   display: flex;
   align-items: center;
@@ -1263,5 +1311,10 @@ onMounted(() => {
 .dialog-value {
   color: #333;
   flex: 1;
+}
+
+.fee-value {
+  color: #f05391;
+  font-weight: 700;
 }
 </style>

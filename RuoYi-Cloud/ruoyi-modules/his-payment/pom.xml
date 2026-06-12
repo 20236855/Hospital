@@ -80,6 +80,7 @@
             <artifactId>ruoyi-common-security</artifactId>
         </dependency>
 
+        <!-- 医院业务远程接口 -->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-api-his</artifactId>

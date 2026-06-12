@@ -8,6 +8,9 @@ import org.springframework.stereotype.Component;
 import com.ruoyi.common.core.domain.R;
 import com.ruoyi.his.api.RemoteRegisterService;
 
+/**
+ * Register remote service fallback.
+ */
 @Component
 public class RemoteRegisterFallbackFactory implements FallbackFactory<RemoteRegisterService>
 {
@@ -23,6 +26,18 @@ public class RemoteRegisterFallbackFactory implements FallbackFactory<RemoteRegi
             public R<Map<String, Object>> getRegisterInfo(Long registerId, String source)
             {
                 return R.fail("Get register failed: " + throwable.getMessage());
+            }
+
+            @Override
+            public R<Map<String, Object>> getPayInfo(Long registerId, String source)
+            {
+                return R.fail("Get register pay info failed: " + throwable.getMessage());
+            }
+
+            @Override
+            public R<Boolean> markPaid(Long registerId, String source)
+            {
+                return R.fail("Mark register paid failed: " + throwable.getMessage());
             }
         };
     }

@@ -1,0 +1,18 @@
+// Sequence Diagram
+digraph {
+	rankdir=TB splines=ortho
+	node [fillcolor=lightblue shape=box style="rounded,filled"]
+	edge [fontname=Arial fontsize=10]
+	node [fontname=Arial fontsize=10]
+	Client [label="前端" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Gateway [label="Gateway网关" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Auth [label="ruoyi-auth" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Redis [label="Redis缓存" fillcolor="#E3F2FD" shape=box style="rounded,filled"]
+	Client -> Gateway [label="POST /auth/login" penwidth=1 style=solid]
+	Gateway -> Auth [label="转发登录请求" penwidth=1 style=solid]
+	Auth -> Auth [label="验证用户名密码" penwidth=1 style=solid]
+	Auth -> Redis [label="缓存用户信息" penwidth=1 style=solid]
+	"Auth-" -> Gateway [label="返回LoginUser" penwidth=1 style=solid]
+	Gateway -> Gateway [label="生成JWT Token" penwidth=1 style=solid]
+	"Gateway-" -> Client [label="{\"access_token\": \"...\"}" penwidth=1 style=solid]
+}

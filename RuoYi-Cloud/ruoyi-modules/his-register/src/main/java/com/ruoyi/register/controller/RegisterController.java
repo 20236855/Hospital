@@ -313,6 +313,37 @@ public class RegisterController extends BaseController
                 throw new ServiceException("无权限操作其他科室挂号信息");
             }
         }
+    /**
+     * 获取挂号支付信息（内部接口）
+     */
+    @InnerAuth
+    @GetMapping("/inner/pay-info/{registerId}")
+    public R<Map<String, Object>> payInfo(@PathVariable Long registerId);
+    {
+        Register register = registerService.selectRegisterByRegisterId(registerId);
+        if (register == null)
+        {
+            return R.fail("挂号记录不存在");
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("registerId", register.getRegisterId());
+        result.put("registerNo", register.getRegisterNo());
+        result.put("patientId", register.getPatientId());
+        result.put("scheduleId", register.getScheduleId());
+        result.put("registerFee", register.getRegisterFee());
+        result.put("registerStatus", register.getRegisterStatus());
+        result.put("payStatus", register.getPayStatus());
+        return R.ok(result);
+    }
+
+    /**
+     * 标记挂号单已支付（内部接口）
+     */
+    @InnerAuth
+    @PutMapping("/inner/pay/{registerId}")
+    public R<Boolean> markPaid(@PathVariable Long registerId);
+    {
+        return R.ok(registerService.markRegisterPaid(registerId) > 0);
     }
 }
 

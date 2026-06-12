@@ -58,4 +58,13 @@ public interface IPaymentService
      * @return 结果
      */
     public int deletePaymentByPaymentId(Long paymentId);
+
+    /**
+     * 支付挂号费
+     *
+     * @param registerId 挂号ID
+     * @param payType 支付方式
+     * @return 收费单
+     */
+    public Payment payRegister(Long registerId, String payType);
 }
