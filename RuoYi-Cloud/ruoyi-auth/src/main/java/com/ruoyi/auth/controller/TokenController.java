@@ -20,7 +20,7 @@ import com.ruoyi.system.api.model.LoginUser;
 
 /**
  * token 控制
- * 
+ *
  * @author ruoyi
  */
 @RestController
@@ -40,7 +40,17 @@ public class TokenController
         // 获取登录token
         return R.ok(tokenService.createToken(userInfo));
     }
-
+    /**
+     * 患者手机端登录 - 验证只有管理员和患者角色可进入
+     */
+    @PostMapping("patient/login")
+    public R<?> patientLogin(@RequestBody LoginBody form)
+    {
+        // 用户登录
+        LoginUser userInfo = sysLoginService.patientLogin(form.getUsername(), form.getPassword());
+        // 获取登录token
+        return R.ok(tokenService.createToken(userInfo));
+    }
     @DeleteMapping("logout")
     public R<?> logout(HttpServletRequest request)
     {

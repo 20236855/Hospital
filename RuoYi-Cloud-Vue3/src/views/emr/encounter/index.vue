@@ -56,7 +56,7 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5" v-if="!isNurseUser">
+      <el-col :span="1.5">
         <el-button
           type="primary"
           plain
@@ -65,7 +65,7 @@
           v-hasPermi="['emr:encounter:add']"
         >新增</el-button>
       </el-col>
-      <el-col :span="1.5" v-if="!isNurseUser">
+      <el-col :span="1.5">
         <el-button
           type="success"
           plain
@@ -75,7 +75,7 @@
           v-hasPermi="['emr:encounter:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5" v-if="!isNurseUser">
+      <el-col :span="1.5">
         <el-button
           type="danger"
           plain
@@ -85,7 +85,7 @@
           v-hasPermi="['emr:encounter:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5" v-if="!isNurseUser">
+      <el-col :span="1.5">
         <el-button
           type="warning"
           plain
@@ -98,7 +98,7 @@
     </el-row>
 
     <el-table v-loading="loading" :data="encounterList" @selection-change="handleSelectionChange">
-      <el-table-column v-if="!isNurseUser" type="selection" width="55" align="center" />
+      <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="接诊ID" align="center" prop="encounterId" width="100" />
       <el-table-column label="挂号ID" align="center" prop="registerId" width="120" />
       <el-table-column label="挂号编号" align="center" prop="registerNo" width="140" />
@@ -125,7 +125,7 @@
           <span>{{ parseTime(scope.row.finishTime, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column v-if="!isNurseUser" label="操作" align="center" class-name="small-padding fixed-width" width="150">
+      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="150">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['emr:encounter:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['emr:encounter:remove']">删除</el-button>
@@ -232,12 +232,8 @@
 import { listEncounter, getEncounter, delEncounter, addEncounter, updateEncounter } from "@/api/emr/encounter"
 import { listPatient } from "@/api/patient/patient"
 import { listRegister } from "@/api/register/register"
-import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
-const userStore = useUserStore()
-const NURSE_POST_ID = 2
-const isNurseUser = computed(() => userStore.roles.includes("doctor") && (userStore.postIds || []).some(postId => Number(postId) === NURSE_POST_ID))
 
 const encounterList = ref([])
 const open = ref(false)
@@ -361,19 +357,12 @@ function resetQuery() {
 }
 
 function handleSelectionChange(selection) {
-  if (isNurseUser.value) {
-    return
-  }
   ids.value = selection.map(item => item.encounterId)
   single.value = selection.length != 1
   multiple.value = !selection.length
 }
 
 function handleAdd() {
-  if (isNurseUser.value) {
-    proxy.$modal.msgWarning("护士岗位只能查看接诊信息")
-    return
-  }
   reset()
   getPatientOptions()
   getRegisterOptions()
@@ -382,10 +371,6 @@ function handleAdd() {
 }
 
 function handleUpdate(row) {
-  if (isNurseUser.value) {
-    proxy.$modal.msgWarning("护士岗位只能查看接诊信息")
-    return
-  }
   reset()
   getPatientOptions()
   getRegisterOptions()
@@ -398,10 +383,6 @@ function handleUpdate(row) {
 }
 
 function submitForm() {
-  if (isNurseUser.value) {
-    proxy.$modal.msgWarning("护士岗位只能查看接诊信息")
-    return
-  }
   proxy.$refs["encounterRef"].validate(valid => {
     if (valid) {
       if (form.value.encounterId != null) {
@@ -422,10 +403,6 @@ function submitForm() {
 }
 
 function handleDelete(row) {
-  if (isNurseUser.value) {
-    proxy.$modal.msgWarning("护士岗位只能查看接诊信息")
-    return
-  }
   const _encounterIds = row.encounterId || ids.value
   proxy.$modal.confirm('是否确认删除接诊编号为"' + _encounterIds + '"的数据项？').then(function() {
     return delEncounter(_encounterIds)
@@ -436,10 +413,6 @@ function handleDelete(row) {
 }
 
 function handleExport() {
-  if (isNurseUser.value) {
-    proxy.$modal.msgWarning("护士岗位不能导出接诊信息")
-    return
-  }
   proxy.download('emr/encounter/export', {
     ...queryParams.value
   }, 'encounter_' + new Date().getTime() + '.xlsx')

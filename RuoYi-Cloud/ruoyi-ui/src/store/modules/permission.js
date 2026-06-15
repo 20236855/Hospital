@@ -1,9 +1,28 @@
 import auth from '@/plugins/auth'
 import router, { constantRoutes, dynamicRoutes } from '@/router'
 import { getRouters } from '@/api/menu'
+import store from '@/store'
 import Layout from '@/layout/index'
 import ParentView from '@/components/ParentView'
 import InnerLink from '@/layout/components/InnerLink'
+
+const NURSE_POST_ID = 2
+const NURSE_ROUTE_COMPONENTS = new Set([
+  'patient/patient/index',
+  'register/register/index',
+  'register/in/index',
+  'payment/payment/index'
+])
+const NURSE_HIDDEN_ROUTE_PATH_PREFIXES = ['/emr', 'emr', '/hisexam', 'hisexam']
+const NURSE_HIDDEN_ROUTE_NAMES = new Set(['会诊管理', '医院检测'])
+const NURSE_HIDDEN_ROUTE_COMPONENTS = new Set([
+  'emr/encounter/index',
+  'emr/record/index',
+  'emr/disease/index',
+  'emr/recorddisease/index',
+  'hisexam/apply/index',
+  'hisexam/technology/index'
+])
 
 const permission = {
   state: {
@@ -34,8 +53,9 @@ const permission = {
       return new Promise(resolve => {
         // 向后端请求路由数据
         getRouters().then(res => {
-          const sdata = JSON.parse(JSON.stringify(res.data))
-          const rdata = JSON.parse(JSON.stringify(res.data))
+          const routeData = isNurseUser() ? filterNurseRoutes(res.data) : res.data
+          const sdata = JSON.parse(JSON.stringify(routeData))
+          const rdata = JSON.parse(JSON.stringify(routeData))
           const sidebarRoutes = filterAsyncRouter(sdata)
           const rewriteRoutes = filterAsyncRouter(rdata, false, true)
           const asyncRoutes = filterDynamicRoutes(dynamicRoutes)
@@ -50,6 +70,39 @@ const permission = {
       })
     }
   }
+}
+
+function isNurseUser() {
+  return (store.getters.postIds || []).some(postId => Number(postId) === NURSE_POST_ID)
+}
+
+function filterNurseRoutes(routes) {
+  return routes.reduce((result, route) => {
+    if (isNurseHiddenRoute(route)) {
+      return result
+    }
+    const nextRoute = { ...route }
+    if (route.children && route.children.length) {
+      nextRoute.children = filterNurseRoutes(route.children)
+    }
+    const componentAllowed = NURSE_ROUTE_COMPONENTS.has(route.component)
+    const hasAllowedChildren = nextRoute.children && nextRoute.children.length > 0
+    if (componentAllowed || hasAllowedChildren) {
+      result.push(nextRoute)
+    }
+    return result
+  }, [])
+}
+
+function isNurseHiddenRoute(route) {
+  const path = route.path || ''
+  const component = route.component || ''
+  const menuName = route.meta?.title || route.menuName || route.name || ''
+  return NURSE_HIDDEN_ROUTE_NAMES.has(menuName)
+    || NURSE_HIDDEN_ROUTE_PATH_PREFIXES.some(prefix => path === prefix || path.startsWith(prefix + '/'))
+    || NURSE_HIDDEN_ROUTE_COMPONENTS.has(component)
+    || component.startsWith('emr/')
+    || component.startsWith('hisexam/')
 }
 
 // 遍历后台传来的路由字符串，转换为组件对象

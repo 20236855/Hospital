@@ -18,7 +18,8 @@ const user = {
     permissions: [],
     userType: '',
     needCompleteInfo: false,
-    deptId: null
+    deptId: null,
+    postIds: []
   },
 
   mutations: {
@@ -54,6 +55,9 @@ const user = {
     },
     SET_DEPT_ID: (state, deptId) => {
       state.deptId = deptId
+    },
+    SET_POST_IDS: (state, postIds) => {
+      state.postIds = postIds
     }
   },
 
@@ -98,6 +102,7 @@ const user = {
           commit('SET_USER_TYPE', res.userType || '')
           commit('SET_NEED_COMPLETE_INFO', res.needCompleteInfo || false)
           commit('SET_DEPT_ID', res.deptId || null)
+          commit('SET_POST_IDS', res.postIds || user.postIds || [])
           cache.session.set('pwrChrtype', res.pwdChrtype)
           /* 初始密码提示 */
           if(res.isDefaultModifyPwd) {
@@ -138,6 +143,7 @@ const user = {
           commit('SET_TOKEN', '')
           commit('SET_ROLES', [])
           commit('SET_PERMISSIONS', [])
+          commit('SET_POST_IDS', [])
           removeToken()
           resolve()
         }).catch(error => {

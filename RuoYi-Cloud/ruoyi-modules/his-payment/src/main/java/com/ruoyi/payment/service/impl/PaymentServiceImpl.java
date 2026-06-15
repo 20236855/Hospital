@@ -64,10 +64,13 @@ public class PaymentServiceImpl implements IPaymentService
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int insertPayment(Payment payment)
     {
         payment.setCreateTime(DateUtils.getNowDate());
-        return paymentMapper.insertPayment(payment);
+        int rows = paymentMapper.insertPayment(payment);
+        syncPaidRegister(payment);
+        return rows;
     }
 
     /**
@@ -77,10 +80,13 @@ public class PaymentServiceImpl implements IPaymentService
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int updatePayment(Payment payment)
     {
         payment.setUpdateTime(DateUtils.getNowDate());
-        return paymentMapper.updatePayment(payment);
+        int rows = paymentMapper.updatePayment(payment);
+        syncPaidRegister(payment);
+        return rows;
     }
 
     /**
@@ -174,6 +180,24 @@ public class PaymentServiceImpl implements IPaymentService
     private String stringValue(Object value)
     {
         return value == null ? null : value.toString();
+    }
+
+    private void syncPaidRegister(Payment payment)
+    {
+        if (payment == null || payment.getRegisterId() == null || !isPaidStatus(payment.getPayStatus()))
+        {
+            return;
+        }
+        R<Boolean> paidResult = remoteRegisterService.markPaid(payment.getRegisterId(), SecurityConstants.INNER);
+        if (paidResult == null || !R.isSuccess(paidResult) || Boolean.FALSE.equals(paidResult.getData()))
+        {
+            throw new ServiceException(paidResult != null && paidResult.getMsg() != null ? paidResult.getMsg() : "Update register payment status failed");
+        }
+    }
+
+    private boolean isPaidStatus(String payStatus)
+    {
+        return StringUtils.isNotEmpty(payStatus) && "PAID".equalsIgnoreCase(payStatus);
     }
 
     private Long longValue(Object value)

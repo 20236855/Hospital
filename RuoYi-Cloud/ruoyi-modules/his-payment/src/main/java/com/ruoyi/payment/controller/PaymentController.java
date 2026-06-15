@@ -57,7 +57,7 @@ public class PaymentController extends BaseController
     public TableDataInfo list(Payment payment)
     {
         applyPatientScope(payment);
-        applyNurseScope(payment);
+        applyMedicalScope(payment);
         startPage();
         List<Payment> list = paymentService.selectPaymentList(payment);
         return getDataTable(list);
@@ -71,12 +71,12 @@ public class PaymentController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, Payment payment)
     {
-        if (isNurseUser())
+        if (isMedicalUser())
         {
-            throw new ServiceException("护士岗位不能导出收费信息");
+            throw new ServiceException("Medical users cannot export payment info");
         }
         applyPatientScope(payment);
-        applyNurseScope(payment);
+        applyMedicalScope(payment);
         List<Payment> list = paymentService.selectPaymentList(payment);
         ExcelUtil<Payment> util = new ExcelUtil<Payment>(Payment.class);
         util.exportExcel(response, list, "收费数据");
@@ -91,7 +91,7 @@ public class PaymentController extends BaseController
     {
         Payment payment = paymentService.selectPaymentByPaymentId(paymentId);
         checkPatientScope(payment);
-        checkNurseScope(payment);
+        checkMedicalScope(payment);
         return success(payment);
     }
 
@@ -103,8 +103,9 @@ public class PaymentController extends BaseController
     @PostMapping
     public AjaxResult add(@RequestBody Payment payment)
     {
+        checkMedicalWritePermission();
         applyPatientScope(payment);
-        checkNurseScope(payment);
+        checkMedicalScope(payment);
         if (payment.getOperatorId() == null)
         {
             payment.setOperatorId(SecurityUtils.getUserId());
@@ -130,8 +131,14 @@ public class PaymentController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody Payment payment)
     {
-        checkPatientScope(paymentService.selectPaymentByPaymentId(payment.getPaymentId()));
-        checkNurseScope(paymentService.selectPaymentByPaymentId(payment.getPaymentId()));
+        checkMedicalWritePermission();
+        Payment oldPayment = paymentService.selectPaymentByPaymentId(payment.getPaymentId());
+        checkPatientScope(oldPayment);
+        checkMedicalScope(oldPayment);
+        if (payment.getRegisterId() != null)
+        {
+            checkMedicalScope(payment);
+        }
         applyPatientScope(payment);
         return toAjax(paymentService.updatePayment(payment));
     }
@@ -144,6 +151,7 @@ public class PaymentController extends BaseController
 	@DeleteMapping("/{paymentIds}")
     public AjaxResult remove(@PathVariable Long[] paymentIds)
     {
+        checkMedicalWritePermission();
         if (isPatientUser())
         {
             for (Long paymentId : paymentIds)
@@ -153,7 +161,10 @@ public class PaymentController extends BaseController
         }
         if (isNurseUser())
         {
-            throw new ServiceException("护士岗位不能删除收费记录");
+            for (Long paymentId : paymentIds)
+            {
+                checkMedicalScope(paymentService.selectPaymentByPaymentId(paymentId));
+            }
         }
         return toAjax(paymentService.deletePaymentByPaymentIds(paymentIds));
     }
@@ -209,6 +220,28 @@ public class PaymentController extends BaseController
                 && hasNursePost(loginUser);
     }
 
+    private boolean isMedicalUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("doctor");
+    }
+
+    private boolean isReadonlyMedicalUser()
+    {
+        return isMedicalUser() && !isNurseUser();
+    }
+
+    private void checkMedicalWritePermission()
+    {
+        if (isReadonlyMedicalUser())
+        {
+            throw new ServiceException("Only nurse users can operate payment info");
+        }
+    }
+
     private boolean hasNursePost(LoginUser loginUser)
     {
         if (loginUser == null || loginUser.getSysUser() == null || loginUser.getSysUser().getPostIds() == null)
@@ -235,27 +268,23 @@ public class PaymentController extends BaseController
         return loginUser.getDeptId() != null ? loginUser.getDeptId() : loginUser.getSysUser().getDeptId();
     }
 
-    private void applyNurseScope(Payment payment)
+    private void applyMedicalScope(Payment payment)
     {
-        if (isNurseUser())
+        if (isMedicalUser())
         {
-            Long deptId = getNurseDeptId();
-            if (deptId != null)
-            {
-                payment.setDeptId(deptId);
-            }
+            payment.setDeptId(requireMedicalDeptId());
         }
     }
 
-    private void checkNurseScope(Payment payment)
+    private void checkMedicalScope(Payment payment)
     {
-        if (isNurseUser() && payment != null && payment.getRegisterId() != null)
+        if (isMedicalUser())
         {
-            Long nurseDeptId = getNurseDeptId();
-            if (nurseDeptId == null)
+            if (payment == null || payment.getRegisterId() == null)
             {
-                return;
+                throw new ServiceException("No permission to operate payment info from another department");
             }
+            Long medicalDeptId = requireMedicalDeptId();
             R<Map<String, Object>> registerR = remoteRegisterService.getRegisterInfo(payment.getRegisterId(), SecurityConstants.INNER);
             if (R.isError(registerR) || registerR.getData() == null)
             {
@@ -264,10 +293,20 @@ public class PaymentController extends BaseController
             Object deptIdObj = registerR.getData().get("deptId");
             Long registerDeptId = deptIdObj instanceof Number ? ((Number) deptIdObj).longValue()
                     : (deptIdObj != null ? Long.valueOf(deptIdObj.toString()) : null);
-            if (registerDeptId == null || !Objects.equals(registerDeptId, nurseDeptId))
+            if (registerDeptId == null || !Objects.equals(registerDeptId, medicalDeptId))
             {
                 throw new ServiceException("无权限操作其他科室收费信息");
             }
         }
+    }
+
+    private Long requireMedicalDeptId()
+    {
+        Long deptId = getNurseDeptId();
+        if (deptId == null)
+        {
+            throw new ServiceException("Current medical user has no department configured");
+        }
+        return deptId;
     }
 }

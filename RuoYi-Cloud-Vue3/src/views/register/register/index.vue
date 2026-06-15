@@ -235,6 +235,7 @@
                 placeholder="请选择科室"
                 filterable
                 clearable
+                :disabled="isNurseUser"
                 style="width: 100%"
                 @change="handleDeptChange"
               >
@@ -453,7 +454,19 @@ function getLevelOptions() {
 function getDeptOptions() {
   listRegisterDept().then(response => {
     deptList.value = response.data || []
+    applyNurseDefaultDept()
   })
+}
+
+function applyNurseDefaultDept() {
+  if (!isNurseUser.value || deptList.value.length !== 1 || form.value.registerId != null) {
+    return
+  }
+  const deptId = deptList.value[0].deptId
+  if (form.value.deptId !== deptId) {
+    form.value.deptId = deptId
+    getDoctorOptions(deptId)
+  }
 }
 
 function getDoctorOptions(deptId) {
@@ -533,6 +546,7 @@ function handleSelectionChange(selection) {
 /** 新增按钮操作 */
 function handleAdd() {
   reset()
+  applyNurseDefaultDept()
   open.value = true
   title.value = "添加挂号"
 }

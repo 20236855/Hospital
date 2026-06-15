@@ -67,7 +67,6 @@ public class EncounterController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, Encounter encounter)
     {
-        checkNurseReadonly();
         applyPatientScope(encounter);
         List<EncounterVo> list = encounterService.selectEncounterList(encounter);
         ExcelUtil<EncounterVo> util = new ExcelUtil<EncounterVo>(EncounterVo.class);
@@ -94,7 +93,6 @@ public class EncounterController extends BaseController
     @PostMapping
     public AjaxResult add(@RequestBody Encounter encounter)
     {
-        checkNurseReadonly();
         applyPatientScope(encounter);
         return toAjax(encounterService.insertEncounter(encounter));
     }
@@ -107,7 +105,6 @@ public class EncounterController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody Encounter encounter)
     {
-        checkNurseReadonly();
         checkPatientScope(encounterService.selectEncounterByEncounterId(encounter.getEncounterId()));
         applyPatientScope(encounter);
         return toAjax(encounterService.updateEncounter(encounter));
@@ -121,7 +118,6 @@ public class EncounterController extends BaseController
 	@DeleteMapping("/{encounterIds}")
     public AjaxResult remove(@PathVariable Long[] encounterIds)
     {
-        checkNurseReadonly();
         if (isPatientUser())
         {
             for (Long encounterId : encounterIds)
@@ -171,39 +167,5 @@ public class EncounterController extends BaseController
                 && loginUser != null
                 && loginUser.getRoles() != null
                 && loginUser.getRoles().contains("patient");
-    }
-
-    private void checkNurseReadonly()
-    {
-        if (isNurseUser())
-        {
-            throw new ServiceException("护士岗位只能查看接诊信息，不能新增、修改、删除或导出");
-        }
-    }
-
-    private boolean isNurseUser()
-    {
-        LoginUser loginUser = SecurityUtils.getLoginUser();
-        return !SecurityUtils.isAdmin()
-                && loginUser != null
-                && loginUser.getRoles() != null
-                && loginUser.getRoles().contains("doctor")
-                && hasNursePost(loginUser);
-    }
-
-    private boolean hasNursePost(LoginUser loginUser)
-    {
-        if (loginUser == null || loginUser.getSysUser() == null || loginUser.getSysUser().getPostIds() == null)
-        {
-            return false;
-        }
-        for (Long postId : loginUser.getSysUser().getPostIds())
-        {
-            if (Long.valueOf(2L).equals(postId))
-            {
-                return true;
-            }
-        }
-        return false;
     }
 }

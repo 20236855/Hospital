@@ -7,43 +7,47 @@ import java.util.Map;
 import java.util.Objects;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.core.constant.SecurityConstants;
+import com.ruoyi.common.core.domain.R;
+import com.ruoyi.common.core.exception.ServiceException;
+import com.ruoyi.common.core.utils.poi.ExcelUtil;
+import com.ruoyi.common.core.web.controller.BaseController;
+import com.ruoyi.common.core.web.domain.AjaxResult;
+import com.ruoyi.common.core.web.page.TableDataInfo;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
-import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.security.annotation.InnerAuth;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.register.domain.Register;
 import com.ruoyi.register.service.IRegisterService;
-import com.ruoyi.common.core.domain.R;
 import com.ruoyi.system.api.model.LoginUser;
-import com.ruoyi.common.core.web.controller.BaseController;
-import com.ruoyi.common.core.web.domain.AjaxResult;
-import com.ruoyi.common.core.utils.poi.ExcelUtil;
-import com.ruoyi.common.core.web.page.TableDataInfo;
 
 /**
- * 挂号Controller
- *
- * @author ruoyi
- * @date 2026-05-29
+ * Register controller.
  */
 @RestController
 @RequestMapping("/register")
 public class RegisterController extends BaseController
 {
+    private static final Long NURSE_POST_ID = 2L;
+
     @Autowired
     private IRegisterService registerService;
 
     @Autowired
     private RemotePatientService remotePatientService;
 
-    /**
-     * 查询挂号列表
-     */
     @RequiresPermissions("register:register:list")
     @GetMapping("/list")
     public TableDataInfo list(Register register)
@@ -55,68 +59,61 @@ public class RegisterController extends BaseController
         return getDataTable(list);
     }
 
-    /**
-     * 查询全部挂号级别列表（下拉）
-     */
     @GetMapping("/level/list")
     public AjaxResult levelList()
     {
         return success(registerService.selectRegisterLevelList());
     }
 
-    /**
-     * 查询全部科室列表（下拉）
-     */
     @GetMapping("/dept/list")
     public AjaxResult deptList()
     {
-        return success(registerService.selectDeptList());
+        List<Map<String, Object>> deptList = registerService.selectDeptList();
+        if (isDeptScopedUser())
+        {
+            Long deptId = requireNurseDeptId();
+            deptList.removeIf(item -> !Objects.equals(toLong(item.get("deptId")), deptId));
+        }
+        return success(deptList);
     }
 
-    /**
-     * 根据科室ID查询医生列表（下拉）
-     */
     @GetMapping("/doctor/list/{deptId}")
     public AjaxResult doctorList(@PathVariable("deptId") Long deptId)
     {
+        if (isDeptScopedUser() && !Objects.equals(deptId, requireNurseDeptId()))
+        {
+            throw new ServiceException("No permission to query doctors from another department");
+        }
         return success(registerService.selectDoctorListByDeptId(deptId));
     }
 
-    /**
-     * 根据挂号级别ID获取挂号费
-     */
     @GetMapping("/getFee")
     public AjaxResult getFee(@RequestParam Long levelId)
     {
-        if(levelId == null){
-            return AjaxResult.error("挂号级别不能为空");
+        if (levelId == null)
+        {
+            return AjaxResult.error("Register level cannot be empty");
         }
         BigDecimal fee = registerService.getRegisterFeeByLevelId(levelId);
         return success(fee);
     }
 
-    /**
-     * 导出挂号列表
-     */
     @RequiresPermissions("register:register:export")
-    @Log(title = "挂号", businessType = BusinessType.EXPORT)
+    @Log(title = "Register", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, Register register)
     {
         if (isNurseUser())
         {
-            throw new ServiceException("护士岗位不能导出挂号信息");
+            throw new ServiceException("Nurse users cannot export register info");
         }
         applyPatientScope(register);
         applyNurseScope(register);
         List<Register> list = registerService.selectRegisterList(register);
         ExcelUtil<Register> util = new ExcelUtil<Register>(Register.class);
-        util.exportExcel(response, list, "挂号数据");
+        util.exportExcel(response, list, "register");
     }
 
-    /**
-     * 获取挂号详细信息
-     */
     @RequiresPermissions("register:register:query")
     @GetMapping(value = "/{registerId}")
     public AjaxResult getInfo(@PathVariable("registerId") Long registerId)
@@ -127,9 +124,6 @@ public class RegisterController extends BaseController
         return success(register);
     }
 
-    /**
-     * 获取挂号信息（内部接口）
-     */
     @InnerAuth
     @GetMapping(value = "/inner/{registerId}")
     public R<Map<String, Object>> innerInfo(@PathVariable("registerId") Long registerId)
@@ -145,24 +139,47 @@ public class RegisterController extends BaseController
         return R.ok(result);
     }
 
-    /**
-     * 新增挂号
-     */
+    @InnerAuth
+    @GetMapping("/inner/pay-info/{registerId}")
+    public R<Map<String, Object>> payInfo(@PathVariable Long registerId)
+    {
+        Register register = registerService.selectRegisterByRegisterId(registerId);
+        if (register == null)
+        {
+            return R.fail("Register record does not exist");
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("registerId", register.getRegisterId());
+        result.put("registerNo", register.getRegisterNo());
+        result.put("patientId", register.getPatientId());
+        result.put("scheduleId", register.getScheduleId());
+        result.put("registerFee", register.getRegisterFee());
+        result.put("registerStatus", register.getRegisterStatus());
+        result.put("payStatus", register.getPayStatus());
+        return R.ok(result);
+    }
+
+    @InnerAuth
+    @PutMapping("/inner/pay/{registerId}")
+    public R<Boolean> markPaid(@PathVariable Long registerId)
+    {
+        return R.ok(registerService.markRegisterPaid(registerId) > 0);
+    }
+
     @RequiresPermissions("register:register:add")
-    @Log(title = "挂号", businessType = BusinessType.INSERT)
+    @Log(title = "Register", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@RequestBody Register register)
     {
         applyPatientScope(register);
         applyNurseScope(register);
-        return toAjax(registerService.insertRegister(register));
+        checkDoctorDeptScope(register);
+        registerService.insertRegister(register);
+        return success(registerService.selectRegisterByRegisterId(register.getRegisterId()));
     }
 
-    /**
-     * 修改挂号
-     */
     @RequiresPermissions("register:register:edit")
-    @Log(title = "挂号", businessType = BusinessType.UPDATE)
+    @Log(title = "Register", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@RequestBody Register register)
     {
@@ -171,15 +188,13 @@ public class RegisterController extends BaseController
         checkNurseScope(oldRegister);
         applyPatientScope(register);
         applyNurseScope(register);
+        checkDoctorDeptScope(register);
         return toAjax(registerService.updateRegister(register));
     }
 
-    /**
-     * 删除挂号
-     */
     @RequiresPermissions("register:register:remove")
-    @Log(title = "挂号", businessType = BusinessType.DELETE)
-	@DeleteMapping("/{registerIds}")
+    @Log(title = "Register", businessType = BusinessType.DELETE)
+    @DeleteMapping("/{registerIds}")
     public AjaxResult remove(@PathVariable Long[] registerIds)
     {
         for (Long registerId : registerIds)
@@ -190,21 +205,19 @@ public class RegisterController extends BaseController
         }
         if (isNurseUser())
         {
-            throw new ServiceException("护士岗位不能删除挂号信息，请使用退号功能");
+            throw new ServiceException("Nurse users cannot delete register info, use cancel instead");
         }
         return toAjax(registerService.deleteRegisterByRegisterIds(registerIds));
     }
 
-    /**
-     * 退号
-     */
     @RequiresPermissions("register:register:edit")
-    @Log(title = "挂号", businessType = BusinessType.UPDATE)
+    @Log(title = "Register", businessType = BusinessType.UPDATE)
     @PutMapping("/cancel/{registerId}")
     public AjaxResult cancel(@PathVariable Long registerId)
     {
-        checkPatientScope(registerService.selectRegisterByRegisterId(registerId));
-        checkNurseScope(registerService.selectRegisterByRegisterId(registerId));
+        Register register = registerService.selectRegisterByRegisterId(registerId);
+        checkPatientScope(register);
+        checkNurseScope(register);
         return toAjax(registerService.cancelRegister(registerId));
     }
 
@@ -220,7 +233,7 @@ public class RegisterController extends BaseController
     {
         if (isPatientUser() && (register == null || !Objects.equals(register.getPatientId(), getCurrentPatientId())))
         {
-            throw new ServiceException("无权限访问其他患者信息");
+            throw new ServiceException("No permission to access another patient's info");
         }
     }
 
@@ -235,7 +248,7 @@ public class RegisterController extends BaseController
         Object patientId = patient == null ? null : patient.get("patientId");
         if (patientId == null)
         {
-            throw new ServiceException("当前患者档案不存在，请先完善患者信息");
+            throw new ServiceException("Current patient record does not exist");
         }
         return patientId instanceof Number ? ((Number) patientId).longValue() : Long.valueOf(patientId.toString());
     }
@@ -267,7 +280,7 @@ public class RegisterController extends BaseController
         }
         for (Long postId : loginUser.getSysUser().getPostIds())
         {
-            if (Long.valueOf(2L).equals(postId))
+            if (NURSE_POST_ID.equals(postId))
             {
                 return true;
             }
@@ -290,14 +303,14 @@ public class RegisterController extends BaseController
         Long deptId = getNurseDeptId();
         if (deptId == null)
         {
-            throw new ServiceException("当前护士未配置所属科室，不能操作挂号信息");
+            throw new ServiceException("Current medical user has no department configured");
         }
         return deptId;
     }
 
     private void applyNurseScope(Register register)
     {
-        if (isNurseUser())
+        if (isDeptScopedUser())
         {
             register.setDeptId(requireNurseDeptId());
         }
@@ -305,45 +318,54 @@ public class RegisterController extends BaseController
 
     private void checkNurseScope(Register register)
     {
-        if (isNurseUser() && register != null)
+        if (isDeptScopedUser() && register != null)
         {
             Long nurseDeptId = requireNurseDeptId();
             if (!Objects.equals(register.getDeptId(), nurseDeptId))
             {
-                throw new ServiceException("无权限操作其他科室挂号信息");
+                throw new ServiceException("No permission to operate register info from another department");
             }
         }
-    /**
-     * 获取挂号支付信息（内部接口）
-     */
-    @InnerAuth
-    @GetMapping("/inner/pay-info/{registerId}")
-    public R<Map<String, Object>> payInfo(@PathVariable Long registerId);
-    {
-        Register register = registerService.selectRegisterByRegisterId(registerId);
-        if (register == null)
-        {
-            return R.fail("挂号记录不存在");
-        }
-        Map<String, Object> result = new HashMap<>();
-        result.put("registerId", register.getRegisterId());
-        result.put("registerNo", register.getRegisterNo());
-        result.put("patientId", register.getPatientId());
-        result.put("scheduleId", register.getScheduleId());
-        result.put("registerFee", register.getRegisterFee());
-        result.put("registerStatus", register.getRegisterStatus());
-        result.put("payStatus", register.getPayStatus());
-        return R.ok(result);
     }
 
-    /**
-     * 标记挂号单已支付（内部接口）
-     */
-    @InnerAuth
-    @PutMapping("/inner/pay/{registerId}")
-    public R<Boolean> markPaid(@PathVariable Long registerId);
+    private void checkDoctorDeptScope(Register register)
     {
-        return R.ok(registerService.markRegisterPaid(registerId) > 0);
+        if (!isDeptScopedUser() || register == null || register.getDoctorId() == null)
+        {
+            return;
+        }
+        Long deptId = requireNurseDeptId();
+        boolean matched = false;
+        for (Map<String, Object> doctor : registerService.selectDoctorListByDeptId(deptId))
+        {
+            if (Objects.equals(toLong(doctor.get("doctorId")), register.getDoctorId()))
+            {
+                matched = true;
+                break;
+            }
+        }
+        if (!matched)
+        {
+            throw new ServiceException("No permission to operate register info for doctors from another department");
+        }
+    }
+
+    private Long toLong(Object value)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+        return value instanceof Number ? ((Number) value).longValue() : Long.valueOf(value.toString());
+    }
+
+    private boolean isDeptScopedUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("doctor")
+                && getNurseDeptId() != null;
     }
 }
-

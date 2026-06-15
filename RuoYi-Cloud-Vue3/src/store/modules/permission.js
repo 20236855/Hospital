@@ -1,22 +1,12 @@
 import auth from '@/plugins/auth'
 import router, { constantRoutes, dynamicRoutes } from '@/router'
 import { getRouters } from '@/api/menu'
-import useUserStore from '@/store/modules/user'
 import Layout from '@/layout/index'
 import ParentView from '@/components/ParentView'
 import InnerLink from '@/layout/components/InnerLink'
 
 // 匹配views里面所有的.vue文件
 const modules = import.meta.glob('./../../views/**/*.vue')
-const NURSE_POST_ID = 2
-const NURSE_ROUTE_COMPONENTS = new Set([
-  'patient/patient/index',
-  'register/register/index',
-  'register/in/index',
-  'emr/encounter/index',
-  'payment/payment/index'
-])
-
 const usePermissionStore = defineStore(
   'permission',
   {
@@ -45,10 +35,9 @@ const usePermissionStore = defineStore(
         return new Promise(resolve => {
           // 向后端请求路由数据
           getRouters().then(res => {
-            const routeData = isNurseUser() ? filterNurseRoutes(res.data) : res.data
-            const sdata = JSON.parse(JSON.stringify(routeData))
-            const rdata = JSON.parse(JSON.stringify(routeData))
-            const defaultData = JSON.parse(JSON.stringify(routeData))
+            const sdata = JSON.parse(JSON.stringify(res.data))
+            const rdata = JSON.parse(JSON.stringify(res.data))
+            const defaultData = JSON.parse(JSON.stringify(res.data))
             const sidebarRoutes = filterAsyncRouter(sdata)
             const rewriteRoutes = filterAsyncRouter(rdata, false, true)
             const defaultRoutes = filterAsyncRouter(defaultData)
@@ -64,26 +53,6 @@ const usePermissionStore = defineStore(
       }
     }
   })
-
-function isNurseUser() {
-  const userStore = useUserStore()
-  return userStore.roles.includes('doctor') && (userStore.postIds || []).some(postId => Number(postId) === NURSE_POST_ID)
-}
-
-function filterNurseRoutes(routes) {
-  return routes.reduce((result, route) => {
-    const nextRoute = { ...route }
-    if (route.children && route.children.length) {
-      nextRoute.children = filterNurseRoutes(route.children)
-    }
-    const componentAllowed = NURSE_ROUTE_COMPONENTS.has(route.component)
-    const hasAllowedChildren = nextRoute.children && nextRoute.children.length > 0
-    if (componentAllowed || hasAllowedChildren) {
-      result.push(nextRoute)
-    }
-    return result
-  }, [])
-}
 
 // 遍历后台传来的路由字符串，转换为组件对象
 function filterAsyncRouter(asyncRouterMap, lastRouter = false, type = false) {

@@ -56,7 +56,7 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5" v-if="!isNurseUser">
+      <el-col :span="1.5" v-if="canOperatePayment">
         <el-button
           type="primary"
           plain
@@ -65,7 +65,7 @@
           v-hasPermi="['payment:payment:add']"
         >新增</el-button>
       </el-col>
-      <el-col :span="1.5" v-if="!isNurseUser">
+      <el-col :span="1.5" v-if="canOperatePayment">
         <el-button
           type="success"
           plain
@@ -75,7 +75,7 @@
           v-hasPermi="['payment:payment:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5" v-if="!isNurseUser">
+      <el-col :span="1.5" v-if="canOperatePayment">
         <el-button
           type="danger"
           plain
@@ -85,7 +85,7 @@
           v-hasPermi="['payment:payment:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5" v-if="!isNurseUser">
+      <el-col :span="1.5" v-if="!isMedicalUser">
         <el-button
           type="warning"
           plain
@@ -98,52 +98,27 @@
     </el-row>
 
     <el-table v-loading="loading" :data="paymentList" @selection-change="handleSelectionChange">
-      <template v-if="isNurseUser">
-        <el-table-column label="挂号单号" align="center" prop="registerNo" width="150" />
-        <el-table-column label="身份证号" align="center" prop="idCard" width="180" />
-        <el-table-column label="患者姓名" align="center" prop="patientName" width="120" />
-        <el-table-column label="科室" align="center" prop="deptName" width="120" />
-        <el-table-column label="医生" align="center" prop="doctorName" width="120" />
-        <el-table-column label="挂号费用" align="center" prop="registerFee" width="120" />
-        <el-table-column label="挂号时间" align="center" prop="registerTime" width="180">
-          <template #default="scope">
-            <span>{{ parseTime(scope.row.registerTime, '{y}-{m}-{d}') }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="支付状态" align="center" width="120">
-          <template #default="scope">
-            {{ scope.row.payStatus === 'paid' ? '已支付' : '待支付' }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="120">
-          <template #default="scope">
-            <el-button link type="primary" icon="Money" @click="handlePayRegister(scope.row)" v-hasPermi="['payment:payment:add']">收费</el-button>
-          </template>
-        </el-table-column>
-      </template>
-      <template v-else>
-        <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="收费单ID" align="center" prop="paymentId" width="120" />
-        <el-table-column label="收费单号" align="center" prop="payNo" width="150" />
-        <el-table-column label="患者ID" align="center" prop="patientId" width="100" />
-        <el-table-column label="关联挂号ID" align="center" prop="registerId" width="120" />
-        <el-table-column label="缴费总金额" align="center" prop="totalAmount" width="120" />
-        <el-table-column label="支付方式" align="center" prop="payType" width="150" />
-        <el-table-column label="缴费状态" align="center" prop="payStatus" width="150" />
-        <el-table-column label="收费员ID" align="center" prop="operatorId" width="100" />
-        <el-table-column label="缴费时间" align="center" prop="payTime" width="180">
-          <template #default="scope">
-            <span>{{ parseTime(scope.row.payTime, '{y}-{m}-{d}') }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="备注" align="center" prop="remark" width="200" show-overflow-tooltip />
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="150">
-          <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['payment:payment:edit']">修改</el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['payment:payment:remove']">删除</el-button>
-          </template>
-        </el-table-column>
-      </template>
+      <el-table-column v-if="canOperatePayment" type="selection" width="55" align="center" />
+      <el-table-column label="收费单ID" align="center" prop="paymentId" width="120" />
+      <el-table-column label="收费单号" align="center" prop="payNo" width="150" />
+      <el-table-column label="患者ID" align="center" prop="patientId" width="100" />
+      <el-table-column label="关联挂号ID" align="center" prop="registerId" width="120" />
+      <el-table-column label="缴费总金额" align="center" prop="totalAmount" width="120" />
+      <el-table-column label="支付方式" align="center" prop="payType" width="150" />
+      <el-table-column label="缴费状态" align="center" prop="payStatus" width="150" />
+      <el-table-column label="收费员ID" align="center" prop="operatorId" width="100" />
+      <el-table-column label="缴费时间" align="center" prop="payTime" width="180">
+        <template #default="scope">
+          <span>{{ parseTime(scope.row.payTime, '{y}-{m}-{d}') }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="备注" align="center" prop="remark" width="200" show-overflow-tooltip />
+      <el-table-column v-if="canOperatePayment" label="操作" align="center" class-name="small-padding fixed-width" width="150">
+        <template #default="scope">
+          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['payment:payment:edit']">修改</el-button>
+          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['payment:payment:remove']">删除</el-button>
+        </template>
+      </el-table-column>
     </el-table>
     
     <pagination
@@ -231,13 +206,14 @@
 
 <script setup name="Payment">
 import { listPayment, getPayment, delPayment, addPayment, updatePayment } from "@/api/payment/payment"
-import { listRegister, updateRegister } from "@/api/register/register"
 import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
 const NURSE_POST_ID = 2
+const isMedicalUser = computed(() => userStore.roles.includes("doctor"))
 const isNurseUser = computed(() => userStore.roles.includes("doctor") && (userStore.postIds || []).some(postId => Number(postId) === NURSE_POST_ID))
+const canOperatePayment = computed(() => isNurseUser.value)
 
 const paymentList = ref([])
 const open = ref(false)
@@ -281,20 +257,6 @@ const { queryParams, form, rules } = toRefs(data)
 /** 查询收费列表 */
 function getList() {
   loading.value = true
-  if (isNurseUser.value) {
-    listRegister({
-      pageNum: queryParams.value.pageNum,
-      pageSize: queryParams.value.pageSize,
-      registerId: queryParams.value.registerId,
-      payStatus: 'unpaid',
-      registerStatus: 'registered'
-    }).then(response => {
-      paymentList.value = response.rows
-      total.value = response.total
-      loading.value = false
-    })
-    return
-  }
   listPayment(queryParams.value).then(response => {
     paymentList.value = response.rows
     total.value = response.total
@@ -341,7 +303,7 @@ function resetQuery() {
 
 /** 多选框选中数据 */
 function handleSelectionChange(selection) {
-  if (isNurseUser.value) {
+  if (!canOperatePayment.value) {
     return
   }
   ids.value = selection.map(item => item.paymentId)
@@ -351,8 +313,8 @@ function handleSelectionChange(selection) {
 
 /** 新增按钮操作 */
 function handleAdd() {
-  if (isNurseUser.value) {
-    proxy.$modal.msgWarning("请从待缴费挂号列表发起收费")
+  if (!canOperatePayment.value) {
+    proxy.$modal.msgWarning("当前岗位只能查看收费记录")
     return
   }
   reset()
@@ -362,8 +324,8 @@ function handleAdd() {
 
 /** 修改按钮操作 */
 function handleUpdate(row) {
-  if (isNurseUser.value) {
-    proxy.$modal.msgWarning("护士岗位请从待缴费挂号列表发起收费")
+  if (!canOperatePayment.value) {
+    proxy.$modal.msgWarning("当前岗位只能查看收费记录")
     return
   }
   reset()
@@ -387,13 +349,6 @@ function submitForm() {
         })
       } else {
         addPayment(form.value).then(() => {
-          if (isNurseUser.value && form.value.registerId != null) {
-            return updateRegister({
-              registerId: form.value.registerId,
-              payStatus: 'paid'
-            })
-          }
-        }).then(() => {
           proxy.$modal.msgSuccess("新增成功")
           open.value = false
           getList()
@@ -405,8 +360,8 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
-  if (isNurseUser.value) {
-    proxy.$modal.msgWarning("护士岗位不能删除收费记录")
+  if (!canOperatePayment.value) {
+    proxy.$modal.msgWarning("当前岗位只能查看收费记录")
     return
   }
   const _paymentIds = row.paymentId || ids.value
@@ -420,33 +375,13 @@ function handleDelete(row) {
 
 /** 导出按钮操作 */
 function handleExport() {
-  if (isNurseUser.value) {
-    proxy.$modal.msgWarning("护士岗位不能导出收费信息")
+  if (isMedicalUser.value) {
+    proxy.$modal.msgWarning("医护人员不能导出收费信息")
     return
   }
   proxy.download('payment/payment/export', {
     ...queryParams.value
   }, `payment_${new Date().getTime()}.xlsx`)
-}
-
-function handlePayRegister(row) {
-  reset()
-  form.value.payNo = buildPayNo(row.registerId)
-  form.value.patientId = row.patientId
-  form.value.registerId = row.registerId
-  form.value.totalAmount = row.registerFee
-  form.value.payType = "OFFLINE"
-  form.value.payStatus = "PAID"
-  form.value.payTime = new Date().toISOString().slice(0, 10)
-  open.value = true
-  title.value = "线下收费"
-}
-
-function buildPayNo(registerId) {
-  const now = new Date()
-  const pad = (value) => String(value).padStart(2, "0")
-  const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-  return `PAY${timestamp}${registerId || ""}`
 }
 
 getList()

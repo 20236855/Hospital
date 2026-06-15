@@ -14,6 +14,7 @@ const getters = {
   nickName: state => state.user.nickName,
   introduction: state => state.user.introduction,
   roles: state => state.user.roles,
+  postIds: state => state.user.postIds,
   permissions: state => state.user.permissions,
   permission_routes: state => state.permission.routes,
   topbarRouters: state => state.permission.topbarRouters,

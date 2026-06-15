@@ -272,7 +272,7 @@ public class CheckInController extends BaseController
 
     private void applyNurseScope(CheckIn checkIn)
     {
-        if (isNurseUser())
+        if (isDeptScopedUser())
         {
             checkIn.setDeptId(requireNurseDeptId());
         }
@@ -280,7 +280,7 @@ public class CheckInController extends BaseController
 
     private void checkNurseScope(CheckIn checkIn)
     {
-        if (isNurseUser() && checkIn != null)
+        if (isDeptScopedUser() && checkIn != null)
         {
             Long nurseDeptId = requireNurseDeptId();
             if (checkIn.getRegisterId() == null)
@@ -296,5 +296,15 @@ public class CheckInController extends BaseController
                 }
             }
         }
+    }
+
+    private boolean isDeptScopedUser()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getRoles() != null
+                && loginUser.getRoles().contains("doctor")
+                && getNurseDeptId() != null;
     }
 }
