@@ -1,7 +1,11 @@
 package com.ruoyi.system.service.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
@@ -9,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.CollectionUtils;
 import com.ruoyi.common.core.constant.UserConstants;
 import com.ruoyi.common.core.exception.ServiceException;
@@ -17,8 +23,10 @@ import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.core.utils.bean.BeanValidators;
 import com.ruoyi.common.datascope.annotation.DataScope;
 import com.ruoyi.common.security.utils.SecurityUtils;
+import com.ruoyi.his.api.RemoteDoctorService;
 import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.domain.SysUser;
+import com.ruoyi.system.domain.SysNotice;
 import com.ruoyi.system.domain.SysPost;
 import com.ruoyi.system.domain.SysUserPost;
 import com.ruoyi.system.domain.SysUserRole;
@@ -29,6 +37,7 @@ import com.ruoyi.system.mapper.SysUserPostMapper;
 import com.ruoyi.system.mapper.SysUserRoleMapper;
 import com.ruoyi.system.service.ISysConfigService;
 import com.ruoyi.system.service.ISysDeptService;
+import com.ruoyi.system.service.ISysNoticeService;
 import com.ruoyi.system.service.ISysUserService;
 
 /**
@@ -63,7 +72,18 @@ public class SysUserServiceImpl implements ISysUserService
     private ISysDeptService deptService;
 
     @Autowired
+    private ISysNoticeService noticeService;
+
+    @Autowired
+    private RemoteDoctorService remoteDoctorService;
+
+    @Autowired
     protected Validator validator;
+
+    /**
+     * 医护工作者相关角色ID集合（父角色3 + 子角色5/7等）
+     */
+    private static final Set<Long> MEDICAL_STAFF_ROLE_IDS = new HashSet<>(Arrays.asList(3L, 5L, 7L));
 
     /**
      * 根据条件分页查询用户列表
@@ -311,8 +331,37 @@ public class SysUserServiceImpl implements ISysUserService
             {
                 insertUserRole(user.getUserId(), roleIds.toArray(new Long[0]));
             }
+
+            // 医护工作者注册时自动创建通知提醒管理员
+            if ("doctor".equals(tempUserType))
+            {
+                createMedicalStaffNotice(user);
+            }
         }
         return result;
+    }
+
+    /**
+     * 创建医护工作者待审核通知
+     */
+    private void createMedicalStaffNotice(SysUser user)
+    {
+        try
+        {
+            SysNotice notice = new SysNotice();
+            notice.setNoticeTitle("新的医护工作者待分配");
+            notice.setNoticeType("1"); // 通知
+            notice.setNoticeContent(
+                "用户【" + (user.getNickName() != null ? user.getNickName() : user.getUserName())
+                + "】已注册为医护工作者，需要管理员为其分配科室和具体角色（如门诊医生/检验医生），分配后系统将自动创建医生档案。");
+            notice.setStatus("0");
+            noticeService.insertNotice(notice);
+            log.info("已创建医护工作者注册通知，用户: {}", user.getUserName());
+        }
+        catch (Exception e)
+        {
+            log.warn("创建医护工作者注册通知失败: {}", e.getMessage());
+        }
     }
 
     /**
@@ -334,7 +383,24 @@ public class SysUserServiceImpl implements ISysUserService
         userPostMapper.deleteUserPostByUserId(userId);
         // 新增用户与岗位管理
         insertUserPost(user);
-        return userMapper.updateUser(user);
+        int result = userMapper.updateUser(user);
+
+        // 事务提交后异步执行 Feign 调用，不阻塞 HTTP 响应
+        Long deptId = user.getDeptId();
+        Long[] roleIds = user.getRoleIds();
+        if (hasMedicalStaffRole(roleIds) && deptId != null)
+        {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization()
+            {
+                @Override
+                public void afterCommit()
+                {
+                    CompletableFuture.runAsync(() -> doSyncDoctorForUser(userId));
+                }
+            });
+        }
+
+        return result;
     }
 
     /**
@@ -349,6 +415,21 @@ public class SysUserServiceImpl implements ISysUserService
     {
         userRoleMapper.deleteUserRoleByUserId(userId);
         insertUserRole(userId, roleIds);
+
+        // 事务提交后异步执行 Feign 调用，不阻塞 HTTP 响应
+        SysUser dbUser = userMapper.selectUserById(userId);
+        Long deptId = dbUser != null ? dbUser.getDeptId() : null;
+        if (hasMedicalStaffRole(roleIds) && deptId != null)
+        {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization()
+            {
+                @Override
+                public void afterCommit()
+                {
+                    CompletableFuture.runAsync(() -> doSyncDoctorForUser(userId));
+                }
+            });
+        }
     }
 
     /**
@@ -478,6 +559,52 @@ public class SysUserServiceImpl implements ISysUserService
             }
             userRoleMapper.batchUserRole(list);
         }
+    }
+
+    /**
+     * 判断角色ID集合中是否包含医护工作者角色
+     */
+    private boolean hasMedicalStaffRole(Long[] roleIds)
+    {
+        if (roleIds == null || roleIds.length == 0) return false;
+        for (Long id : roleIds)
+        {
+            if (MEDICAL_STAFF_ROLE_IDS.contains(id)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 执行医生档案同步 Feign 调用（在事务提交后执行，避免跨服务锁冲突）
+     */
+    private void doSyncDoctorForUser(Long userId)
+    {
+        try
+        {
+            com.ruoyi.common.core.domain.R<Boolean> r = remoteDoctorService.syncDoctorFromUser(
+                    userId, com.ruoyi.common.core.constant.SecurityConstants.INNER);
+            if (r != null && Boolean.TRUE.equals(r.getData()))
+            {
+                log.info("已自动为用户 {} 创建医生档案", userId);
+            }
+            else
+            {
+                log.debug("用户 {} 的医生档案同步结果: {}", userId, r != null ? r.getMsg() : "null");
+            }
+        }
+        catch (Exception e)
+        {
+            log.warn("自动同步医生档案失败，userId={}, error={}", userId, e.getMessage());
+        }
+    }
+
+    /**
+     * 统计待分配科室的医护工作者数量
+     */
+    @Override
+    public int countPendingMedicalStaff()
+    {
+        return userMapper.countPendingMedicalStaff();
     }
 
     /**

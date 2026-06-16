@@ -137,7 +137,7 @@
           </div>
           <span>病历查询</span>
         </div>
-        <div class="action-card" @click="showToast('我的预约')">
+        <div class="action-card" @click="goToMyAppointments">
           <div class="action-icon icon-appointment">
             <img src="@/assets/images/yuyue.png" alt="预约" />
           </div>
@@ -295,6 +295,10 @@ const goToChat = () => {
   // 清除旧的 patientId（如果需要）
   // localStorage.removeItem('patientId')
   router.push('/chat')
+}
+
+const goToMyAppointments = () => {
+  router.push('/my-appointments')
 }
 
 onMounted(() => {

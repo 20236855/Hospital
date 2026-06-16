@@ -27,3 +27,10 @@ spring:
 mybatis:
   typeAliasesPackage: com.ruoyi.payment.domain
   mapper-locations: classpath:mapper/**/*.xml
+
+management:
+  health:
+    redis:
+      enabled: false
+    sentinel:
+      enabled: false

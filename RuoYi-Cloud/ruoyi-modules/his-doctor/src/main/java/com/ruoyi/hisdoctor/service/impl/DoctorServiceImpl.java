@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Random;
 import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.utils.DateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,8 @@ import com.ruoyi.hisdoctor.service.IDoctorService;
 @Service
 public class DoctorServiceImpl implements IDoctorService 
 {
+    private static final Logger log = LoggerFactory.getLogger(DoctorServiceImpl.class);
+
     @Autowired
     private DoctorMapper doctorMapper;
 
@@ -158,6 +162,73 @@ public class DoctorServiceImpl implements IDoctorService
     public Doctor getDoctorByUserId(Long userId)
     {
         return doctorMapper.selectDoctorByUserId(userId);
+    }
+
+    /**
+     * 从系统用户自动同步创建医生档案
+     * 管理员为医护工作者分配科室和角色后，系统自动调用此方法创建医生记录
+     *
+     * @param userId 用户ID
+     * @return 是否成功创建
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean syncDoctorFromSysUser(Long userId)
+    {
+        if (userId == null)
+        {
+            log.warn("syncDoctorFromSysUser: userId为空，跳过");
+            return false;
+        }
+
+        // 检查是否已存在医生档案
+        Doctor exists = doctorMapper.selectDoctorByUserId(userId);
+        if (exists != null)
+        {
+            log.info("syncDoctorFromSysUser: 用户 {} 已有医生档案(doctorId={})，跳过", userId, exists.getDoctorId());
+            return false;
+        }
+
+        // 从sys_user获取用户基本信息
+        Map<String, Object> userInfo = doctorMapper.selectSysUserForDoctor(userId);
+        if (userInfo == null || userInfo.isEmpty())
+        {
+            log.warn("syncDoctorFromSysUser: 未找到用户 {} 的信息，跳过", userId);
+            return false;
+        }
+
+        String nickName = (String) userInfo.get("nickName");
+        Long deptId = userInfo.get("deptId") != null ? Long.valueOf(userInfo.get("deptId").toString()) : null;
+
+        if (deptId == null)
+        {
+            log.info("syncDoctorFromSysUser: 用户 {} 尚未分配科室，跳过自动创建", userId);
+            return false;
+        }
+
+        if (nickName == null || nickName.isEmpty())
+        {
+            log.warn("syncDoctorFromSysUser: 用户 {} 的昵称为空，跳过", userId);
+            return false;
+        }
+
+        Doctor doctor = new Doctor();
+        doctor.setUserId(userId);
+        doctor.setDeptId(deptId);
+        doctor.setDoctorName(nickName);
+        doctor.setPhone((String) userInfo.get("phone"));
+        doctor.setStatus("0");
+        doctor.setCreateTime(DateUtils.getNowDate());
+
+        // 自动生成工号
+        String doctorNo = generateDoctorNo(deptId);
+        doctor.setDoctorNo(doctorNo);
+
+        int rows = doctorMapper.insertDoctor(doctor);
+        log.info("syncDoctorFromSysUser: 成功为用户 {} 自动创建医生档案, doctorId={}, doctorNo={}",
+                userId, doctor.getDoctorId(), doctorNo);
+
+        return rows > 0;
     }
 
     /**

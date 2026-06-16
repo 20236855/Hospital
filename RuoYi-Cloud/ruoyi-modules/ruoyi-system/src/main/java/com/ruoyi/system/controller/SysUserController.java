@@ -485,4 +485,14 @@ public class SysUserController extends BaseController
     {
         return success(deptService.selectDeptTreeList(dept));
     }
+
+    /**
+     * 获取待分配科室的医护工作者数量（用于首页提醒）
+     */
+    @RequiresPermissions("system:user:list")
+    @GetMapping("/pendingMedicalStaff")
+    public AjaxResult pendingMedicalStaff()
+    {
+        return success(userService.countPendingMedicalStaff());
+    }
 }

@@ -27,6 +27,13 @@ public class RemoteDoctorFallbackFactory implements FallbackFactory<RemoteDoctor
             {
                 return R.fail("Get doctor failed: " + throwable.getMessage());
             }
+
+            @Override
+            public R<Boolean> syncDoctorFromUser(Long userId, String source)
+            {
+                log.error("同步医生档案失败, userId={}, error={}", userId, throwable.getMessage());
+                return R.fail("Sync doctor failed: " + throwable.getMessage());
+            }
         };
     }
 }
