@@ -9,9 +9,9 @@
       </div>
       <div class="header-actions">
         <el-button icon="Refresh" @click="loadCurrentWeek">本周排班</el-button>
-        <el-button type="primary" plain icon="View" @click="handlePreview">预览下周</el-button>
-        <el-button type="success" icon="MagicStick" :loading="generating" @click="handleGenerate">一键生成下周</el-button>
-        <el-button type="warning" plain icon="Promotion" :disabled="!agentResult.weekStart" @click="handlePublish">同步公示</el-button>
+        <el-button v-if="isAdminUser" type="primary" plain icon="View" @click="handlePreview">预览下周</el-button>
+        <el-button v-if="isAdminUser" type="success" icon="MagicStick" :loading="generating" @click="handleGenerate">一键生成下周</el-button>
+        <el-button v-if="isAdminUser" type="warning" plain icon="Promotion" :disabled="!agentResult.weekStart" @click="handlePublish">同步公示</el-button>
       </div>
     </div>
 
@@ -47,7 +47,7 @@
     </el-row>
 
     <el-row :gutter="14" class="main-grid">
-      <el-col :xs="24" :lg="17">
+      <el-col :xs="24" :lg="isAdminUser ? 17 : 24">
         <div class="panel schedule-board">
           <div class="panel-title">
             <span>周排班视图</span>
@@ -88,7 +88,7 @@
         </div>
       </el-col>
 
-      <el-col :xs="24" :lg="7">
+      <el-col v-if="isAdminUser" :xs="24" :lg="7">
         <div class="panel agent-console">
           <div class="panel-title">
             <span>智能体工作台</span>
@@ -311,7 +311,12 @@ const agentResult = ref({
   warnings: []
 })
 
-const isDoctorUser = computed(() => userStore.userType === 'doctor' || userStore.roles.includes('doctor'))
+const isAdminUser = computed(() => {
+  return String(userStore.id) === '1'
+    || userStore.roles.includes('admin')
+    || userStore.permissions.includes('*:*:*')
+})
+const isDoctorUser = computed(() => !isAdminUser.value && (userStore.userType === 'doctor' || userStore.roles.includes('doctor')))
 const warningCount = computed(() => (agentResult.value.warnings || []).length + (agentResult.value.fallbackCount || 0))
 const tableList = computed(() => agentResult.value.schedules || [])
 const weekRangeText = computed(() => {
@@ -351,6 +356,11 @@ function loadCurrentWeek() {
 }
 
 function loadAgentMonitor() {
+  if (!isAdminUser.value) {
+    agentRun.value = null
+    runHistory.value = []
+    return Promise.resolve()
+  }
   Promise.all([getAgentScheduleStatus(), listAgentScheduleRuns()]).then(([statusResponse, runsResponse]) => {
     agentRun.value = statusResponse.data || null
     runHistory.value = runsResponse.data || []
@@ -358,6 +368,9 @@ function loadAgentMonitor() {
 }
 
 function refreshAgentPanel() {
+  if (!isAdminUser.value) {
+    return
+  }
   loadAgentMonitor()
   currentWeekSchedule().then(response => {
     agentResult.value = normalizeResult(response.data)

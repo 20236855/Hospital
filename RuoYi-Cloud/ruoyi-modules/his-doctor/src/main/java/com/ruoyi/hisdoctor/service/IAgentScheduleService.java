@@ -11,6 +11,8 @@ public interface IAgentScheduleService
 {
     AgentScheduleResult currentWeek();
 
+    AgentScheduleResult currentWeekForDoctor(Long doctorId);
+
     AgentScheduleResult previewNextWeek();
 
     AgentScheduleResult generateNextWeek();

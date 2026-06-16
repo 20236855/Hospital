@@ -121,6 +121,16 @@
           </div>
           <span>预约挂号</span>
         </div>
+        <div class="action-card" @click="goToDoctors">
+          <div class="action-icon icon-doctor">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="8" r="5" stroke="#b9e1cd" stroke-width="2"/>
+              <path d="M20 21a8 8 0 0 0-16 0" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round"/>
+              <path d="M18 4h-1v-1h-2v1h-1v2h1v1h2v-1h1v-2z" fill="#b9e1cd" opacity="0.6"/>
+            </svg>
+          </div>
+          <span>科室医生</span>
+        </div>
         <div class="action-card" @click="goToRecord">
           <div class="action-icon icon-record">
             <img src="@/assets/images/bingli.png" alt="病历" />
@@ -269,6 +279,10 @@ const loadUserData = async () => {
 
 const goToRegister = () => {
   router.push('/register')
+}
+
+const goToDoctors = () => {
+  router.push('/doctors')
 }
 
 const goToRecord = () => {
@@ -430,6 +444,16 @@ onMounted(() => {
 
 .action-card:hover .action-icon img {
   transform: scale(1.1);
+}
+
+.action-card:hover .action-icon svg {
+  transform: scale(1.1);
+}
+
+.icon-doctor svg {
+  width: 36px;
+  height: 36px;
+  transition: transform 0.3s ease;
 }
 
 .info-section {

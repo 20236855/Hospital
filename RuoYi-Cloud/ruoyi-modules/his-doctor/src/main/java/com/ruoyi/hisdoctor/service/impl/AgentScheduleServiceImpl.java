@@ -71,6 +71,27 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
     }
 
     @Override
+    public AgentScheduleResult currentWeekForDoctor(Long doctorId)
+    {
+        AgentScheduleResult result = currentWeek();
+        List<AgentScheduleItem> ownSchedules = result.getSchedules().stream()
+                .filter(item -> doctorId != null && doctorId.equals(item.getDoctorId()))
+                .collect(Collectors.toList());
+        result.setSchedules(ownSchedules);
+        result.setDoctorCount(ownSchedules.isEmpty() ? 0 : 1);
+        result.setDeptCount((int) ownSchedules.stream().map(AgentScheduleItem::getDeptId).filter(id -> id != null).distinct().count());
+        result.setRetainedCount(ownSchedules.size());
+        result.setInsertedCount(0);
+        result.setFallbackCount(0);
+        result.setWarnings(new ArrayList<>());
+        result.setReports(new ArrayList<>());
+        result.getReports().add("医生本人视图：仅展示当前登录医生自己的会诊排班。");
+        result.getReports().add("权限规则：role_id=5 医生不能查看其他医生排班，也不能执行智能体生成任务。");
+        result.setMessage("已加载当前医生本周会诊排班。");
+        return result;
+    }
+
+    @Override
     public AgentScheduleResult previewNextWeek()
     {
         LocalDate start = nextMonday();

@@ -50,6 +50,18 @@ const routes = [
     name: 'Chat',
     component: () => import('@/views/Chat.vue'),
     meta: { title: '智能问诊', requiresAuth: true }
+  },
+  {
+    path: '/doctors',
+    name: 'DoctorList',
+    component: () => import('@/views/DoctorList.vue'),
+    meta: { title: '科室医生', requiresAuth: true }
+  },
+  {
+    path: '/doctor/:id',
+    name: 'DoctorDetail',
+    component: () => import('@/views/DoctorDetail.vue'),
+    meta: { title: '医生详情', requiresAuth: true }
   }
 ]
 
