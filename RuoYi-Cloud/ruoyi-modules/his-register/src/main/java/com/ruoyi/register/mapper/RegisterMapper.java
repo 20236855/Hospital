@@ -42,6 +42,8 @@ public interface RegisterMapper
 
     public int deleteRegisterByRegisterIds(Long[] registerIds);
 
+    public int countRegisterChildRecords(@Param("registerId") Long registerId);
+
     public Map<String, Object> selectScheduleById(@Param("scheduleId") Long scheduleId);
 
     public int incrementScheduleReservedNumber(@Param("scheduleId") Long scheduleId);

@@ -21,6 +21,7 @@ import com.ruoyi.hisdoctor.domain.Doctor;
 import com.ruoyi.hisdoctor.domain.Schedule;
 import com.ruoyi.hisdoctor.service.IDoctorService;
 import com.ruoyi.hisdoctor.service.IScheduleService;
+import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
@@ -37,6 +38,8 @@ import com.ruoyi.common.core.web.page.TableDataInfo;
 @RequestMapping("/schedule")
 public class ScheduleController extends BaseController
 {
+    private static final Long OUTPATIENT_DOCTOR_ROLE_ID = 5L;
+
     @Autowired
     private IScheduleService scheduleService;
 
@@ -201,7 +204,10 @@ public class ScheduleController extends BaseController
         LoginUser loginUser = SecurityUtils.getLoginUser();
         return !SecurityUtils.isAdmin()
                 && loginUser != null
-                && loginUser.getRoles() != null
-                && loginUser.getRoles().contains("doctor");
+                && loginUser.getSysUser() != null
+                && loginUser.getSysUser().getRoles() != null
+                && loginUser.getSysUser().getRoles().stream()
+                    .map(SysRole::getRoleId)
+                    .anyMatch(roleId -> Objects.equals(roleId, OUTPATIENT_DOCTOR_ROLE_ID));
     }
 }

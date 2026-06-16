@@ -94,12 +94,17 @@ public class RegisterServiceImpl implements IRegisterService
     @Override
     public int deleteRegisterByRegisterIds(Long[] registerIds)
     {
+        for (Long registerId : registerIds)
+        {
+            checkRegisterCanDelete(registerId);
+        }
         return registerMapper.deleteRegisterByRegisterIds(registerIds);
     }
 
     @Override
     public int deleteRegisterByRegisterId(Long registerId)
     {
+        checkRegisterCanDelete(registerId);
         return registerMapper.deleteRegisterByRegisterId(registerId);
     }
 
@@ -151,10 +156,22 @@ public class RegisterServiceImpl implements IRegisterService
         int cleaned = 0;
         for (Register register : expiredList)
         {
+            if (registerMapper.countRegisterChildRecords(register.getRegisterId()) > 0)
+            {
+                continue;
+            }
             releaseSchedule(register.getScheduleId());
             cleaned += registerMapper.deleteRegisterByRegisterId(register.getRegisterId());
         }
         return cleaned;
+    }
+
+    private void checkRegisterCanDelete(Long registerId)
+    {
+        if (registerMapper.countRegisterChildRecords(registerId) > 0)
+        {
+            throw new ServiceException("该挂号已有签到、接诊、检查检验或处方记录，不能删除，请使用取消挂号或先处理相关业务记录");
+        }
     }
 
     private String buildRegisterNo()

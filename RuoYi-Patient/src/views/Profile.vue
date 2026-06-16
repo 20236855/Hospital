@@ -191,6 +191,14 @@ const loadUserData = async () => {
     }
   } catch (error) {
     console.error('加载用户数据失败', error)
+    // 使用本地存储的默认值
+    const savedUsername = localStorage.getItem('username')
+    const patientName = localStorage.getItem('patientName')
+    userName.value = patientName || savedUsername || '患者'
+    const savedUserId = localStorage.getItem('userId')
+    if (savedUserId) {
+      userId.value = savedUserId
+    }
   }
 }
 

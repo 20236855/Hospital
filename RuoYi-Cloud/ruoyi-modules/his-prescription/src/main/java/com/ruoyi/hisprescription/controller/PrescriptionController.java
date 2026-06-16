@@ -23,6 +23,7 @@ import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.hisprescription.domain.Prescription;
 import com.ruoyi.hisprescription.service.IPrescriptionService;
+import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
@@ -39,11 +40,16 @@ import com.ruoyi.common.core.web.page.TableDataInfo;
 @RequestMapping("/prescription")
 public class PrescriptionController extends BaseController
 {
+    private static final Long OUTPATIENT_DOCTOR_ROLE_ID = 5L;
+
     @Autowired
     private IPrescriptionService prescriptionService;
 
     @Autowired
     private RemotePatientService remotePatientService;
+
+    @Autowired
+    private com.ruoyi.his.api.RemoteDoctorService remoteDoctorService;
 
     /**
      * 查询处方主列表
@@ -53,6 +59,7 @@ public class PrescriptionController extends BaseController
     public TableDataInfo list(Prescription prescription)
     {
         applyPatientScope(prescription);
+        applyDoctorScope(prescription);
         startPage();
         List<Prescription> list = prescriptionService.selectPrescriptionList(prescription);
         return getDataTable(list);
@@ -67,6 +74,7 @@ public class PrescriptionController extends BaseController
     public void export(HttpServletResponse response, Prescription prescription)
     {
         applyPatientScope(prescription);
+        applyDoctorScope(prescription);
         List<Prescription> list = prescriptionService.selectPrescriptionList(prescription);
         ExcelUtil<Prescription> util = new ExcelUtil<Prescription>(Prescription.class);
         util.exportExcel(response, list, "处方主数据");
@@ -81,6 +89,7 @@ public class PrescriptionController extends BaseController
     {
         Prescription prescription = prescriptionService.selectPrescriptionByPrescriptionId(prescriptionId);
         checkPatientScope(prescription);
+        checkDoctorScope(prescription);
         return success(prescription);
     }
 
@@ -104,7 +113,9 @@ public class PrescriptionController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody Prescription prescription)
     {
-        checkPatientScope(prescriptionService.selectPrescriptionByPrescriptionId(prescription.getPrescriptionId()));
+        Prescription oldPrescription = prescriptionService.selectPrescriptionByPrescriptionId(prescription.getPrescriptionId());
+        checkPatientScope(oldPrescription);
+        checkDoctorScope(oldPrescription);
         applyPatientScope(prescription);
         return toAjax(prescriptionService.updatePrescription(prescription));
     }
@@ -117,11 +128,13 @@ public class PrescriptionController extends BaseController
 	@DeleteMapping("/{prescriptionIds}")
     public AjaxResult remove(@PathVariable Long[] prescriptionIds)
     {
-        if (isPatientUser())
+        if (isPatientUser() || isOutpatientDoctorRole())
         {
             for (Long prescriptionId : prescriptionIds)
             {
-                checkPatientScope(prescriptionService.selectPrescriptionByPrescriptionId(prescriptionId));
+                Prescription prescription = prescriptionService.selectPrescriptionByPrescriptionId(prescriptionId);
+                checkPatientScope(prescription);
+                checkDoctorScope(prescription);
             }
         }
         return toAjax(prescriptionService.deletePrescriptionByPrescriptionIds(prescriptionIds));
@@ -166,5 +179,53 @@ public class PrescriptionController extends BaseController
                 && loginUser != null
                 && loginUser.getRoles() != null
                 && loginUser.getRoles().contains("patient");
+    }
+
+    private void applyDoctorScope(Prescription prescription)
+    {
+        if (isOutpatientDoctorRole())
+        {
+            prescription.setDoctorId(getCurrentDoctorId());
+        }
+    }
+
+    private void checkDoctorScope(Prescription prescription)
+    {
+        if (!isOutpatientDoctorRole())
+        {
+            return;
+        }
+        if (prescription == null || !Objects.equals(prescription.getDoctorId(), getCurrentDoctorId()))
+        {
+            throw new ServiceException("No permission to access other doctor's prescription");
+        }
+    }
+
+    private Long getCurrentDoctorId()
+    {
+        R<Map<String, Object>> doctorR = remoteDoctorService.getDoctorByUserId(SecurityUtils.getUserId(), SecurityConstants.INNER);
+        if (R.isError(doctorR))
+        {
+            throw new ServiceException(doctorR.getMsg());
+        }
+        Map<String, Object> doctor = doctorR.getData();
+        Object doctorId = doctor == null ? null : doctor.get("doctorId");
+        if (doctorId == null)
+        {
+            throw new ServiceException("Current doctor profile not found, please complete doctor information first");
+        }
+        return doctorId instanceof Number ? ((Number) doctorId).longValue() : Long.valueOf(doctorId.toString());
+    }
+
+    private boolean isOutpatientDoctorRole()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getSysUser() != null
+                && loginUser.getSysUser().getRoles() != null
+                && loginUser.getSysUser().getRoles().stream()
+                    .map(SysRole::getRoleId)
+                    .anyMatch(roleId -> Objects.equals(roleId, OUTPATIENT_DOCTOR_ROLE_ID));
     }
 }

@@ -300,7 +300,7 @@ function formatRegisterLabel(item) {
 }
 
 function getRegisterOptions() {
-  return listRegister({ pageNum: 1, pageSize: 1000, registerStatus: "未完成" }).then(response => {
+  return listRegister({ pageNum: 1, pageSize: 1000, registerStatus: "registered" }).then(response => {
     registerOptions.value = response.rows || []
   })
 }

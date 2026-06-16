@@ -16,6 +16,12 @@ const routes = [
     meta: { title: '登录' }
   },
   {
+    path: '/register-account',
+    name: 'RegisterAccount',
+    component: () => import('@/views/RegisterAccount.vue'),
+    meta: { title: '注册账户' }
+  },
+  {
     path: '/register',
     name: 'Register',
     component: () => import('@/views/Register.vue'),
@@ -32,6 +38,12 @@ const routes = [
     name: 'Profile',
     component: () => import('@/views/Profile.vue'),
     meta: { title: '个人中心', requiresAuth: true }
+  },
+  {
+    path: '/patient-complete',
+    name: 'PatientComplete',
+    component: () => import('@/views/PatientComplete.vue'),
+    meta: { title: '完善信息', requiresAuth: true }
   },
   {
     path: '/chat',

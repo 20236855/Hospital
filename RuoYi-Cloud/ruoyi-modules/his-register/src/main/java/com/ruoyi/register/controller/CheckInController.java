@@ -21,12 +21,14 @@ import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.security.annotation.InnerAuth;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.common.security.utils.SecurityUtils;
+import com.ruoyi.his.api.RemoteDoctorService;
 import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.register.domain.CheckIn;
 import com.ruoyi.register.domain.Register;
 import com.ruoyi.register.service.ICheckInService;
 import com.ruoyi.register.service.IRegisterService;
 import com.ruoyi.common.core.domain.R;
+import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
@@ -43,6 +45,8 @@ import com.ruoyi.common.core.web.page.TableDataInfo;
 @RequestMapping("/in")
 public class CheckInController extends BaseController
 {
+    private static final Long OUTPATIENT_DOCTOR_ROLE_ID = 5L;
+
     @Autowired
     private ICheckInService checkInService;
 
@@ -51,6 +55,9 @@ public class CheckInController extends BaseController
 
     @Autowired
     private RemotePatientService remotePatientService;
+
+    @Autowired
+    private RemoteDoctorService remoteDoctorService;
 
     /**
      * 查询签到列表
@@ -61,6 +68,7 @@ public class CheckInController extends BaseController
     {
         applyPatientScope(checkIn);
         applyNurseScope(checkIn);
+        applyDoctorScope(checkIn);
         startPage();
         List<CheckIn> list = checkInService.selectCheckInList(checkIn);
         return getDataTable(list);
@@ -80,6 +88,7 @@ public class CheckInController extends BaseController
         }
         applyPatientScope(checkIn);
         applyNurseScope(checkIn);
+        applyDoctorScope(checkIn);
         List<CheckIn> list = checkInService.selectCheckInList(checkIn);
         ExcelUtil<CheckIn> util = new ExcelUtil<CheckIn>(CheckIn.class);
         util.exportExcel(response, list, "签到数据");
@@ -95,6 +104,7 @@ public class CheckInController extends BaseController
         CheckIn checkIn = checkInService.selectCheckInByCheckInId(checkInId);
         checkPatientScope(checkIn);
         checkNurseScope(checkIn);
+        checkDoctorScope(checkIn);
         return success(checkIn);
     }
 
@@ -125,6 +135,7 @@ public class CheckInController extends BaseController
     {
         checkPatientReadonly();
         checkNurseScope(checkIn);
+        checkDoctorScope(checkIn);
         return toAjax(checkInService.insertCheckIn(checkIn));
     }
 
@@ -139,9 +150,11 @@ public class CheckInController extends BaseController
         checkPatientReadonly();
         CheckIn oldCheckIn = checkInService.selectCheckInByCheckInId(checkIn.getCheckInId());
         checkNurseScope(oldCheckIn);
+        checkDoctorScope(oldCheckIn);
         if (checkIn.getRegisterId() != null)
         {
             checkNurseScope(checkIn);
+            checkDoctorScope(checkIn);
         }
         return toAjax(checkInService.updateCheckIn(checkIn));
     }
@@ -161,7 +174,9 @@ public class CheckInController extends BaseController
         }
         for (Long checkInId : checkInIds)
         {
-            checkNurseScope(checkInService.selectCheckInByCheckInId(checkInId));
+            CheckIn checkIn = checkInService.selectCheckInByCheckInId(checkInId);
+            checkNurseScope(checkIn);
+            checkDoctorScope(checkIn);
         }
         return toAjax(checkInService.deleteCheckInByCheckInIds(checkInIds));
     }
@@ -272,7 +287,7 @@ public class CheckInController extends BaseController
 
     private void applyNurseScope(CheckIn checkIn)
     {
-        if (isDeptScopedUser())
+        if (isNurseUser())
         {
             checkIn.setDeptId(requireNurseDeptId());
         }
@@ -280,7 +295,7 @@ public class CheckInController extends BaseController
 
     private void checkNurseScope(CheckIn checkIn)
     {
-        if (isDeptScopedUser() && checkIn != null)
+        if (isNurseUser() && checkIn != null)
         {
             Long nurseDeptId = requireNurseDeptId();
             if (checkIn.getRegisterId() == null)
@@ -298,13 +313,56 @@ public class CheckInController extends BaseController
         }
     }
 
-    private boolean isDeptScopedUser()
+    private void applyDoctorScope(CheckIn checkIn)
+    {
+        if (isOutpatientDoctorRole())
+        {
+            checkIn.setDoctorId(getCurrentDoctorId());
+        }
+    }
+
+    private void checkDoctorScope(CheckIn checkIn)
+    {
+        if (!isOutpatientDoctorRole())
+        {
+            return;
+        }
+        if (checkIn == null || checkIn.getRegisterId() == null)
+        {
+            throw new ServiceException("签到信息缺少挂号ID，不能校验医生权限");
+        }
+        Register register = registerService.selectRegisterByRegisterId(checkIn.getRegisterId());
+        if (register == null || !Objects.equals(register.getDoctorId(), getCurrentDoctorId()))
+        {
+            throw new ServiceException("无权限访问其他医生的签到信息");
+        }
+    }
+
+    private Long getCurrentDoctorId()
+    {
+        R<Map<String, Object>> doctorR = remoteDoctorService.getDoctorByUserId(SecurityUtils.getUserId(), SecurityConstants.INNER);
+        if (R.isError(doctorR))
+        {
+            throw new ServiceException(doctorR.getMsg());
+        }
+        Map<String, Object> doctor = doctorR.getData();
+        Object doctorId = doctor == null ? null : doctor.get("doctorId");
+        if (doctorId == null)
+        {
+            throw new ServiceException("当前医生档案不存在，请先完善医生信息");
+        }
+        return doctorId instanceof Number ? ((Number) doctorId).longValue() : Long.valueOf(doctorId.toString());
+    }
+
+    private boolean isOutpatientDoctorRole()
     {
         LoginUser loginUser = SecurityUtils.getLoginUser();
         return !SecurityUtils.isAdmin()
                 && loginUser != null
-                && loginUser.getRoles() != null
-                && loginUser.getRoles().contains("doctor")
-                && getNurseDeptId() != null;
+                && loginUser.getSysUser() != null
+                && loginUser.getSysUser().getRoles() != null
+                && loginUser.getSysUser().getRoles().stream()
+                    .map(SysRole::getRoleId)
+                    .anyMatch(roleId -> Objects.equals(roleId, OUTPATIENT_DOCTOR_ROLE_ID));
     }
 }

@@ -62,6 +62,9 @@ public class PrescriptionItem extends BaseEntity
     /** 患者ID，仅用于数据权限过滤 */
     private Long patientId;
 
+    /** 医生ID，仅用于数据权限过滤（通过处方表关联） */
+    private Long doctorId;
+
     public void setItemId(Long itemId) 
     {
         this.itemId = itemId;
@@ -180,6 +183,16 @@ public class PrescriptionItem extends BaseEntity
     public Long getPatientId()
     {
         return patientId;
+    }
+
+    public void setDoctorId(Long doctorId)
+    {
+        this.doctorId = doctorId;
+    }
+
+    public Long getDoctorId()
+    {
+        return doctorId;
     }
 
     @Override

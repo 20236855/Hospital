@@ -44,6 +44,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                       and p.patient_id = #{patientId}
                 )
             </if>
+            <if test="doctorId != null ">
+                and exists (
+                    select 1
+                    from prescription p
+                    where p.prescription_id = prescription_item.prescription_id
+                      and p.doctor_id = #{doctorId}
+                )
+            </if>
         </where>
     </select>
     

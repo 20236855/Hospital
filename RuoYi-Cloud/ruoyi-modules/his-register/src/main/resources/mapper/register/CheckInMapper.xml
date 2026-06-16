@@ -41,6 +41,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                       and r.dept_id = #{deptId}
                 )
             </if>
+            <if test="doctorId != null ">
+                and exists (
+                    select 1
+                    from register r
+                    where r.register_id = check_in.register_id
+                      and r.doctor_id = #{doctorId}
+                )
+            </if>
         </where>
     </select>
     

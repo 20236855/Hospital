@@ -27,6 +27,9 @@ public class MedicalRecord extends BaseEntity
     /** 患者ID，仅用于按患者查询病历 */
     private Long patientId;
 
+    /** 医生ID / Doctor ID for doctor scope filtering（通过 encounter.doctor_id 联表过滤） */
+    private Long doctorId;
+
     /** 主诉 */
     @Excel(name = "主诉")
     private String chiefComplaint;
@@ -136,6 +139,16 @@ public class MedicalRecord extends BaseEntity
         return patientId;
     }
 
+    public void setDoctorId(Long doctorId)
+    {
+        this.doctorId = doctorId;
+    }
+
+    public Long getDoctorId()
+    {
+        return doctorId;
+    }
+
     public void setChiefComplaint(String chiefComplaint) 
     {
         this.chiefComplaint = chiefComplaint;
@@ -222,6 +235,7 @@ public class MedicalRecord extends BaseEntity
             .append("recordId", getRecordId())
             .append("encounterId", getEncounterId())
             .append("patientId", getPatientId())
+            .append("doctorId", getDoctorId())
             .append("chiefComplaint", getChiefComplaint())
             .append("presentIllness", getPresentIllness())
             .append("pastHistory", getPastHistory())

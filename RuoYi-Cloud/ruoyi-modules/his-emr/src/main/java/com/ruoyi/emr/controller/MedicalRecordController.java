@@ -22,7 +22,9 @@ import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.emr.domain.MedicalRecord;
 import com.ruoyi.emr.service.IMedicalRecordService;
+import com.ruoyi.his.api.RemoteDoctorService;
 import com.ruoyi.his.api.RemotePatientService;
+import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
@@ -39,11 +41,16 @@ import com.ruoyi.common.core.web.page.TableDataInfo;
 @RequestMapping("/record")
 public class MedicalRecordController extends BaseController
 {
+    private static final Long OUTPATIENT_DOCTOR_ROLE_ID = 5L;
+
     @Autowired
     private IMedicalRecordService medicalRecordService;
 
     @Autowired
     private RemotePatientService remotePatientService;
+
+    @Autowired
+    private RemoteDoctorService remoteDoctorService;
 
     /**
      * 查询电子病历列表
@@ -53,6 +60,7 @@ public class MedicalRecordController extends BaseController
     public TableDataInfo list(MedicalRecord medicalRecord)
     {
         applyPatientScope(medicalRecord);
+        applyDoctorScope(medicalRecord);
         startPage();
         List<MedicalRecord> list = medicalRecordService.selectMedicalRecordList(medicalRecord);
         return getDataTable(list);
@@ -67,6 +75,7 @@ public class MedicalRecordController extends BaseController
     public void export(HttpServletResponse response, MedicalRecord medicalRecord)
     {
         applyPatientScope(medicalRecord);
+        applyDoctorScope(medicalRecord);
         List<MedicalRecord> list = medicalRecordService.selectMedicalRecordList(medicalRecord);
         ExcelUtil<MedicalRecord> util = new ExcelUtil<MedicalRecord>(MedicalRecord.class);
         util.exportExcel(response, list, "电子病历数据");
@@ -81,6 +90,7 @@ public class MedicalRecordController extends BaseController
     {
         MedicalRecord medicalRecord = medicalRecordService.selectMedicalRecordByRecordId(recordId);
         checkPatientScope(medicalRecord);
+        checkDoctorScope(medicalRecord);
         return success(medicalRecord);
     }
 
@@ -93,6 +103,7 @@ public class MedicalRecordController extends BaseController
     public AjaxResult add(@RequestBody MedicalRecord medicalRecord)
     {
         checkPatientReadonly();
+        checkDoctorScopeOnCreate(medicalRecord);
         return toAjax(medicalRecordService.insertMedicalRecord(medicalRecord));
     }
 
@@ -105,6 +116,8 @@ public class MedicalRecordController extends BaseController
     public AjaxResult edit(@RequestBody MedicalRecord medicalRecord)
     {
         checkPatientReadonly();
+        MedicalRecord oldRecord = medicalRecordService.selectMedicalRecordByRecordId(medicalRecord.getRecordId());
+        checkDoctorScope(oldRecord);
         return toAjax(medicalRecordService.updateMedicalRecord(medicalRecord));
     }
 
@@ -117,6 +130,11 @@ public class MedicalRecordController extends BaseController
     public AjaxResult remove(@PathVariable Long[] recordIds)
     {
         checkPatientReadonly();
+        for (Long recordId : recordIds)
+        {
+            MedicalRecord medicalRecord = medicalRecordService.selectMedicalRecordByRecordId(recordId);
+            checkDoctorScope(medicalRecord);
+        }
         return toAjax(medicalRecordService.deleteMedicalRecordByRecordIds(recordIds));
     }
 
@@ -167,5 +185,71 @@ public class MedicalRecordController extends BaseController
                 && loginUser != null
                 && loginUser.getRoles() != null
                 && loginUser.getRoles().contains("patient");
+    }
+
+    private void applyDoctorScope(MedicalRecord medicalRecord)
+    {
+        if (isOutpatientDoctorRole())
+        {
+            medicalRecord.setDoctorId(getCurrentDoctorId());
+        }
+    }
+
+    private void checkDoctorScope(MedicalRecord medicalRecord)
+    {
+        if (!isOutpatientDoctorRole())
+        {
+            return;
+        }
+        if (medicalRecord == null || !Objects.equals(medicalRecord.getDoctorId(), getCurrentDoctorId()))
+        {
+            throw new ServiceException("无权限访问其他医生的电子病历信息");
+        }
+    }
+
+    private void checkDoctorScopeOnCreate(MedicalRecord medicalRecord)
+    {
+        if (!isOutpatientDoctorRole())
+        {
+            return;
+        }
+        if (medicalRecord == null || medicalRecord.getEncounterId() == null)
+        {
+            throw new ServiceException("电子病历缺少接诊ID，不能校验医生权限");
+        }
+        Long currentDoctorId = getCurrentDoctorId();
+        Long recordDoctorId = medicalRecordService.selectDoctorIdByEncounterId(medicalRecord.getEncounterId());
+        if (!Objects.equals(recordDoctorId, currentDoctorId))
+        {
+            throw new ServiceException("无权限为其他医生的接诊记录创建电子病历");
+        }
+    }
+
+    private Long getCurrentDoctorId()
+    {
+        R<Map<String, Object>> doctorR = remoteDoctorService.getDoctorByUserId(SecurityUtils.getUserId(), SecurityConstants.INNER);
+        if (R.isError(doctorR))
+        {
+            throw new ServiceException(doctorR.getMsg());
+        }
+        Map<String, Object> doctor = doctorR.getData();
+        Object doctorId = doctor == null ? null : doctor.get("doctorId");
+        if (doctorId == null)
+        {
+            throw new ServiceException("当前医生档案不存在，请先完善医生信息");
+        }
+        return doctorId instanceof Number ? ((Number) doctorId).longValue() : Long.valueOf(doctorId.toString());
+    }
+
+    private boolean isOutpatientDoctorRole()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getSysUser() != null
+                && loginUser.getSysUser().getRoles() != null
+                && loginUser.getSysUser().getRoles().stream()
+                    .map(SysRole::getRoleId)
+                    .anyMatch(roleId -> Objects.equals(roleId, OUTPATIENT_DOCTOR_ROLE_ID));
     }
 }

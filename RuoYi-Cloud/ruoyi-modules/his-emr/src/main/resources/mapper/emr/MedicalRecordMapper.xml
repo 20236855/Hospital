@@ -8,6 +8,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="recordId"    column="record_id"    />
         <result property="encounterId"    column="encounter_id"    />
         <result property="patientId"    column="patient_id"    />
+        <result property="doctorId"    column="doctor_id"    />
         <result property="chiefComplaint"    column="chief_complaint"    />
         <result property="presentIllness"    column="present_illness"    />
         <result property="pastHistory"    column="past_history"    />
@@ -29,6 +30,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         select mr.record_id,
                mr.encounter_id,
                e.patient_id,
+               e.doctor_id,
                mr.chief_complaint,
                mr.present_illness,
                mr.past_history,
@@ -53,6 +55,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         select mr.record_id,
                mr.encounter_id,
                e.patient_id,
+               e.doctor_id,
                mr.chief_complaint,
                mr.present_illness,
                mr.past_history,
@@ -73,8 +76,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join sys_dept sd on sd.dept_id = e.dept_id
         <where>  
             <if test="patientId != null "> and e.patient_id = #{patientId}</if>
+            <if test="doctorId != null "> and e.doctor_id = #{doctorId}</if>
             <if test="encounterId != null "> and mr.encounter_id = #{encounterId}</if>
-            <if test="chiefComplaint != null  and chiefComplaint != ''"> and mr.chief_complaint = #{chiefComplaint}</if>
+            <if test="chiefComplaint != null  and chiefComplaint != '' "> and mr.chief_complaint = #{chiefComplaint}</if>
             <if test="presentIllness != null  and presentIllness != ''"> and mr.present_illness = #{presentIllness}</if>
             <if test="pastHistory != null  and pastHistory != ''"> and mr.past_history = #{pastHistory}</if>
             <if test="allergyHistory != null  and allergyHistory != ''"> and mr.allergy_history = #{allergyHistory}</if>
@@ -90,6 +94,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         select mr.record_id,
                mr.encounter_id,
                e.patient_id,
+               e.doctor_id,
                mr.chief_complaint,
                mr.present_illness,
                mr.past_history,
@@ -109,6 +114,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join doctor d on d.doctor_id = e.doctor_id
         left join sys_dept sd on sd.dept_id = e.dept_id
         where mr.record_id = #{recordId}
+    </select>
+
+    <select id="selectDoctorIdByEncounterId" parameterType="Long" resultType="java.lang.Long">
+        select e.doctor_id
+        from medical_record mr
+        left join encounter e on e.encounter_id = mr.encounter_id
+        where mr.encounter_id = #{encounterId}
+        limit 1
     </select>
 
     <insert id="insertMedicalRecord" parameterType="MedicalRecord" useGeneratedKeys="true" keyProperty="recordId">

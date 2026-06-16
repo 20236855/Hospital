@@ -31,6 +31,7 @@ import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.register.domain.Register;
 import com.ruoyi.register.service.IRegisterService;
+import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.model.LoginUser;
 
 /**
@@ -41,6 +42,7 @@ import com.ruoyi.system.api.model.LoginUser;
 public class RegisterController extends BaseController
 {
     private static final Long NURSE_POST_ID = 2L;
+    private static final Long OUTPATIENT_DOCTOR_ROLE_ID = 5L;
 
     @Autowired
     private IRegisterService registerService;
@@ -48,12 +50,16 @@ public class RegisterController extends BaseController
     @Autowired
     private RemotePatientService remotePatientService;
 
+    @Autowired
+    private com.ruoyi.his.api.RemoteDoctorService remoteDoctorService;
+
     @RequiresPermissions("register:register:list")
     @GetMapping("/list")
     public TableDataInfo list(Register register)
     {
         applyPatientScope(register);
         applyNurseScope(register);
+        applyDoctorScope(register);
         startPage();
         List<Register> list = registerService.selectRegisterList(register);
         return getDataTable(list);
@@ -109,6 +115,7 @@ public class RegisterController extends BaseController
         }
         applyPatientScope(register);
         applyNurseScope(register);
+        applyDoctorScope(register);
         List<Register> list = registerService.selectRegisterList(register);
         ExcelUtil<Register> util = new ExcelUtil<Register>(Register.class);
         util.exportExcel(response, list, "register");
@@ -361,11 +368,42 @@ public class RegisterController extends BaseController
 
     private boolean isDeptScopedUser()
     {
+        // No longer using post-based department scoping
+        return false;
+    }
+
+    private void applyDoctorScope(Register register)
+    {
+        if (isOutpatientDoctorRole())
+        {
+            register.setDoctorId(getCurrentDoctorId());
+        }
+    }
+
+    private Long getCurrentDoctorId()
+    {
+        R<Map<String, Object>> doctorR = remoteDoctorService.getDoctorByUserId(SecurityUtils.getUserId(), SecurityConstants.INNER);
+        if (R.isError(doctorR))
+        {
+            throw new ServiceException(doctorR.getMsg());
+        }
+        Map<String, Object> doctor = doctorR.getData();
+        Object doctorId = doctor == null ? null : doctor.get("doctorId");
+        if (doctorId == null)
+        {
+            throw new ServiceException("Current doctor record does not exist");
+        }
+        return doctorId instanceof Number ? ((Number) doctorId).longValue() : Long.valueOf(doctorId.toString());
+    }
+
+    private boolean isOutpatientDoctorRole()
+    {
         LoginUser loginUser = SecurityUtils.getLoginUser();
         return !SecurityUtils.isAdmin()
                 && loginUser != null
-                && loginUser.getRoles() != null
-                && loginUser.getRoles().contains("doctor")
-                && getNurseDeptId() != null;
+                && loginUser.getSysUser() != null
+                && loginUser.getSysUser().getRoles() != null
+                && loginUser.getSysUser().getRoles().stream()
+                    .anyMatch(role -> Objects.equals(role.getRoleId(), OUTPATIENT_DOCTOR_ROLE_ID));
     }
 }
