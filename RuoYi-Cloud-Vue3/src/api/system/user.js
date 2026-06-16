@@ -137,3 +137,11 @@ export function deptTreeSelect() {
     method: 'get'
   })
 }
+
+// 获取待分配科室的医护工作者数量
+export function getPendingMedicalStaff() {
+  return request({
+    url: '/system/user/pendingMedicalStaff',
+    method: 'get'
+  })
+}

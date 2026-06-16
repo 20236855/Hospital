@@ -141,6 +141,17 @@ public class DoctorController extends BaseController
     }
 
     /**
+     * 内部接口：管理员分配科室/角色后自动同步创建医生档案
+     */
+    @InnerAuth
+    @PostMapping("/sync/{userId}")
+    public R<Boolean> syncDoctorFromUser(@PathVariable("userId") Long userId)
+    {
+        boolean result = doctorService.syncDoctorFromSysUser(userId);
+        return R.ok(result);
+    }
+
+    /**
      * 新增医生信息
      */
     @RequiresPermissions("hisdoctor:doctor:add")

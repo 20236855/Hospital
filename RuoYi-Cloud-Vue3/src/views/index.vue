@@ -62,6 +62,22 @@
       </div>
     </section>
 
+    <!-- 待分配医护工作者提醒 -->
+    <div v-if="isAdminOrDoctor && pendingMedicalCount > 0" class="pending-alert">
+      <el-alert
+        :title="`有 ${pendingMedicalCount} 位医护工作者尚未分配科室/角色，请及时处理`"
+        type="warning"
+        show-icon
+        :closable="false"
+      >
+        <template #default>
+          <el-button type="warning" size="small" text @click="goToUserList">
+            前往用户管理分配
+          </el-button>
+        </template>
+      </el-alert>
+    </div>
+
     <section v-if="isAdminOrDoctor" class="metric-grid">
       <article v-for="(item, index) in coreMetrics" :key="item.label" class="metric-card" :style="{ '--delay': `${index * 90}ms` }">
         <div class="metric-top">
@@ -307,12 +323,16 @@ import {
   WarningFilled
 } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
+import { getPendingMedicalStaff } from '@/api/system/user'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 // 完善信息弹窗状态
 const showCompleteInfoDialog = ref(false)
+
+// 待分配医护工作者数量
+const pendingMedicalCount = ref(0)
 
 // 用户类型文本
 const userTypeText = computed(() => {
@@ -329,9 +349,11 @@ const isAdminOrDoctor = computed(() => {
   return userStore.userType === 'admin' || userStore.userType === 'doctor' || userStore.roles?.some(role => role.roleKey?.includes('admin') || role.roleKey?.includes('doctor'))
 })
 
-// 页面加载时检查是否需要完善信息
+// 页面加载时检查是否需要完善信息 + 加载待分配医护工作者数量
 onMounted(() => {
   nextTick(() => {
+    // 加载待分配医护工作者数量
+    loadPendingMedicalStaff()
     // 延迟一下，确保用户信息已经加载
     setTimeout(() => {
       if (userStore.needCompleteInfo && userStore.userType) {
@@ -340,6 +362,23 @@ onMounted(() => {
     }, 500)
   })
 })
+
+// 加载待分配医护工作者数量
+const loadPendingMedicalStaff = async () => {
+  try {
+    const res = await getPendingMedicalStaff()
+    if (res.data !== undefined && res.data !== null) {
+      pendingMedicalCount.value = res.data
+    }
+  } catch (error) {
+    console.error('获取待分配医护工作者数量失败', error)
+  }
+}
+
+// 跳转到用户管理页
+const goToUserList = () => {
+  router.push('/system/user')
+}
 
 // 跳转到完善信息页面
 const goToCompleteInfo = () => {

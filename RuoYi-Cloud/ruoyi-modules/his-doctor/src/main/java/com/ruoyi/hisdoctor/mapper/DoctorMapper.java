@@ -82,4 +82,12 @@ public interface DoctorMapper
      * @return 用户昵称
      */
     public String selectDoctorUserNickName(Long userId);
+
+    /**
+     * 查询系统用户基本信息用于自动创建医生档案
+     *
+     * @param userId 用户ID
+     * @return 用户信息Map（包含userId, nickName, phonenumber, deptId）
+     */
+    public java.util.Map<String, Object> selectSysUserForDoctor(Long userId);
 }

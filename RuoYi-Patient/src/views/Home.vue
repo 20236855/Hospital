@@ -132,7 +132,7 @@
           </div>
           <span>病历查询</span>
         </div>
-        <div class="action-card" @click="showToast('我的预约')">
+        <div class="action-card" @click="goToMyAppointments">
           <div class="action-icon icon-appointment">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M7 3v2M17 3v2M3 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -291,6 +291,10 @@ const goToChat = () => {
   // 清除旧的 patientId（如果需要）
   // localStorage.removeItem('patientId')
   router.push('/chat')
+}
+
+const goToMyAppointments = () => {
+  router.push('/my-appointments')
 }
 
 onMounted(() => {

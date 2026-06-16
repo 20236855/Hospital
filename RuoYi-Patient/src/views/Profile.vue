@@ -207,7 +207,7 @@ const goToInfo = () => {
 }
 
 const goToMyRegister = () => {
-  showToast('我的预约功能开发中')
+  router.push('/my-appointments')
 }
 
 const goToRecord = () => {

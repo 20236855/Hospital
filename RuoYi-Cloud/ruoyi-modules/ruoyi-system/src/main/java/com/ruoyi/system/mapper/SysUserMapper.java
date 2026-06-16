@@ -149,4 +149,12 @@ public interface SysUserMapper
      * @return 用户对象信息
      */
     public SysUser selectUserByPhonenumber(String phonenumber);
+
+    /**
+     * 统计待分配科室的医护工作者数量
+     * （拥有doctor角色但未分配科室的用户）
+     *
+     * @return 待分配数量
+     */
+    public int countPendingMedicalStaff();
 }

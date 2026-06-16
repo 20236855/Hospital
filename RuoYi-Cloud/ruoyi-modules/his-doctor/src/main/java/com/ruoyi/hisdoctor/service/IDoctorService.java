@@ -82,4 +82,13 @@ public interface IDoctorService
      * @return 医生信息
      */
     public Doctor getDoctorByUserId(Long userId);
+
+    /**
+     * 从系统用户自动同步创建医生档案（管理员分配科室/角色后自动调用）
+     * 如果该用户已有医生档案则跳过，否则从sys_user读取信息创建doctor记录
+     *
+     * @param userId 用户ID
+     * @return 是否成功创建
+     */
+    public boolean syncDoctorFromSysUser(Long userId);
 }

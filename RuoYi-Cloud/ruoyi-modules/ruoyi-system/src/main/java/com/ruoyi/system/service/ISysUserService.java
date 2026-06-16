@@ -219,4 +219,11 @@ public interface ISysUserService
      * @return 结果
      */
     public String importUser(List<SysUser> userList, Boolean isUpdateSupport, String operName);
+
+    /**
+     * 统计待分配科室的医护工作者数量
+     *
+     * @return 待分配数量
+     */
+    public int countPendingMedicalStaff();
 }
