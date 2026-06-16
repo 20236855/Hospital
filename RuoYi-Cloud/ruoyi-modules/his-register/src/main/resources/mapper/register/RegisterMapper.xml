@@ -91,6 +91,14 @@
         select fee from regist_level where level_id = #{levelId}
     </select>
 
+    <select id="selectDoctorRegisterFee" resultType="java.util.Map">
+        select d.level_id as levelId, rl.fee as registerFee
+        from doctor d
+        left join regist_level rl on rl.level_id = d.level_id
+        where d.doctor_id = #{doctorId}
+        limit 1
+    </select>
+
     <select id="selectRegisterLevelList" resultType="java.util.Map">
         select level_id as id, level_name as levelName, fee as registerFee
         from regist_level

@@ -399,11 +399,18 @@ public class RegisterController extends BaseController
     private boolean isOutpatientDoctorRole()
     {
         LoginUser loginUser = SecurityUtils.getLoginUser();
-        return !SecurityUtils.isAdmin()
-                && loginUser != null
-                && loginUser.getSysUser() != null
-                && loginUser.getSysUser().getRoles() != null
-                && loginUser.getSysUser().getRoles().stream()
-                    .anyMatch(role -> Objects.equals(role.getRoleId(), OUTPATIENT_DOCTOR_ROLE_ID));
+        if (SecurityUtils.isAdmin()) {
+            return false;
+        }
+        if (loginUser == null || loginUser.getSysUser() == null || loginUser.getSysUser().getRoles() == null) {
+            return false;
+        }
+        boolean isPatient = loginUser.getSysUser().getRoles().stream()
+                .anyMatch(role -> Objects.equals(role.getRoleId(), 4L));
+        if (isPatient) {
+            return false;
+        }
+        return loginUser.getSysUser().getRoles().stream()
+                .anyMatch(role -> Objects.equals(role.getRoleId(), OUTPATIENT_DOCTOR_ROLE_ID));
     }
 }
