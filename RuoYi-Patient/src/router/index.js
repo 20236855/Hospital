@@ -62,6 +62,8 @@ const routes = [
     name: 'DoctorDetail',
     component: () => import('@/views/DoctorDetail.vue'),
     meta: { title: '医生详情', requiresAuth: true }
+  },
+  {
     path: '/my-appointments',
     name: 'MyAppointments',
     component: () => import('@/views/MyAppointments.vue'),

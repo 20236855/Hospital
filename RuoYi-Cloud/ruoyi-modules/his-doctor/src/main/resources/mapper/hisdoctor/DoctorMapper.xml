@@ -99,6 +99,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ur.role_id = #{roleId}
             and d.status = '0'
         order by d.dept_id, d.level_id desc, d.doctor_id
+    </select>
     <select id="selectSysUserForDoctor" parameterType="Long" resultType="java.util.HashMap">
         select
             u.user_id   as userId,

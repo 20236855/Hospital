@@ -91,6 +91,7 @@ public interface DoctorMapper
      * @return 接诊医生集合
      */
     public List<AgentScheduleDoctor> selectReceptionDoctors(Long roleId);
+    /**
      * 查询系统用户基本信息用于自动创建医生档案
      *
      * @param userId 用户ID
