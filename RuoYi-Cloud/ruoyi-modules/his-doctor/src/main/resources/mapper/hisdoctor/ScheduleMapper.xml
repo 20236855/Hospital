@@ -37,6 +37,42 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where schedule_id = #{scheduleId}
     </select>
 
+    <select id="selectScheduleByDoctorDateSlot" resultMap="ScheduleResult">
+        <include refid="selectScheduleVo"/>
+        where doctor_id = #{doctorId}
+          and schedule_date = #{scheduleDate}
+          and time_slot = #{timeSlot}
+        limit 1
+    </select>
+
+    <select id="selectAgentScheduleItems" resultType="com.ruoyi.hisdoctor.domain.AgentScheduleItem">
+        select
+            s.schedule_id as scheduleId,
+            s.doctor_id as doctorId,
+            d.doctor_name as doctorName,
+            d.dept_id as deptId,
+            sd.dept_name as deptName,
+            d.level_id as levelId,
+            rl.level_name as levelName,
+            s.schedule_date as scheduleDate,
+            s.time_slot as timeSlot,
+            s.max_number as maxNumber,
+            s.reserved_number as reservedNumber,
+            greatest(ifnull(s.max_number, 0) - ifnull(s.reserved_number, 0), 0) as availableNumber,
+            s.status as status,
+            0 as `generated`
+        from schedule s
+            inner join doctor d on d.doctor_id = s.doctor_id
+            left join sys_dept sd on sd.dept_id = d.dept_id
+            left join regist_level rl on rl.level_id = d.level_id
+        where s.schedule_date between #{startDate} and #{endDate}
+        order by s.schedule_date,
+            case s.time_slot when 'morning' then 1 when 'afternoon' then 2 when 'evening' then 3 else 9 end,
+            d.dept_id,
+            d.level_id desc,
+            d.doctor_id
+    </select>
+
     <insert id="insertSchedule" parameterType="Schedule" useGeneratedKeys="true" keyProperty="scheduleId">
         insert into schedule
         <trim prefix="(" suffix=")" suffixOverrides=",">

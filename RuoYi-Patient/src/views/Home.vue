@@ -8,11 +8,11 @@
             <stop offset="1" stop-color="#dff4fb" />
           </linearGradient>
           <linearGradient id="mintGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#a8ead7" />
+            <stop offset="0" stop-color="#b9e1cd" />
             <stop offset="1" stop-color="#73d2b7" />
           </linearGradient>
           <linearGradient id="blueGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#bfefff" />
+            <stop offset="0" stop-color="#cfe8d8" />
             <stop offset="1" stop-color="#8ed6f2" />
           </linearGradient>
           <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -43,7 +43,7 @@
 
         <g class="floating icon-card med-kit" filter="url(#softShadow)">
           <rect x="438" y="180" width="120" height="96" rx="22" fill="#fff7f1" />
-          <path d="M472 180v-22c0-8 7-15 15-15h22c8 0 15 7 15 15v22" fill="none" stroke="#8ed6f2" stroke-width="10" stroke-linecap="round" />
+          <path d="M472 180v-22c0-8 7-15 15-15h22c8 0 15 7 15 15v22" fill="none" stroke="#b9e1cd" stroke-width="10" stroke-linecap="round" />
           <path d="M498 206v46M475 229h46" stroke="#f0a5b8" stroke-width="12" stroke-linecap="round" />
         </g>
 
@@ -93,7 +93,7 @@
           <path d="M522 434c24-10 42-27 52-52-30-2-55 13-66 42Z" fill="#b9e1cd" />
         </g>
 
-        <g class="tiny-crosses" fill="none" stroke="#8fd6c5" stroke-linecap="round" stroke-width="5">
+        <g class="tiny-crosses" fill="none" stroke="#b9e1cd" stroke-linecap="round" stroke-width="5">
           <path d="M132 92v24M120 104h24" />
           <path d="M516 150v22M505 161h22" />
           <path d="M76 405v18M67 414h18" />
@@ -117,35 +117,25 @@
       <div class="quick-actions slide-up-animation" style="animation-delay: 0.08s">
         <div class="action-card" @click="goToRegister">
           <div class="action-icon icon-register">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <img src="@/assets/images/guahao.png" alt="挂号" />
           </div>
           <span>预约挂号</span>
         </div>
         <div class="action-card" @click="goToRecord">
           <div class="action-icon icon-record">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M14 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V10l-7-7z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M14 3v7h7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <img src="@/assets/images/bingli.png" alt="病历" />
           </div>
           <span>病历查询</span>
         </div>
         <div class="action-card" @click="showToast('我的预约')">
           <div class="action-icon icon-appointment">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 3v2M17 3v2M3 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M8 13h2M14 13h2M8 17h2M14 17h2" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-            </svg>
+            <img src="@/assets/images/yuyue.png" alt="预约" />
           </div>
           <span>我的预约</span>
         </div>
         <div class="action-card" @click="showToast('健康报告')">
           <div class="action-icon icon-report">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M9 12l2 2 4-4M20 12V6a2 2 0 00-2-2h-5l-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h11" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <img src="@/assets/images/baogao.png" alt="报告" />
           </div>
           <span>健康报告</span>
         </div>
@@ -179,8 +169,8 @@
           <div class="service-item" @click="showToast('健康资讯')">
             <div class="service-icon">
               <svg viewBox="0 0 24 24" fill="none">
-                <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2z" stroke="#68c7a9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M12 10v4M10 12h4" stroke="#68c7a9" stroke-width="2" stroke-linecap="round"/>
+                <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2z" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 10v4M10 12h4" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round"/>
               </svg>
             </div>
             <span>健康资讯</span>
@@ -188,8 +178,8 @@
           <div class="service-item" @click="goToChat">
             <div class="service-icon">
               <svg viewBox="0 0 24 24" fill="none">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8ed6f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M12 8v4M10 10h4" stroke="#8ed6f2" stroke-width="2" stroke-linecap="round"/>
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 8v4M10 10h4" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round"/>
               </svg>
             </div>
             <span>在线问诊</span>
@@ -197,7 +187,7 @@
           <div class="service-item" @click="showToast('检查预约')">
             <div class="service-icon">
               <svg viewBox="0 0 24 24" fill="none">
-                <path d="M9 12h6M12 9v6M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z" stroke="#68c7a9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 12h6M12 9v6M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
             <span>检查预约</span>
@@ -205,7 +195,7 @@
           <div class="service-item" @click="showToast('个人中心')">
             <div class="service-icon">
               <svg viewBox="0 0 24 24" fill="none">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="#8ed6f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
             <span>个人中心</span>
@@ -361,7 +351,7 @@ onMounted(() => {
   padding: 8px 14px;
   background: rgba(255, 253, 248, 0.85);
   border-radius: 20px;
-  border: 1px solid rgba(130, 215, 191, 0.3);
+  border: 1px solid rgba(185, 225, 205, 0.3);
   backdrop-filter: blur(10px);
 
   .status-dot {
@@ -417,33 +407,29 @@ onMounted(() => {
 }
 
 .action-icon {
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.3s ease;
+  background: transparent;
 
-  svg {
-    width: 28px;
-    height: 28px;
+  img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
   }
+}
 
-  &.icon-register {
-    background: linear-gradient(135deg, #89dbc1, #68c7a9);
-  }
+.action-card:hover .action-icon {
+  transform: rotate(-6deg) scale(1.05);
+}
 
-  &.icon-record {
-    background: linear-gradient(135deg, #bfefff, #8ed6f2);
-  }
-
-  &.icon-appointment {
-    background: linear-gradient(135deg, #ffd6a5, #ffc477);
-  }
-
-  &.icon-report {
-    background: linear-gradient(135deg, #c5a3ff, #9d7cff);
-  }
+.action-card:hover .action-icon img {
+  transform: scale(1.1);
 }
 
 .info-section {
@@ -472,7 +458,7 @@ onMounted(() => {
     .info-count {
       font-size: 24px;
       font-weight: 700;
-      color: #68c7a9;
+      color: #b9e1cd;
     }
   }
 
@@ -516,7 +502,7 @@ onMounted(() => {
 
     .more-link {
       font-size: 14px;
-      color: #68c7a9;
+      color: #b9e1cd;
       font-weight: 500;
       cursor: pointer;
     }
@@ -548,7 +534,7 @@ onMounted(() => {
         width: 48px;
         height: 48px;
         border-radius: 14px;
-        background: rgba(104, 199, 169, 0.08);
+        background: rgba(185, 225, 205, 0.08);
         display: flex;
         align-items: center;
         justify-content: center;

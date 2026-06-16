@@ -83,6 +83,25 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         limit 1
     </select>
 
+    <select id="selectReceptionDoctors" parameterType="Long" resultType="com.ruoyi.hisdoctor.domain.AgentScheduleDoctor">
+        select distinct
+            d.doctor_id as doctorId,
+            d.user_id as userId,
+            d.dept_id as deptId,
+            sd.dept_name as deptName,
+            d.doctor_name as doctorName,
+            d.level_id as levelId,
+            rl.level_name as levelName,
+            d.status as status
+        from doctor d
+            inner join sys_user_role ur on d.user_id = ur.user_id
+            left join sys_dept sd on sd.dept_id = d.dept_id
+            left join regist_level rl on rl.level_id = d.level_id
+        where ur.role_id = #{roleId}
+            and d.status = '0'
+        order by d.dept_id, d.level_id desc, d.doctor_id
+    </select>
+
     <insert id="insertDoctor" parameterType="Doctor" useGeneratedKeys="true" keyProperty="doctorId">
         insert into doctor
         <trim prefix="(" suffix=")" suffixOverrides=",">

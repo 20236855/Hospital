@@ -1,6 +1,9 @@
 package com.ruoyi.hisdoctor.mapper;
 
+import java.util.Date;
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
+import com.ruoyi.hisdoctor.domain.AgentScheduleItem;
 import com.ruoyi.hisdoctor.domain.Schedule;
 
 /**
@@ -83,4 +86,14 @@ public interface ScheduleMapper
      * @return 结果
      */
     public int decrementReservedNumber(Long scheduleId);
+
+    /**
+     * 查询指定周排班明细。
+     */
+    public List<AgentScheduleItem> selectAgentScheduleItems(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+
+    /**
+     * 查询指定医生、日期、午别排班。
+     */
+    public Schedule selectScheduleByDoctorDateSlot(@Param("doctorId") Long doctorId, @Param("scheduleDate") Date scheduleDate, @Param("timeSlot") String timeSlot);
 }

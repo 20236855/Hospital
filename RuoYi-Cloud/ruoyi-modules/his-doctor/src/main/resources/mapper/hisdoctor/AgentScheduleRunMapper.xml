@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.hisdoctor.mapper.AgentScheduleRunMapper">
+
+    <update id="createAgentScheduleRunTable">
+        CREATE TABLE IF NOT EXISTS `agent_schedule_run` (
+          `run_id` bigint NOT NULL AUTO_INCREMENT COMMENT '运行ID',
+          `run_no` varchar(64) NOT NULL COMMENT '运行编号',
+          `trigger_type` varchar(32) NOT NULL COMMENT '触发类型',
+          `stage` varchar(32) NOT NULL COMMENT '当前阶段',
+          `status` varchar(16) NOT NULL COMMENT '运行状态',
+          `model_provider` varchar(32) DEFAULT NULL COMMENT '模型提供方',
+          `model_name` varchar(100) DEFAULT NULL COMMENT '模型名称',
+          `week_start` date NOT NULL COMMENT '排班周开始日期',
+          `week_end` date NOT NULL COMMENT '排班周结束日期',
+          `perceived_doctor_count` int DEFAULT 0 COMMENT '感知医生数',
+          `perceived_dept_count` int DEFAULT 0 COMMENT '感知科室数',
+          `generated_count` int DEFAULT 0 COMMENT '生成班次数',
+          `inserted_count` int DEFAULT 0 COMMENT '入库班次数',
+          `fallback_count` int DEFAULT 0 COMMENT '兜底次数',
+          `warning_count` int DEFAULT 0 COMMENT '告警次数',
+          `duration_ms` bigint DEFAULT 0 COMMENT '运行耗时毫秒',
+          `perception_summary` text COMMENT '感知摘要',
+          `reasoning_summary` text COMMENT '推理摘要',
+          `action_summary` text COMMENT '执行摘要',
+          `warning_summary` text COMMENT '告警摘要',
+          `error_message` text COMMENT '异常信息',
+          `start_time` datetime NOT NULL COMMENT '开始时间',
+          `end_time` datetime DEFAULT NULL COMMENT '结束时间',
+          PRIMARY KEY (`run_id`),
+          UNIQUE KEY `uk_agent_schedule_run_no` (`run_no`),
+          KEY `idx_agent_schedule_run_week` (`week_start`, `week_end`),
+          KEY `idx_agent_schedule_run_status` (`status`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='智能体排班运行记录表'
+    </update>
+
+    <resultMap type="AgentScheduleRun" id="AgentScheduleRunResult">
+        <result property="runId" column="run_id" />
+        <result property="runNo" column="run_no" />
+        <result property="triggerType" column="trigger_type" />
+        <result property="stage" column="stage" />
+        <result property="status" column="status" />
+        <result property="modelProvider" column="model_provider" />
+        <result property="modelName" column="model_name" />
+        <result property="weekStart" column="week_start" />
+        <result property="weekEnd" column="week_end" />
+        <result property="perceivedDoctorCount" column="perceived_doctor_count" />
+        <result property="perceivedDeptCount" column="perceived_dept_count" />
+        <result property="generatedCount" column="generated_count" />
+        <result property="insertedCount" column="inserted_count" />
+        <result property="fallbackCount" column="fallback_count" />
+        <result property="warningCount" column="warning_count" />
+        <result property="durationMs" column="duration_ms" />
+        <result property="perceptionSummary" column="perception_summary" />
+        <result property="reasoningSummary" column="reasoning_summary" />
+        <result property="actionSummary" column="action_summary" />
+        <result property="warningSummary" column="warning_summary" />
+        <result property="errorMessage" column="error_message" />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
+    </resultMap>
+
+    <insert id="insertAgentScheduleRun" parameterType="AgentScheduleRun" useGeneratedKeys="true" keyProperty="runId">
+        insert into agent_schedule_run
+        (run_no, trigger_type, stage, status, model_provider, model_name, week_start, week_end,
+         perceived_doctor_count, perceived_dept_count, generated_count, inserted_count, fallback_count, warning_count,
+         duration_ms, perception_summary, reasoning_summary, action_summary, warning_summary, error_message, start_time, end_time)
+        values
+        (#{runNo}, #{triggerType}, #{stage}, #{status}, #{modelProvider}, #{modelName}, #{weekStart}, #{weekEnd},
+         #{perceivedDoctorCount}, #{perceivedDeptCount}, #{generatedCount}, #{insertedCount}, #{fallbackCount}, #{warningCount},
+         #{durationMs}, #{perceptionSummary}, #{reasoningSummary}, #{actionSummary}, #{warningSummary}, #{errorMessage}, #{startTime}, #{endTime})
+    </insert>
+
+    <update id="updateAgentScheduleRun" parameterType="AgentScheduleRun">
+        update agent_schedule_run
+        <set>
+            <if test="stage != null">stage = #{stage},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="modelProvider != null">model_provider = #{modelProvider},</if>
+            <if test="modelName != null">model_name = #{modelName},</if>
+            <if test="perceivedDoctorCount != null">perceived_doctor_count = #{perceivedDoctorCount},</if>
+            <if test="perceivedDeptCount != null">perceived_dept_count = #{perceivedDeptCount},</if>
+            <if test="generatedCount != null">generated_count = #{generatedCount},</if>
+            <if test="insertedCount != null">inserted_count = #{insertedCount},</if>
+            <if test="fallbackCount != null">fallback_count = #{fallbackCount},</if>
+            <if test="warningCount != null">warning_count = #{warningCount},</if>
+            <if test="durationMs != null">duration_ms = #{durationMs},</if>
+            <if test="perceptionSummary != null">perception_summary = #{perceptionSummary},</if>
+            <if test="reasoningSummary != null">reasoning_summary = #{reasoningSummary},</if>
+            <if test="actionSummary != null">action_summary = #{actionSummary},</if>
+            <if test="warningSummary != null">warning_summary = #{warningSummary},</if>
+            <if test="errorMessage != null">error_message = #{errorMessage},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+        </set>
+        where run_id = #{runId}
+    </update>
+
+    <select id="selectLatestAgentScheduleRun" resultMap="AgentScheduleRunResult">
+        select * from agent_schedule_run
+        order by start_time desc, run_id desc
+        limit 1
+    </select>
+
+    <select id="selectAgentScheduleRunList" resultMap="AgentScheduleRunResult">
+        select * from agent_schedule_run
+        order by start_time desc, run_id desc
+        limit 20
+    </select>
+</mapper>

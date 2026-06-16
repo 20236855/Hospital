@@ -2,6 +2,7 @@ package com.ruoyi.hisdoctor.mapper;
 
 import java.util.List;
 import java.util.Map;
+import com.ruoyi.hisdoctor.domain.AgentScheduleDoctor;
 import com.ruoyi.hisdoctor.domain.Doctor;
 
 /**
@@ -82,4 +83,12 @@ public interface DoctorMapper
      * @return 用户昵称
      */
     public String selectDoctorUserNickName(Long userId);
+
+    /**
+     * 查询接诊医生候选池。
+     *
+     * @param roleId 角色ID
+     * @return 接诊医生集合
+     */
+    public List<AgentScheduleDoctor> selectReceptionDoctors(Long roleId);
 }

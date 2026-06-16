@@ -8,11 +8,11 @@
             <stop offset="1" stop-color="#dff4fb" />
           </linearGradient>
           <linearGradient id="mintGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#a8ead7" />
+            <stop offset="0" stop-color="#b9e1cd" />
             <stop offset="1" stop-color="#73d2b7" />
           </linearGradient>
           <linearGradient id="blueGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#bfefff" />
+            <stop offset="0" stop-color="#cfe8d8" />
             <stop offset="1" stop-color="#8ed6f2" />
           </linearGradient>
           <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -43,7 +43,7 @@
 
         <g class="floating icon-card med-kit" filter="url(#softShadow)">
           <rect x="438" y="180" width="120" height="96" rx="22" fill="#fff7f1" />
-          <path d="M472 180v-22c0-8 7-15 15-15h22c8 0 15 7 15 15v22" fill="none" stroke="#8ed6f2" stroke-width="10" stroke-linecap="round" />
+          <path d="M472 180v-22c0-8 7-15 15-15h22c8 0 15 7 15 15v22" fill="none" stroke="#b9e1cd" stroke-width="10" stroke-linecap="round" />
           <path d="M498 206v46M475 229h46" stroke="#f0a5b8" stroke-width="12" stroke-linecap="round" />
         </g>
 
@@ -93,7 +93,7 @@
           <path d="M522 434c24-10 42-27 52-52-30-2-55 13-66 42Z" fill="#b9e1cd" />
         </g>
 
-        <g class="tiny-crosses" fill="none" stroke="#8fd6c5" stroke-linecap="round" stroke-width="5">
+        <g class="tiny-crosses" fill="none" stroke="#b9e1cd" stroke-linecap="round" stroke-width="5">
           <path d="M132 92v24M120 104h24" />
           <path d="M516 150v22M505 161h22" />
           <path d="M76 405v18M67 414h18" />
@@ -111,7 +111,7 @@
           </div>
           <div class="brand-lockup">
             <span class="brand-mark float-animation">
-              <span class="brand-cross"></span>
+              <img src="@/assets/images/title.png" alt="logo" />
             </span>
             <p class="slogan">用心守护，智慧就医</p>
             <h3 class="title">若依患者端</h3>
@@ -440,40 +440,25 @@ onMounted(() => {
   width: 52px;
   height: 52px;
   margin-bottom: 14px;
-  border: 1px solid rgba(142, 214, 242, .6);
+  border: 1px solid rgba(185, 225, 205, .6);
   border-radius: 16px;
   color: #fff;
-  background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
-  box-shadow: 0 14px 32px rgba(121, 203, 211, .28);
+  background: rgb(185, 225, 205);
+  box-shadow: 0 14px 32px rgba(185, 225, 205, .28);
   place-items: center;
+  overflow: hidden;
 }
 
-.brand-cross {
-  position: relative;
-  width: 22px;
-  height: 22px;
+.brand-mark img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  animation: brandPulse 2.4s ease-in-out infinite;
 }
 
-.brand-cross::before,
-.brand-cross::after {
-  position: absolute;
-  content: "";
-  border-radius: 6px;
-  background: #fff;
-}
-
-.brand-cross::before {
-  top: 8px;
-  left: 0;
-  width: 22px;
-  height: 6px;
-}
-
-.brand-cross::after {
-  top: 0;
-  left: 8px;
-  width: 6px;
-  height: 22px;
+@keyframes brandPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .title {
@@ -510,7 +495,7 @@ onMounted(() => {
 
   &:hover {
     background: rgba(255, 255, 255, .94);
-    box-shadow: inset 0 0 0 1px rgba(142, 214, 242, .9);
+    box-shadow: inset 0 0 0 1px rgba(185, 225, 205, .9);
   }
 
   &:focus-within {
@@ -616,7 +601,7 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 700;
   background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
-  box-shadow: 0 14px 26px rgba(104, 199, 169, .26);
+  box-shadow: 0 14px 26px rgba(185, 225, 205, .26);
   cursor: pointer;
   transition: transform .25s ease, box-shadow .25s ease, filter .25s ease, opacity .25s ease;
 
