@@ -28,7 +28,7 @@ public class Encounter extends BaseEntity
     @Excel(name = "患者ID")
     private Long patientId;
 
-    /** 医生ID */
+    /** 医生ID / Doctor ID for doctor scope filtering. */
     @Excel(name = "医生ID")
     private Long doctorId;
 

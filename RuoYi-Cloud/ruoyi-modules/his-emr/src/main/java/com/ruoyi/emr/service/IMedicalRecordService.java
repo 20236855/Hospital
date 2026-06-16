@@ -58,4 +58,12 @@ public interface IMedicalRecordService
      * @return 结果
      */
     public int deleteMedicalRecordByRecordId(Long recordId);
+
+    /**
+     * 通过接诊ID查询关联的医生ID
+     * 
+     * @param encounterId 接诊ID
+     * @return 医生ID
+     */
+    public Long selectDoctorIdByEncounterId(Long encounterId);
 }

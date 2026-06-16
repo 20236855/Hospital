@@ -113,4 +113,10 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
     {
         return medicalRecordMapper.deleteMedicalRecordByRecordId(recordId);
     }
+
+    @Override
+    public Long selectDoctorIdByEncounterId(Long encounterId)
+    {
+        return medicalRecordMapper.selectDoctorIdByEncounterId(encounterId);
+    }
 }

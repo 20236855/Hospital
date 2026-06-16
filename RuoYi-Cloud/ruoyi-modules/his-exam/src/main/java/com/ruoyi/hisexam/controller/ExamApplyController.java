@@ -23,6 +23,7 @@ import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.hisexam.domain.ExamApply;
 import com.ruoyi.hisexam.service.IExamApplyService;
+import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
@@ -39,11 +40,16 @@ import com.ruoyi.common.core.web.page.TableDataInfo;
 @RequestMapping("/apply")
 public class ExamApplyController extends BaseController
 {
+    private static final Long OUTPATIENT_DOCTOR_ROLE_ID = 5L;
+
     @Autowired
     private IExamApplyService examApplyService;
 
     @Autowired
     private RemotePatientService remotePatientService;
+
+    @Autowired
+    private com.ruoyi.his.api.RemoteDoctorService remoteDoctorService;
 
     /**
      * 查询检查/检验/处置申请单列表
@@ -53,6 +59,7 @@ public class ExamApplyController extends BaseController
     public TableDataInfo list(ExamApply examApply)
     {
         applyPatientScope(examApply);
+        applyDoctorScope(examApply);
         startPage();
         List<ExamApply> list = examApplyService.selectExamApplyList(examApply);
         return getDataTable(list);
@@ -67,6 +74,7 @@ public class ExamApplyController extends BaseController
     public void export(HttpServletResponse response, ExamApply examApply)
     {
         applyPatientScope(examApply);
+        applyDoctorScope(examApply);
         List<ExamApply> list = examApplyService.selectExamApplyList(examApply);
         ExcelUtil<ExamApply> util = new ExcelUtil<ExamApply>(ExamApply.class);
         util.exportExcel(response, list, "检查/检验/处置申请单数据");
@@ -81,6 +89,7 @@ public class ExamApplyController extends BaseController
     {
         ExamApply examApply = examApplyService.selectExamApplyByApplyId(applyId);
         checkPatientScope(examApply);
+        checkDoctorScope(examApply);
         return success(examApply);
     }
 
@@ -104,7 +113,9 @@ public class ExamApplyController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody ExamApply examApply)
     {
-        checkPatientScope(examApplyService.selectExamApplyByApplyId(examApply.getApplyId()));
+        ExamApply oldApply = examApplyService.selectExamApplyByApplyId(examApply.getApplyId());
+        checkPatientScope(oldApply);
+        checkDoctorScope(oldApply);
         applyPatientScope(examApply);
         return toAjax(examApplyService.updateExamApply(examApply));
     }
@@ -117,11 +128,13 @@ public class ExamApplyController extends BaseController
 	@DeleteMapping("/{applyIds}")
     public AjaxResult remove(@PathVariable Long[] applyIds)
     {
-        if (isPatientUser())
+        if (isPatientUser() || isOutpatientDoctorRole())
         {
             for (Long applyId : applyIds)
             {
-                checkPatientScope(examApplyService.selectExamApplyByApplyId(applyId));
+                ExamApply examApply = examApplyService.selectExamApplyByApplyId(applyId);
+                checkPatientScope(examApply);
+                checkDoctorScope(examApply);
             }
         }
         return toAjax(examApplyService.deleteExamApplyByApplyIds(applyIds));
@@ -166,5 +179,53 @@ public class ExamApplyController extends BaseController
                 && loginUser != null
                 && loginUser.getRoles() != null
                 && loginUser.getRoles().contains("patient");
+    }
+
+    private void applyDoctorScope(ExamApply examApply)
+    {
+        if (isOutpatientDoctorRole())
+        {
+            examApply.setDoctorId(getCurrentDoctorId());
+        }
+    }
+
+    private void checkDoctorScope(ExamApply examApply)
+    {
+        if (!isOutpatientDoctorRole())
+        {
+            return;
+        }
+        if (examApply == null || !Objects.equals(examApply.getDoctorId(), getCurrentDoctorId()))
+        {
+            throw new ServiceException("No permission to access other doctor's exam apply");
+        }
+    }
+
+    private Long getCurrentDoctorId()
+    {
+        R<Map<String, Object>> doctorR = remoteDoctorService.getDoctorByUserId(SecurityUtils.getUserId(), SecurityConstants.INNER);
+        if (R.isError(doctorR))
+        {
+            throw new ServiceException(doctorR.getMsg());
+        }
+        Map<String, Object> doctor = doctorR.getData();
+        Object doctorId = doctor == null ? null : doctor.get("doctorId");
+        if (doctorId == null)
+        {
+            throw new ServiceException("Current doctor profile not found, please complete doctor information first");
+        }
+        return doctorId instanceof Number ? ((Number) doctorId).longValue() : Long.valueOf(doctorId.toString());
+    }
+
+    private boolean isOutpatientDoctorRole()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getSysUser() != null
+                && loginUser.getSysUser().getRoles() != null
+                && loginUser.getSysUser().getRoles().stream()
+                    .map(SysRole::getRoleId)
+                    .anyMatch(roleId -> Objects.equals(roleId, OUTPATIENT_DOCTOR_ROLE_ID));
     }
 }

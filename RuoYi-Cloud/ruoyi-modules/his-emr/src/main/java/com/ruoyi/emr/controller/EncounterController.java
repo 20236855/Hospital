@@ -23,7 +23,9 @@ import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.emr.domain.Encounter;
 import com.ruoyi.emr.domain.vo.EncounterVo;
 import com.ruoyi.emr.service.IEncounterService;
+import com.ruoyi.his.api.RemoteDoctorService;
 import com.ruoyi.his.api.RemotePatientService;
+import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
@@ -40,11 +42,16 @@ import com.ruoyi.common.core.web.page.TableDataInfo;
 @RequestMapping("/encounter")
 public class EncounterController extends BaseController
 {
+    private static final Long OUTPATIENT_DOCTOR_ROLE_ID = 5L;
+
     @Autowired
     private IEncounterService encounterService;
 
     @Autowired
     private RemotePatientService remotePatientService;
+
+    @Autowired
+    private RemoteDoctorService remoteDoctorService;
 
     /**
      * 查询接诊列表
@@ -54,6 +61,7 @@ public class EncounterController extends BaseController
     public TableDataInfo list(Encounter encounter)
     {
         applyPatientScope(encounter);
+        applyDoctorScope(encounter);
         startPage();
         List<EncounterVo> list = encounterService.selectEncounterList(encounter);
         return getDataTable(list);
@@ -68,6 +76,7 @@ public class EncounterController extends BaseController
     public void export(HttpServletResponse response, Encounter encounter)
     {
         applyPatientScope(encounter);
+        applyDoctorScope(encounter);
         List<EncounterVo> list = encounterService.selectEncounterList(encounter);
         ExcelUtil<EncounterVo> util = new ExcelUtil<EncounterVo>(EncounterVo.class);
         util.exportExcel(response, list, "接诊数据");
@@ -82,6 +91,7 @@ public class EncounterController extends BaseController
     {
         Encounter encounter = encounterService.selectEncounterByEncounterId(encounterId);
         checkPatientScope(encounter);
+        checkDoctorScope(encounter);
         return success(encounter);
     }
 
@@ -94,6 +104,7 @@ public class EncounterController extends BaseController
     public AjaxResult add(@RequestBody Encounter encounter)
     {
         applyPatientScope(encounter);
+        applyDoctorScope(encounter);
         return toAjax(encounterService.insertEncounter(encounter));
     }
 
@@ -105,7 +116,9 @@ public class EncounterController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody Encounter encounter)
     {
-        checkPatientScope(encounterService.selectEncounterByEncounterId(encounter.getEncounterId()));
+        Encounter oldEncounter = encounterService.selectEncounterByEncounterId(encounter.getEncounterId());
+        checkPatientScope(oldEncounter);
+        checkDoctorScope(oldEncounter);
         applyPatientScope(encounter);
         return toAjax(encounterService.updateEncounter(encounter));
     }
@@ -118,12 +131,11 @@ public class EncounterController extends BaseController
 	@DeleteMapping("/{encounterIds}")
     public AjaxResult remove(@PathVariable Long[] encounterIds)
     {
-        if (isPatientUser())
+        for (Long encounterId : encounterIds)
         {
-            for (Long encounterId : encounterIds)
-            {
-                checkPatientScope(encounterService.selectEncounterByEncounterId(encounterId));
-            }
+            Encounter encounter = encounterService.selectEncounterByEncounterId(encounterId);
+            checkPatientScope(encounter);
+            checkDoctorScope(encounter);
         }
         return toAjax(encounterService.deleteEncounterByEncounterIds(encounterIds));
     }
@@ -167,5 +179,53 @@ public class EncounterController extends BaseController
                 && loginUser != null
                 && loginUser.getRoles() != null
                 && loginUser.getRoles().contains("patient");
+    }
+
+    private void applyDoctorScope(Encounter encounter)
+    {
+        if (isOutpatientDoctorRole())
+        {
+            encounter.setDoctorId(getCurrentDoctorId());
+        }
+    }
+
+    private void checkDoctorScope(Encounter encounter)
+    {
+        if (!isOutpatientDoctorRole())
+        {
+            return;
+        }
+        if (encounter == null || !Objects.equals(encounter.getDoctorId(), getCurrentDoctorId()))
+        {
+            throw new ServiceException("无权限访问其他医生的接诊信息");
+        }
+    }
+
+    private Long getCurrentDoctorId()
+    {
+        R<Map<String, Object>> doctorR = remoteDoctorService.getDoctorByUserId(SecurityUtils.getUserId(), SecurityConstants.INNER);
+        if (R.isError(doctorR))
+        {
+            throw new ServiceException(doctorR.getMsg());
+        }
+        Map<String, Object> doctor = doctorR.getData();
+        Object doctorId = doctor == null ? null : doctor.get("doctorId");
+        if (doctorId == null)
+        {
+            throw new ServiceException("当前医生档案不存在，请先完善医生信息");
+        }
+        return doctorId instanceof Number ? ((Number) doctorId).longValue() : Long.valueOf(doctorId.toString());
+    }
+
+    private boolean isOutpatientDoctorRole()
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        return !SecurityUtils.isAdmin()
+                && loginUser != null
+                && loginUser.getSysUser() != null
+                && loginUser.getSysUser().getRoles() != null
+                && loginUser.getSysUser().getRoles().stream()
+                    .map(SysRole::getRoleId)
+                    .anyMatch(roleId -> Objects.equals(roleId, OUTPATIENT_DOCTOR_ROLE_ID));
     }
 }
