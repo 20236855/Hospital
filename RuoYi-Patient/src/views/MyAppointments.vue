@@ -1,204 +1,222 @@
 <template>
   <div class="appointments-page">
-    <div class="auth-bg-cross cross-one"></div>
-    <div class="auth-bg-cross cross-two"></div>
-    <div class="auth-bg-cross cross-three"></div>
-    <div class="auth-bg-cross cross-four"></div>
-
-    <div class="header-section">
-      <div class="header-back" @click="goBack">
-        <van-icon name="arrow-left" />
-      </div>
-      <div class="header-title">
-        <span class="title-icon float-animation">
-          <span class="title-cross"></span>
-        </span>
-        <h1>我的预约</h1>
-      </div>
+    <div class="ambient-layer" aria-hidden="true">
+      <span class="mesh mesh-a"></span>
+      <span class="mesh mesh-b"></span>
+      <span class="grid-plane"></span>
     </div>
 
-    <div class="content-section">
+    <header class="page-header slide-up-animation">
+      <button class="icon-button" type="button" @click="goBack">
+        <van-icon name="arrow-left" />
+      </button>
+      <div class="title-block">
+        <span>APPOINTMENTS</span>
+        <h1>我的预约</h1>
+      </div>
+      <button class="icon-button" type="button" @click="onRefresh">
+        <van-icon name="replay" />
+      </button>
+    </header>
+
+    <main class="content-section">
+      <section class="overview-panel slide-up-animation" style="animation-delay: 0.06s">
+        <div class="overview-copy">
+          <p>智慧就诊队列</p>
+          <h2>{{ nextAppointment ? '下一次就诊已同步' : '暂无待办就诊' }}</h2>
+          <span>{{ nextAppointment ? formatFullDate(nextAppointment.registerTime) : '可以快速发起新的预约挂号' }}</span>
+        </div>
+        <div class="overview-orbit" aria-hidden="true">
+          <span class="orbit-ring ring-a"></span>
+          <span class="orbit-ring ring-b"></span>
+          <span class="orbit-core">
+            <van-icon name="todo-list-o" />
+          </span>
+        </div>
+      </section>
+
+      <section class="stats-grid slide-up-animation" style="animation-delay: 0.12s">
+        <div class="stat-card">
+          <strong>{{ appointmentList.length }}</strong>
+          <span>全部预约</span>
+        </div>
+        <div class="stat-card">
+          <strong>{{ unpaidCount }}</strong>
+          <span>待支付</span>
+        </div>
+        <div class="stat-card">
+          <strong>{{ todayCount }}</strong>
+          <span>今日就诊</span>
+        </div>
+      </section>
+
+      <section class="quick-bar slide-up-animation" style="animation-delay: 0.18s">
+        <button type="button" @click="goToRegister">
+          <van-icon name="add-o" />
+          新预约
+        </button>
+        <button type="button" @click="onRefresh">
+          <van-icon name="replay" />
+          刷新
+        </button>
+      </section>
+
+      <section class="filter-section slide-up-animation" style="animation-delay: 0.24s">
+        <button
+          v-for="tab in filterTabs"
+          :key="tab.value"
+          class="filter-chip"
+          :class="{ active: activeFilter === tab.value }"
+          type="button"
+          @click="activeFilter = tab.value"
+        >
+          {{ tab.label }}
+        </button>
+      </section>
+
       <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-        <van-list v-model:loading="loading" :finished="finished" @load="onLoad">
-          <div v-if="appointmentList.length === 0 && !loading" class="empty-state slide-up-animation">
-            <div class="empty-icon">
-              <svg viewBox="0 0 120 120" class="empty-svg">
-                <defs>
-                  <linearGradient id="emptyGrad" x1="0" x2="1" y1="0" y2="1">
-                    <stop offset="0" stop-color="#68c7a9" />
-                    <stop offset="1" stop-color="#8ed6f2" />
-                  </linearGradient>
-                </defs>
-                <circle cx="60" cy="60" r="45" fill="none" stroke="url(#emptyGrad)" stroke-width="3" opacity="0.3" />
-                <rect x="38" y="38" width="44" height="44" rx="8" fill="none" stroke="url(#emptyGrad)" stroke-width="3" />
-                <line x1="48" y1="52" x2="72" y2="52" stroke="url(#emptyGrad)" stroke-width="3" stroke-linecap="round" />
-                <line x1="48" y1="60" x2="72" y2="60" stroke="url(#emptyGrad)" stroke-width="3" stroke-linecap="round" />
-                <line x1="48" y1="68" x2="60" y2="68" stroke="url(#emptyGrad)" stroke-width="3" stroke-linecap="round" opacity="0.6" />
-              </svg>
+        <van-list v-model:loading="loading" :finished="finished" :immediate-check="false" @load="onLoad">
+          <div v-if="filteredAppointments.length === 0 && !loading" class="empty-state slide-up-animation">
+            <div class="empty-visual">
+              <span class="empty-ring"></span>
+              <van-icon name="calendar-o" />
             </div>
-            <div class="empty-text">
-              <h3>暂无预约记录</h3>
-              <p>您还没有挂号预约</p>
-            </div>
+            <h3>{{ activeFilter === 'all' ? '暂无预约记录' : '暂无匹配预约' }}</h3>
+            <p>预约、问诊和支付状态会在这里集中展示。</p>
+            <button type="button" @click="goToRegister">立即预约</button>
           </div>
 
           <div v-else class="appointment-list">
-            <div
-              v-for="(item, index) in appointmentList"
-              :key="item.registerId"
+            <article
+              v-for="(item, index) in filteredAppointments"
+              :key="item.registerId || index"
               class="appointment-card slide-up-animation"
-              :style="{ animationDelay: `${index * 0.08}s` }"
+              :style="{ animationDelay: `${index * 0.05}s` }"
               @click="viewDetail(item)"
             >
-              <div class="card-left">
-                <div class="date-badge float-animation" :style="{ animationDelay: `${index * 0.05}s` }">
-                  <span class="date-day">{{ formatDate(item.registerTime).day }}</span>
-                  <span class="date-month">{{ formatDate(item.registerTime).month }}</span>
+              <div class="card-top">
+                <div class="date-tile">
+                  <strong>{{ formatDate(item.registerTime).day }}</strong>
+                  <span>{{ formatDate(item.registerTime).month }}</span>
                 </div>
-              </div>
-              <div class="card-content">
-                <div class="card-header">
-                  <div class="doctor-info">
-                    <span class="doctor-avatar">{{ (item.doctorName || '医生').charAt(0) }}</span>
-                    <div class="doctor-details">
-                      <span class="doctor-name">{{ item.doctorName || '医生' }}</span>
-                      <span class="dept-name">{{ item.deptName || '科室' }}</span>
+                <div class="doctor-block">
+                  <div class="doctor-row">
+                    <span class="doctor-avatar">{{ getAvatarText(item.doctorName) }}</span>
+                    <div>
+                      <h3>{{ item.doctorName || '接诊医生' }}</h3>
+                      <p>{{ item.deptName || '门诊科室' }}</p>
                     </div>
                   </div>
-                  <div class="status-tags">
-                    <span class="status-tag pay-tag" :class="item.payStatus === 'paid' ? 'paid' : 'unpaid'">
-                      {{ item.payStatus === 'paid' ? '已支付' : '待支付' }}
+                  <div class="status-row">
+                    <span class="status-pill" :class="getStatusClass(item.registerStatus)">
+                      {{ getStatusText(item.registerStatus) }}
+                    </span>
+                    <span class="pay-pill" :class="isPaid(item) ? 'paid' : 'unpaid'">
+                      {{ isPaid(item) ? '已支付' : '待支付' }}
                     </span>
                   </div>
-                </div>
-                <div class="card-body">
-                  <div class="appointment-info">
-                    <span class="info-label">挂号单号</span>
-                    <span class="info-value">{{ item.registerNo || '-' }}</span>
-                  </div>
-                  <div class="appointment-info">
-                    <span class="info-label">挂号级别</span>
-                    <span class="info-value level-value">{{ item.levelName || '普通号' }}</span>
-                  </div>
-                </div>
-                <div class="card-footer">
-                  <div class="footer-left">
-                    <span class="register-type" :class="item.registerType === 'online' ? 'online' : 'offline'">
-                      {{ item.registerType === 'online' ? '线上预约' : '线下挂号' }}
-                    </span>
-                    <span class="register-fee">¥{{ item.registerFee || 0 }}</span>
-                  </div>
-                  <span class="view-more">
-                    查看详情
-                    <van-icon name="arrow" />
-                  </span>
                 </div>
               </div>
-            </div>
+
+              <div class="info-grid">
+                <div>
+                  <span>挂号单号</span>
+                  <strong>{{ item.registerNo || '-' }}</strong>
+                </div>
+                <div>
+                  <span>挂号级别</span>
+                  <strong>{{ item.levelName || '普通号' }}</strong>
+                </div>
+                <div>
+                  <span>挂号类型</span>
+                  <strong>{{ getTypeText(item.registerType) }}</strong>
+                </div>
+                <div>
+                  <span>费用</span>
+                  <strong class="fee-value">¥{{ item.registerFee || 0 }}</strong>
+                </div>
+              </div>
+
+              <div class="card-footer">
+                <span class="time-line">
+                  <van-icon name="clock-o" />
+                  {{ formatFullDate(item.registerTime) }}
+                </span>
+                <button type="button" @click.stop="viewDetail(item)">
+                  详情
+                  <van-icon name="arrow" />
+                </button>
+              </div>
+            </article>
           </div>
         </van-list>
       </van-pull-refresh>
-    </div>
+    </main>
 
-    <van-tabbar v-model="active" class="custom-tabbar">
+    <van-tabbar v-model="active" route>
       <van-tabbar-item icon="home-o" to="/">首页</van-tabbar-item>
-      <van-tabbar-item icon="todo-list-o" to="/register">挂号</van-tabbar-item>
+      <van-tabbar-item icon="add-o" to="/register">挂号</van-tabbar-item>
       <van-tabbar-item icon="notes-o" to="/record">病历</van-tabbar-item>
       <van-tabbar-item icon="user-o" to="/profile">我的</van-tabbar-item>
     </van-tabbar>
 
-    <van-popup
-      v-model:show="showDetailPopup"
-      position="bottom"
-      round
-      :style="{ height: '75%' }"
-      closeable
-    >
+    <van-popup v-model:show="showDetailPopup" position="bottom" round closeable class="detail-shell">
       <div v-if="currentAppointment" class="detail-popup">
-        <div class="detail-header">
-          <div class="detail-title">预约详情</div>
-          <div class="detail-date">{{ formatFullDate(currentAppointment.registerTime) }}</div>
+        <div class="detail-hero">
+          <div>
+            <span>预约详情</span>
+            <h2>{{ currentAppointment.doctorName || '接诊医生' }}</h2>
+            <p>{{ currentAppointment.deptName || '门诊科室' }} · {{ formatFullDate(currentAppointment.registerTime) }}</p>
+          </div>
+          <span class="detail-status" :class="getStatusClass(currentAppointment.registerStatus)">
+            {{ getStatusText(currentAppointment.registerStatus) }}
+          </span>
         </div>
 
         <div class="detail-content">
-          <div class="detail-section">
+          <section class="detail-section">
             <div class="section-title">
               <van-icon name="todo-list-o" />
               挂号信息
             </div>
-            <div class="section-content">
-              <div class="info-row">
-                <span class="info-label">挂号单号</span>
-                <span class="info-value">{{ currentAppointment.registerNo || '-' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">挂号时间</span>
-                <span class="info-value">{{ formatFullDate(currentAppointment.registerTime) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">挂号类型</span>
-                <span class="info-value">
-                  <span class="detail-type-tag" :class="currentAppointment.registerType === 'online' ? 'online' : 'offline'">
-                    {{ currentAppointment.registerType === 'online' ? '线上预约' : '线下挂号' }}
-                  </span>
-                </span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">挂号级别</span>
-                <span class="info-value">{{ currentAppointment.levelName || '普通号' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">挂号费用</span>
-                <span class="info-value fee-value">¥{{ currentAppointment.registerFee || 0 }}</span>
-              </div>
+            <div class="info-row">
+              <span>挂号单号</span>
+              <strong>{{ currentAppointment.registerNo || '-' }}</strong>
             </div>
-          </div>
+            <div class="info-row">
+              <span>挂号时间</span>
+              <strong>{{ formatFullDate(currentAppointment.registerTime) }}</strong>
+            </div>
+            <div class="info-row">
+              <span>挂号类型</span>
+              <strong>{{ getTypeText(currentAppointment.registerType) }}</strong>
+            </div>
+            <div class="info-row">
+              <span>挂号级别</span>
+              <strong>{{ currentAppointment.levelName || '普通号' }}</strong>
+            </div>
+          </section>
 
-          <div class="detail-section">
-            <div class="section-title">
-              <van-icon name="medal" />
-              就诊信息
-            </div>
-            <div class="section-content">
-              <div class="info-row">
-                <span class="info-label">就诊医生</span>
-                <span class="info-value">{{ currentAppointment.doctorName || '未知' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">就诊科室</span>
-                <span class="info-value">{{ currentAppointment.deptName || '未知' }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="detail-section">
+          <section class="detail-section">
             <div class="section-title">
               <van-icon name="balance-o" />
-              状态信息
+              支付信息
             </div>
-            <div class="section-content">
-              <div class="info-row">
-                <span class="info-label">挂号状态</span>
-                <span class="info-value">
-                  <span class="status-badge-detail" :class="currentAppointment.registerStatus">
-                    {{ getStatusText(currentAppointment.registerStatus) }}
-                  </span>
-                </span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">支付状态</span>
-                <span class="info-value">
-                  <span class="pay-badge-detail" :class="currentAppointment.payStatus === 'paid' ? 'paid' : 'unpaid'">
-                    {{ currentAppointment.payStatus === 'paid' ? '已支付' : '待支付' }}
-                  </span>
-                </span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">创建时间</span>
-                <span class="info-value">{{ currentAppointment.createTime || '-' }}</span>
-              </div>
+            <div class="info-row">
+              <span>支付状态</span>
+              <strong :class="isPaid(currentAppointment) ? 'paid-text' : 'unpaid-text'">
+                {{ isPaid(currentAppointment) ? '已支付' : '待支付' }}
+              </strong>
             </div>
-          </div>
+            <div class="info-row">
+              <span>挂号费用</span>
+              <strong class="fee-value">¥{{ currentAppointment.registerFee || 0 }}</strong>
+            </div>
+            <div class="info-row">
+              <span>创建时间</span>
+              <strong>{{ currentAppointment.createTime || '-' }}</strong>
+            </div>
+          </section>
         </div>
       </div>
     </van-popup>
@@ -206,7 +224,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getRegisterList } from '@/api/register'
 
@@ -217,34 +235,89 @@ const loading = ref(false)
 const finished = ref(false)
 const appointmentList = ref([])
 const pageNum = ref(1)
+const activeFilter = ref('all')
 const showDetailPopup = ref(false)
 const currentAppointment = ref(null)
 
+const filterTabs = [
+  { label: '全部', value: 'all' },
+  { label: '今日', value: 'today' },
+  { label: '待支付', value: 'unpaid' },
+  { label: '已支付', value: 'paid' }
+]
+
+const isPaid = (item) => item?.payStatus === 'paid'
+
+const isToday = (dateStr) => {
+  if (!dateStr) return false
+  const date = parseDate(dateStr)
+  if (!date) return false
+  return date.toDateString() === new Date().toDateString()
+}
+
+const filteredAppointments = computed(() => {
+  const list = appointmentList.value
+  if (activeFilter.value === 'today') return list.filter((item) => isToday(item.registerTime))
+  if (activeFilter.value === 'unpaid') return list.filter((item) => !isPaid(item))
+  if (activeFilter.value === 'paid') return list.filter((item) => isPaid(item))
+  return list
+})
+
+const unpaidCount = computed(() => appointmentList.value.filter((item) => !isPaid(item)).length)
+const todayCount = computed(() => appointmentList.value.filter((item) => isToday(item.registerTime)).length)
+const nextAppointment = computed(() => {
+  const now = Date.now()
+  return [...appointmentList.value]
+    .filter((item) => {
+      const date = parseDate(item.registerTime)
+      return date && date.getTime() >= now
+    })
+    .sort((a, b) => parseDate(a.registerTime).getTime() - parseDate(b.registerTime).getTime())[0]
+})
+
+const parseDate = (dateStr) => {
+  if (!dateStr) return null
+  const date = new Date(String(dateStr).replace(/-/g, '/'))
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 const formatDate = (dateStr) => {
-  if (!dateStr) return { day: '--', month: '--' }
-  const date = new Date(dateStr.replace(/-/g, '/'))
-  if (isNaN(date.getTime())) return { day: '--', month: '--' }
-  const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+  const date = parseDate(dateStr)
+  if (!date) return { day: '--', month: '--' }
   return {
     day: date.getDate().toString().padStart(2, '0'),
-    month: months[date.getMonth()]
+    month: `${date.getMonth() + 1}月`
   }
 }
 
 const formatFullDate = (dateStr) => {
-  if (!dateStr) return '--'
-  const date = new Date(dateStr.replace(/-/g, '/'))
-  if (isNaN(date.getTime())) return '--'
-  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+  const date = parseDate(dateStr)
+  if (!date) return '--'
+  return date.toLocaleString('zh-CN', {
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
+
+const getAvatarText = (name) => (name || '医').slice(0, 1)
+
+const getTypeText = (type) => (type === 'online' ? '线上预约' : '线下挂号')
 
 const getStatusText = (status) => {
   const map = {
-    'registered': '已挂号',
-    'cancel': '已取消',
-    'completed': '已完成'
+    registered: '已挂号',
+    cancel: '已取消',
+    completed: '已完成'
   }
-  return map[status] || status || '-'
+  return map[status] || '已挂号'
+}
+
+const getStatusClass = (status) => {
+  if (status === 'completed') return 'completed'
+  if (status === 'cancel') return 'cancel'
+  return 'registered'
 }
 
 const onLoad = async () => {
@@ -259,6 +332,7 @@ const onLoad = async () => {
     } else {
       appointmentList.value = [...appointmentList.value, ...(res.rows || [])]
     }
+
     loading.value = false
     if (appointmentList.value.length >= (res.total || 10)) {
       finished.value = true
@@ -267,6 +341,7 @@ const onLoad = async () => {
     }
   } catch (error) {
     loading.value = false
+    finished.value = true
     console.error('加载预约列表失败', error)
   }
 }
@@ -288,6 +363,10 @@ const goBack = () => {
   router.back()
 }
 
+const goToRegister = () => {
+  router.push('/register')
+}
+
 onMounted(() => {
   onLoad()
 })
@@ -297,147 +376,110 @@ onMounted(() => {
 .appointments-page {
   min-height: 100vh;
   background: var(--bg-gradient);
-  padding-bottom: 60px;
+  padding-bottom: calc(78px + env(safe-area-inset-bottom));
   position: relative;
   overflow-x: hidden;
+  color: var(--text-primary);
 }
 
-.auth-bg-cross {
+.ambient-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.mesh,
+.grid-plane {
   position: absolute;
-  width: 40px;
-  height: 40px;
-  opacity: 0.12;
-  animation: authCrossBreath 8s ease-in-out infinite;
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    background: #68c7a9;
-    border-radius: 8px;
-  }
-
-  &::before {
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 6px;
-    transform: translateY(-50%);
-  }
-
-  &::after {
-    top: 0;
-    left: 50%;
-    width: 6px;
-    height: 100%;
-    transform: translateX(-50%);
-  }
 }
 
-.cross-one {
-  top: 12%;
-  left: 8%;
-  animation-delay: 0s;
+.mesh {
+  border-radius: 999px;
+  filter: blur(3px);
+  animation: drift 9s ease-in-out infinite;
 }
 
-.cross-two {
-  top: 25%;
-  right: 10%;
-  animation-delay: -2s;
+.mesh-a {
+  width: 260px;
+  height: 260px;
+  top: -96px;
+  right: -88px;
+  background: radial-gradient(circle, rgba(185, 225, 205, .76), rgba(185, 225, 205, 0) 68%);
 }
 
-.cross-three {
-  bottom: 30%;
-  left: 12%;
-  animation-delay: -4s;
+.mesh-b {
+  width: 230px;
+  height: 230px;
+  left: -116px;
+  top: 290px;
+  background: radial-gradient(circle, rgba(142, 214, 242, .52), rgba(142, 214, 242, 0) 70%);
+  animation-delay: -3s;
 }
 
-.cross-four {
-  bottom: 15%;
-  right: 6%;
-  animation-delay: -6s;
+.grid-plane {
+  inset: 0;
+  opacity: .24;
+  background-image:
+    linear-gradient(rgba(26, 77, 69, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 77, 69, .08) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .85), transparent 76%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .85), transparent 76%);
 }
 
-.header-section {
-  padding: 16px 20px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.page-header,
+.content-section {
+  position: relative;
+  z-index: 1;
 }
 
-.header-back {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:active {
-    transform: scale(0.96);
-    background: rgba(255, 255, 255, 0.8);
-  }
-
-  .van-icon {
-    color: #5f7580;
-    font-size: 20px;
-  }
-}
-
-.header-title {
-  display: flex;
+.page-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   gap: 12px;
+  padding: 18px 16px 12px;
+}
+
+.icon-button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(213, 237, 243, .72);
+  border-radius: 16px;
+  background: rgba(255, 253, 248, .72);
+  color: var(--primary-color);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 28px rgba(102, 170, 189, .12);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+
+  .van-icon {
+    font-size: 20px;
+  }
+
+  &:active {
+    transform: scale(.96);
+  }
+}
+
+.title-block {
+  min-width: 0;
+
+  span {
+    color: rgba(26, 77, 69, .58);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
 
   h1 {
+    margin: 3px 0 0;
+    color: var(--primary-color);
     font-size: 24px;
-    font-weight: 700;
-    color: #4f7380;
-    margin: 0;
-  }
-}
-
-.title-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 24px rgba(104, 199, 169, 0.2);
-}
-
-.title-cross {
-  position: relative;
-  width: 24px;
-  height: 24px;
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    background: linear-gradient(135deg, #68c7a9, #89dbc1);
-    border-radius: 6px;
-  }
-
-  &::before {
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 5px;
-    transform: translateY(-50%);
-  }
-
-  &::after {
-    top: 0;
-    left: 50%;
-    width: 5px;
-    height: 100%;
-    transform: translateX(-50%);
+    line-height: 1.15;
   }
 }
 
@@ -445,406 +487,659 @@ onMounted(() => {
   padding: 0 16px;
 }
 
+.overview-panel {
+  min-height: 158px;
+  border-radius: 18px;
+  padding: 20px;
+  overflow: hidden;
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 248, .88), rgba(255, 253, 248, .52)),
+    linear-gradient(120deg, rgba(185, 225, 205, .46), rgba(142, 214, 242, .26));
+  border: 1px solid rgba(213, 237, 243, .78);
+  box-shadow: 0 24px 56px rgba(102, 170, 189, .18);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 10%, rgba(255, 253, 248, .58) 46%, transparent 70%);
+    transform: translateX(-105%);
+    animation: sheen 5s ease-in-out infinite;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: -40px;
+    top: -54px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(142, 214, 242, .34), rgba(142, 214, 242, 0) 68%);
+  }
+}
+
+.overview-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 68%;
+
+  p,
+  h2,
+  span {
+    margin: 0;
+  }
+
+  p {
+    color: rgba(26, 77, 69, .62);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  h2 {
+    color: var(--primary-color);
+    font-size: 22px;
+    line-height: 1.25;
+    margin-top: 10px;
+  }
+
+  span {
+    display: block;
+    color: var(--text-regular);
+    font-size: 12px;
+    line-height: 1.5;
+    margin-top: 10px;
+  }
+}
+
+.overview-orbit {
+  position: absolute;
+  right: 12px;
+  top: 20px;
+  width: 122px;
+  height: 122px;
+  z-index: 1;
+}
+
+.orbit-ring,
+.orbit-core {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.orbit-ring {
+  inset: 0;
+  border: 1px solid rgba(26, 77, 69, .12);
+  animation: radarBreath 4.2s ease-in-out infinite;
+}
+
+.ring-b {
+  inset: 18px;
+  animation-direction: reverse;
+}
+
+.orbit-core {
+  inset: 36px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 253, 248, .74);
+  border: 1px solid rgba(213, 237, 243, .72);
+  color: #6fbacb;
+  font-size: 28px;
+  box-shadow: 0 16px 32px rgba(102, 170, 189, .14);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.stat-card {
+  min-height: 70px;
+  border-radius: 14px;
+  padding: 14px 10px;
+  background: rgba(255, 253, 248, .74);
+  border: 1px solid rgba(213, 237, 243, .72);
+  box-shadow: 0 16px 34px rgba(102, 170, 189, .12);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+
+  strong {
+    color: var(--primary-color);
+    font-size: 23px;
+    line-height: 1;
+  }
+
+  span {
+    color: var(--text-light);
+    font-size: 11px;
+    font-weight: 800;
+  }
+}
+
+.quick-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+
+  button {
+    height: 44px;
+    border: 0;
+    border-radius: 12px;
+    background: rgba(255, 253, 248, .76);
+    color: var(--primary-color);
+    font-size: 14px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 14px 30px rgba(102, 170, 189, .1);
+  }
+}
+
+.filter-section {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  padding: 18px 0 12px;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.filter-chip {
+  height: 34px;
+  border: 1px solid rgba(213, 237, 243, .78);
+  border-radius: 10px;
+  padding: 0 14px;
+  flex: 0 0 auto;
+  background: rgba(255, 253, 248, .68);
+  color: rgba(26, 77, 69, .62);
+  font-size: 13px;
+  font-weight: 800;
+
+  &.active {
+    color: #4f9fb4;
+    background: linear-gradient(135deg, rgba(185, 225, 205, .34), rgba(142, 214, 242, .22));
+    border-color: rgba(142, 214, 242, .34);
+    box-shadow: 0 12px 28px rgba(102, 170, 189, .14);
+  }
+}
+
 .empty-state {
+  min-height: 310px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
-}
-
-.empty-icon {
-  margin-bottom: 24px;
-}
-
-.empty-svg {
-  width: 140px;
-  height: 140px;
-  animation: floatSoft 4s ease-in-out infinite;
-}
-
-.empty-text {
   text-align: center;
+  padding: 34px 20px;
+  border-radius: 16px;
+  background: rgba(255, 253, 248, .68);
+  border: 1px solid rgba(213, 237, 243, .72);
 
   h3 {
+    margin: 18px 0 8px;
+    color: var(--primary-color);
     font-size: 18px;
-    font-weight: 700;
-    color: #4f7380;
-    margin: 0 0 8px;
   }
 
   p {
-    font-size: 14px;
-    color: #8e9fa8;
     margin: 0;
+    color: var(--text-regular);
+    font-size: 13px;
+    line-height: 1.55;
   }
+
+  button {
+    margin-top: 20px;
+    height: 42px;
+    border: 0;
+    border-radius: 10px;
+    padding: 0 22px;
+    color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(185, 225, 205, .62), rgba(142, 214, 242, .32));
+    font-weight: 800;
+    box-shadow: 0 12px 26px rgba(102, 170, 189, .14);
+  }
+}
+
+.empty-visual {
+  width: 86px;
+  height: 86px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  color: #6fbacb;
+  font-size: 36px;
+  background: rgba(185, 225, 205, .18);
+}
+
+.empty-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: 22px;
+  border: 1px solid rgba(142, 214, 242, .34);
+  animation: iconHalo 3.4s ease-in-out infinite;
 }
 
 .appointment-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.appointment-card {
-  background: rgba(255, 255, 255, 0.74);
-  border-radius: 20px;
-  padding: 16px;
-  border: 1px solid rgba(194, 228, 236, 0.72);
-  box-shadow: var(--card-shadow);
-  backdrop-filter: blur(8px);
-  display: flex;
-  gap: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 32px rgba(102, 170, 189, 0.18);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-}
-
-.card-left {
-  flex-shrink: 0;
-}
-
-.date-badge {
-  width: 64px;
-  height: 72px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ffd6a5, #ffc477);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 16px rgba(255, 196, 119, 0.3);
-
-  .date-day {
-    font-size: 24px;
-    font-weight: 700;
-    color: white;
-    line-height: 1;
-  }
-
-  .date-month {
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
-    margin-top: 4px;
-  }
-}
-
-.card-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.doctor-info {
-  display: flex;
-  align-items: center;
   gap: 10px;
 }
 
-.doctor-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #8ed6f2, #bfefff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-  color: white;
-}
+.appointment-card {
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 253, 248, .76);
+  border: 1px solid rgba(213, 237, 243, .72);
+  box-shadow: 0 18px 44px rgba(102, 170, 189, .13);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  position: relative;
+  overflow: hidden;
 
-.doctor-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 16px;
+    bottom: 16px;
+    width: 2px;
+    border-radius: 4px;
+    background: linear-gradient(to bottom, rgba(185, 225, 205, .2), rgba(142, 214, 242, .78), rgba(185, 225, 205, .2));
+  }
 
-.doctor-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #4f7380;
-}
-
-.dept-name {
-  font-size: 13px;
-  color: #8e9fa8;
-}
-
-.status-tags {
-  flex-shrink: 0;
-}
-
-.status-tag {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 8px;
-
-  &.pay-tag {
-    &.paid {
-      color: #68c7a9;
-      background: rgba(104, 199, 169, 0.12);
-    }
-
-    &.unpaid {
-      color: #ef8fa9;
-      background: rgba(239, 143, 169, 0.12);
-    }
+  &:active {
+    transform: scale(.99);
   }
 }
 
-.card-body {
-  margin-bottom: 12px;
+.card-top {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 10px;
 }
 
-.appointment-info {
+.date-tile {
+  height: 58px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(185, 225, 205, .72), rgba(142, 214, 242, .38));
+  border: 1px solid rgba(255, 253, 248, .5);
+  box-shadow: 0 16px 28px rgba(102, 170, 189, .13);
+
+  strong {
+    color: var(--primary-color);
+    font-size: 21px;
+    line-height: 1;
+  }
+
+  span {
+    color: rgba(26, 77, 69, .62);
+    font-size: 11px;
+    font-weight: 800;
+    margin-top: 5px;
+  }
+}
+
+.doctor-block {
+  min-width: 0;
+}
+
+.doctor-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 2px 0;
 
-  .info-label {
-    font-size: 13px;
-    color: #8e9fa8;
-    flex-shrink: 0;
-    width: 60px;
+  h3,
+  p {
+    margin: 0;
   }
 
-  .info-value {
-    font-size: 14px;
-    font-weight: 500;
-    color: #5f7580;
-
-    &.level-value {
-      color: #68c7a9;
-      font-weight: 600;
-    }
+  h3 {
+    color: var(--primary-color);
+    font-size: 15px;
+    line-height: 1.2;
   }
+
+  p {
+    color: var(--text-regular);
+    font-size: 12px;
+    margin-top: 3px;
+  }
+}
+
+.doctor-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(185, 225, 205, .86), rgba(142, 214, 242, .54));
+  color: #fffdf8;
+  font-size: 15px;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.status-pill,
+.pay-pill,
+.detail-status {
+  min-height: 26px;
+  border-radius: 8px;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.registered {
+  color: #5f9e8c;
+  background: rgba(104, 199, 169, .14);
+}
+
+.completed,
+.paid {
+  color: #4f9fb4;
+  background: rgba(142, 214, 242, .16);
+}
+
+.cancel {
+  color: #8fa5ad;
+  background: rgba(165, 184, 192, .14);
+}
+
+.unpaid {
+  color: #ef8fa9;
+  background: rgba(239, 143, 169, .13);
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+
+  div {
+    min-width: 0;
+    border-radius: 10px;
+    padding: 8px;
+    background: rgba(185, 225, 205, .1);
+    border: 1px solid rgba(213, 237, 243, .5);
+  }
+
+  span,
+  strong {
+    display: block;
+  }
+
+  span {
+    color: var(--text-light);
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-size: 12px;
+    margin-top: 5px;
+  }
+}
+
+.fee-value {
+  color: #ef8fa9 !important;
 }
 
 .card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 12px;
-  border-top: 1px solid rgba(213, 237, 243, 0.6);
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(213, 237, 243, .52);
+
+  button {
+    border: 0;
+    border-radius: 8px;
+    height: 30px;
+    padding: 0 10px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: linear-gradient(135deg, rgba(185, 225, 205, .48), rgba(142, 214, 242, .26));
+    color: var(--primary-color);
+    font-size: 12px;
+    font-weight: 800;
+    box-shadow: 0 10px 22px rgba(102, 170, 189, .12);
+  }
 }
 
-.footer-left {
-  display: flex;
+.time-line {
+  min-width: 0;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-}
-
-.register-type {
+  gap: 5px;
+  color: var(--text-regular);
   font-size: 12px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 6px;
-
-  &.online {
-    color: #8ed6f2;
-    background: rgba(142, 214, 242, 0.12);
-  }
-
-  &.offline {
-    color: #a5b8c0;
-    background: rgba(165, 184, 192, 0.12);
-  }
-}
-
-.register-fee {
-  font-size: 14px;
-  font-weight: 600;
-  color: #ef8fa9;
-}
-
-.view-more {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #68c7a9;
 
   .van-icon {
-    font-size: 14px;
+    color: #6fbacb;
+    flex: 0 0 auto;
   }
 }
 
-.custom-tabbar {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(194, 228, 236, 0.72);
+.detail-shell {
+  height: 78%;
 }
 
 .detail-popup {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: #f8fcfd;
+  min-height: 100%;
+  background: var(--bg-gradient);
 }
 
-.detail-header {
-  padding: 20px 24px;
-  background: linear-gradient(135deg, #ffc477, #ffd6a5);
+.detail-hero {
+  min-height: 128px;
+  padding: 24px 22px 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 248, .9), rgba(255, 253, 248, .58)),
+    linear-gradient(120deg, rgba(185, 225, 205, .48), rgba(142, 214, 242, .28));
+  border-bottom: 1px solid rgba(213, 237, 243, .72);
 
-  .detail-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 6px;
+  span,
+  h2,
+  p {
+    margin: 0;
   }
 
-  .detail-date {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.9);
+  > div > span {
+    color: rgba(26, 77, 69, .58);
+    font-size: 12px;
+    font-weight: 800;
   }
+
+  h2 {
+    color: var(--primary-color);
+    font-size: 23px;
+    margin-top: 8px;
+  }
+
+  p {
+    color: var(--text-regular);
+    font-size: 13px;
+    margin-top: 8px;
+    line-height: 1.45;
+  }
+}
+
+.detail-status {
+  flex: 0 0 auto;
+  height: 28px;
 }
 
 .detail-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .detail-section {
-  background: white;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 16px;
-  box-shadow: 0 2px 12px rgba(104, 199, 169, 0.08);
+  background: rgba(255, 253, 248, .78);
+  border: 1px solid rgba(213, 237, 243, .72);
+  box-shadow: 0 14px 34px rgba(102, 170, 189, .1);
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #4f7380;
-  margin-bottom: 12px;
+  color: var(--primary-color);
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 10px;
 
   .van-icon {
-    color: #68c7a9;
+    color: #6fbacb;
     font-size: 18px;
   }
 }
 
-.section-content {
-  padding-left: 4px;
-}
-
 .info-row {
+  min-height: 42px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(213, 237, 243, 0.5);
+  gap: 14px;
+  border-top: 1px solid rgba(213, 237, 243, .44);
 
-  &:last-child {
-    border-bottom: none;
+  span {
+    color: var(--text-light);
+    font-size: 13px;
+    flex: 0 0 auto;
+  }
+
+  strong {
+    min-width: 0;
+    color: var(--text-primary);
+    font-size: 13px;
+    text-align: right;
+    overflow-wrap: anywhere;
   }
 }
 
-.info-label {
-  font-size: 14px;
-  color: #8e9fa8;
+.paid-text {
+  color: #4f9fb4 !important;
 }
 
-.info-value {
-  font-size: 14px;
-  color: #4f7380;
-  font-weight: 500;
-
-  &.fee-value {
-    color: #ef8fa9;
-    font-weight: 700;
-    font-size: 16px;
-  }
+.unpaid-text {
+  color: #ef8fa9 !important;
 }
 
-.detail-type-tag {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 6px;
+.slide-up-animation {
+  animation: slideUp .58s cubic-bezier(.2, .78, .24, 1) both;
+}
 
-  &.online {
-    color: #8ed6f2;
-    background: rgba(142, 214, 242, 0.12);
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
   }
-
-  &.offline {
-    color: #a5b8c0;
-    background: rgba(165, 184, 192, 0.12);
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-.status-badge-detail {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 8px;
-
-  &.registered {
-    color: #68c7a9;
-    background: rgba(104, 199, 169, 0.12);
+@keyframes drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
   }
-
-  &.cancel {
-    color: #a5b8c0;
-    background: rgba(165, 184, 192, 0.12);
-  }
-
-  &.completed {
-    color: #8bd6e2;
-    background: rgba(139, 214, 226, 0.12);
+  50% {
+    transform: translate3d(12px, -16px, 0) scale(1.04);
   }
 }
 
-.pay-badge-detail {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 8px;
-
-  &.paid {
-    color: #68c7a9;
-    background: rgba(104, 199, 169, 0.12);
+@keyframes sheen {
+  0%, 52% {
+    transform: translateX(-105%);
   }
-
-  &.unpaid {
-    color: #ef8fa9;
-    background: rgba(239, 143, 169, 0.12);
+  78%, 100% {
+    transform: translateX(105%);
   }
 }
 
-@keyframes authCrossBreath {
-  0%, 100% { opacity: 0.08; transform: scale(1); }
-  50% { opacity: 0.18; transform: scale(1.08); }
+@keyframes radarBreath {
+  0%, 100% {
+    opacity: .42;
+    transform: scale(.96);
+  }
+  50% {
+    opacity: .82;
+    transform: scale(1.04);
+  }
 }
 
-@keyframes floatSoft {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+@keyframes iconHalo {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(.92);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@media (max-width: 360px) {
+  .content-section,
+  .page-header {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .overview-copy {
+    max-width: 72%;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -1,217 +1,141 @@
 <template>
   <div class="home-page">
-    <div class="medical-visual-background">
-      <svg class="medical-art" viewBox="0 0 640 560" role="img" aria-label="医疗主题插画">
-        <defs>
-          <linearGradient id="cloudGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#f8fdff" />
-            <stop offset="1" stop-color="#dff4fb" />
-          </linearGradient>
-          <linearGradient id="mintGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#b9e1cd" />
-            <stop offset="1" stop-color="#73d2b7" />
-          </linearGradient>
-          <linearGradient id="blueGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#cfe8d8" />
-            <stop offset="1" stop-color="#8ed6f2" />
-          </linearGradient>
-          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#8cc9dd" flood-opacity=".22" />
-          </filter>
-        </defs>
-
-        <g class="wave-lines" fill="none" stroke="#ccecf5" stroke-linecap="round" stroke-width="3">
-          <path d="M34 380 C 148 332, 230 430, 330 374 S 522 328, 608 390" />
-          <path d="M60 418 C 176 370, 238 448, 342 406 S 510 380, 586 432" />
-          <path d="M80 456 C 188 422, 250 470, 360 440 S 502 420, 566 466" />
-        </g>
-
-        <g class="cloud cloud-a" fill="url(#cloudGradient)">
-          <path d="M83 150c5-29 30-50 60-50 23 0 43 13 53 32 8-4 18-6 28-6 35 0 63 28 63 62H92c-30 0-54-24-54-54s24-54 54-54c2 0 4 0 6 1-7 8-12 18-15 29Z" />
-        </g>
-        <g class="cloud cloud-b" fill="url(#cloudGradient)">
-          <path d="M410 96c6-22 26-38 50-38 19 0 36 10 45 26 7-3 14-4 22-4 30 0 54 24 54 54H396c-24 0-44-20-44-44s20-44 44-44c8 0 15 2 21 5-3 5-5 10-7 15Z" />
-        </g>
-
-        <g class="floating icon-card form-card" filter="url(#softShadow)">
-          <rect x="82" y="225" width="112" height="130" rx="24" fill="#fffaf4" />
-          <rect x="112" y="248" width="52" height="14" rx="7" fill="#acdbe9" />
-          <rect x="108" y="282" width="68" height="10" rx="5" fill="#d9edf2" />
-          <rect x="108" y="306" width="58" height="10" rx="5" fill="#d9edf2" />
-          <path d="M126 334h28" stroke="#82d7bf" stroke-width="12" stroke-linecap="round" />
-        </g>
-
-        <g class="floating icon-card med-kit" filter="url(#softShadow)">
-          <rect x="438" y="180" width="120" height="96" rx="22" fill="#fff7f1" />
-          <path d="M472 180v-22c0-8 7-15 15-15h22c8 0 15 7 15 15v22" fill="none" stroke="#b9e1cd" stroke-width="10" stroke-linecap="round" />
-          <path d="M498 206v46M475 229h46" stroke="#f0a5b8" stroke-width="12" stroke-linecap="round" />
-        </g>
-
-        <g class="floating stethoscope" fill="none" stroke="#6fbacb" stroke-linecap="round" stroke-width="10">
-          <path d="M402 338v48c0 38-28 70-64 70s-64-32-64-70v-28" />
-          <path d="M248 338v38c0 24-18 44-40 44s-40-20-40-44v-38" />
-          <circle cx="402" cy="332" r="14" fill="#fffaf4" />
-        </g>
-
-        <g class="heart-pulse" fill="none" stroke="#ef8fa9" stroke-linecap="round" stroke-linejoin="round" stroke-width="8">
-          <path d="M306 140c-22-25-62-9-62 26 0 35 62 70 62 70s62-35 62-70c0-35-40-51-62-26Z" fill="#fff5f7" />
-          <path class="pulse-line" d="M252 182h35l12-24 20 48 14-28h39" />
-        </g>
-
-        <g class="pill pill-a">
-          <rect x="210" y="130" width="86" height="34" rx="17" fill="#fffaf4" transform="rotate(-18 253 147)" />
-          <path d="M253 130v34" stroke="#a9e5d2" stroke-width="4" transform="rotate(-18 253 147)" />
-        </g>
-        <g class="pill pill-b">
-          <rect x="484" y="360" width="76" height="30" rx="15" fill="#e6f6fb" transform="rotate(23 522 375)" />
-          <path d="M522 360v30" stroke="#efb2c1" stroke-width="4" transform="rotate(23 522 375)" />
-        </g>
-
-        <g class="hospital" filter="url(#softShadow)">
-          <path d="M146 494h388c18 0 32-14 32-32v-24H114v24c0 18 14 32 32 32Z" fill="#d8eef4" />
-          <rect x="174" y="284" width="292" height="210" rx="26" fill="#fffdf8" />
-          <rect x="238" y="224" width="164" height="270" rx="28" fill="#f6fbfd" />
-          <rect x="274" y="254" width="92" height="68" rx="18" fill="url(#blueGradient)" />
-          <path d="M320 268v38M301 287h38" stroke="#fffdf8" stroke-width="12" stroke-linecap="round" />
-          <g fill="#b9e8f4">
-            <rect x="208" y="326" width="42" height="38" rx="10" />
-            <rect x="208" y="386" width="42" height="38" rx="10" />
-            <rect x="410" y="326" width="42" height="38" rx="10" />
-            <rect x="410" y="386" width="42" height="38" rx="10" />
-          </g>
-          <rect x="290" y="382" width="80" height="112" rx="18" fill="url(#mintGradient)" />
-          <path d="M330 382v112" stroke="#ecfff8" stroke-width="5" />
-        </g>
-
-        <g class="plant plant-left">
-          <path d="M118 494c0-46 18-86 56-118" fill="none" stroke="#8bc9ae" stroke-width="8" stroke-linecap="round" />
-          <path d="M138 444c-28-6-44-24-48-52 30 1 52 18 60 48Z" fill="#b9e1cd" />
-          <path d="M157 405c5-27 24-45 56-54-2 33-21 56-52 66Z" fill="#9bd5bc" />
-        </g>
-        <g class="plant plant-right">
-          <path d="M550 494c-4-42-22-74-54-98" fill="none" stroke="#8bc9ae" stroke-width="8" stroke-linecap="round" />
-          <path d="M522 434c24-10 42-27 52-52-30-2-55 13-66 42Z" fill="#b9e1cd" />
-        </g>
-
-        <g class="tiny-crosses" fill="none" stroke="#b9e1cd" stroke-linecap="round" stroke-width="5">
-          <path d="M132 92v24M120 104h24" />
-          <path d="M516 150v22M505 161h22" />
-          <path d="M76 405v18M67 414h18" />
-          <path d="M564 448v18M555 457h18" />
-        </g>
-      </svg>
+    <div class="ambient-layer" aria-hidden="true">
+      <span class="mesh mesh-a"></span>
+      <span class="mesh mesh-b"></span>
+      <span class="mesh mesh-c"></span>
+      <span class="grid-plane"></span>
     </div>
 
     <div class="content-wrapper">
-      <div class="header-section slide-up-animation">
-          <div class="greeting">
-            <h1>早上好，{{ username || '患者' }}</h1>
-            <p>今天是个就诊的好日子</p>
-          </div>
-          <div class="status-badge">
-            <span class="status-dot"></span>
-            <span>在线</span>
-          </div>
-        </div>
-
-      <div class="quick-actions slide-up-animation" style="animation-delay: 0.08s">
-        <div class="action-card" @click="goToRegister">
-          <div class="action-icon icon-register">
-            <img src="@/assets/images/guahao.png" alt="挂号" />
-          </div>
-          <span>预约挂号</span>
-        </div>
-        <div class="action-card" @click="goToDoctors">
-          <div class="action-icon icon-doctor">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="8" r="5" stroke="#b9e1cd" stroke-width="2"/>
-              <path d="M20 21a8 8 0 0 0-16 0" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round"/>
-              <path d="M18 4h-1v-1h-2v1h-1v2h1v1h2v-1h1v-2z" fill="#b9e1cd" opacity="0.6"/>
-            </svg>
-          </div>
-          <span>科室医生</span>
-        </div>
-        <div class="action-card" @click="goToRecord">
-          <div class="action-icon icon-record">
-            <img src="@/assets/images/bingli.png" alt="病历" />
-          </div>
-          <span>病历查询</span>
-        </div>
-        <div class="action-card" @click="goToMyAppointments">
-          <div class="action-icon icon-appointment">
-            <img src="@/assets/images/yuyue.png" alt="预约" />
-          </div>
-          <span>我的预约</span>
-        </div>
-        <div class="action-card" @click="showToast('健康报告')">
-          <div class="action-icon icon-report">
-            <img src="@/assets/images/baogao.png" alt="报告" />
-          </div>
-          <span>健康报告</span>
-        </div>
-      </div>
-
-      <div class="info-section slide-up-animation" style="animation-delay: 0.16s">
-          <div class="info-card">
-            <div class="info-header">
-              <span class="info-title">今日就诊</span>
-              <span class="info-count">{{ todayAppointments }}</span>
+      <section class="hero-section slide-up-animation">
+        <div class="hero-copy">
+          <div class="top-row">
+            <div>
+              <p class="eyebrow">智慧医院 · 患者端</p>
+              <h1>早上好，{{ displayName }}</h1>
             </div>
-            <div class="info-detail">
-              <div v-if="appointmentList.length > 0" v-for="(appt, index) in appointmentList.slice(0, 2)" :key="appt.registerId" class="detail-item">
-                <span class="detail-label">{{ new Date(appt.registerTime).toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'}) }}</span>
-                <span class="detail-text">{{ appt.deptId ? '科室' : '内科' }} · {{ appt.doctorId ? '医生' : '医生' }}</span>
-              </div>
-              <div v-else class="detail-item">
-                <span class="detail-label">-</span>
-                <span class="detail-text">暂无预约</span>
-              </div>
+            <button class="status-badge" type="button">
+              <span class="status-dot"></span>
+              在线
+            </button>
+          </div>
+          <p class="hero-desc">今天适合把就诊安排处理得更从容。</p>
+          <div class="hero-metrics">
+            <div class="metric-card">
+              <span class="metric-value">{{ todayAppointments }}</span>
+              <span class="metric-label">今日就诊</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">{{ appointmentList.length }}</span>
+              <span class="metric-label">预约记录</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">AI</span>
+              <span class="metric-label">在线问诊</span>
             </div>
           </div>
         </div>
 
-      <div class="more-section slide-up-animation" style="animation-delay: 0.24s">
-        <div class="section-title">
-          <span>更多服务</span>
-          <span class="more-link" @click="showToast('查看全部')">查看全部</span>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="radar-ring ring-one"></div>
+          <div class="radar-ring ring-two"></div>
+          <div class="core-card">
+            <div class="cross-mark">
+              <span></span>
+              <span></span>
+            </div>
+            <div class="pulse-track">
+              <svg viewBox="0 0 190 44" fill="none">
+                <path class="pulse-shadow" d="M2 25H45L58 8L78 39L94 20H126L140 12L153 31H188" />
+                <path class="pulse-line" d="M2 25H45L58 8L78 39L94 20H126L140 12L153 31H188" />
+              </svg>
+            </div>
+          </div>
+          <span class="float-chip chip-a">挂号</span>
+          <span class="float-chip chip-b">病历</span>
+          <span class="float-chip chip-c">报告</span>
         </div>
+      </section>
+
+      <section class="quick-actions slide-up-animation" style="animation-delay: 0.08s">
+        <button
+          v-for="item in quickActions"
+          :key="item.title"
+          class="action-card"
+          type="button"
+          @click="item.action"
+        >
+          <span class="action-icon" :class="item.className">
+            <img v-if="item.image" :src="item.image" alt="" />
+            <van-icon v-else :name="item.icon" />
+          </span>
+          <span>{{ item.title }}</span>
+        </button>
+      </section>
+
+      <section class="info-section slide-up-animation" style="animation-delay: 0.18s">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">TODAY</span>
+            <h2>今日就诊</h2>
+          </div>
+          <button type="button" @click="goToMyAppointments">查看预约</button>
+        </div>
+
+        <div class="info-card">
+          <div class="timeline-glow"></div>
+          <template v-if="appointmentList.length > 0">
+            <div
+              v-for="appt in appointmentList.slice(0, 2)"
+              :key="appt.registerId"
+              class="detail-item"
+            >
+              <span class="time-pill">{{ formatRegisterTime(appt.registerTime) }}</span>
+              <div class="detail-copy">
+                <strong>{{ appt.deptName || '门诊科室' }}</strong>
+                <span>{{ appt.doctorName || '接诊医生' }} · 待就诊</span>
+              </div>
+            </div>
+          </template>
+          <div v-else class="empty-state">
+            <span class="empty-icon">
+              <van-icon name="calendar-o" />
+            </span>
+            <div>
+              <strong>暂无今日预约</strong>
+              <span>可以先进行预约挂号或在线问诊。</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="more-section slide-up-animation" style="animation-delay: 0.24s">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">SERVICES</span>
+            <h2>更多服务</h2>
+          </div>
+          <button type="button" @click="toggleServices">
+            {{ showAllServices ? '收起' : '展开全部' }}
+          </button>
+        </div>
+
         <div class="service-list">
-          <div class="service-item" @click="showToast('健康资讯')">
-            <div class="service-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2z" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M12 10v4M10 12h4" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <span>健康资讯</span>
-          </div>
-          <div class="service-item" @click="goToChat">
-            <div class="service-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M12 8v4M10 10h4" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <span>在线问诊</span>
-          </div>
-          <div class="service-item" @click="showToast('检查预约')">
-            <div class="service-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M9 12h6M12 9v6M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <span>检查预约</span>
-          </div>
-          <div class="service-item" @click="showToast('个人中心')">
-            <div class="service-icon">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="#b9e1cd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <span>个人中心</span>
-          </div>
+          <button
+            v-for="item in visibleServiceItems"
+            :key="item.title"
+            class="service-item"
+            type="button"
+            @click="item.action"
+          >
+            <span class="service-icon">
+              <van-icon :name="item.icon" />
+            </span>
+            <span>{{ item.title }}</span>
+          </button>
         </div>
-      </div>
+      </section>
     </div>
 
     <van-tabbar v-model="active" route>
@@ -224,58 +148,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { getPatientList } from '@/api/patient'
 import { getRegisterList } from '@/api/register'
+import guahaoIcon from '@/assets/images/guahao.png'
+import yuyueIcon from '@/assets/images/yuyue.png'
+import bingliIcon from '@/assets/images/bingli.png'
+import baogaoIcon from '@/assets/images/baogao.png'
 
 const router = useRouter()
 const active = ref(0)
 const username = ref('')
 const todayAppointments = ref(0)
 const appointmentList = ref([])
+const showAllServices = ref(false)
 
-const loadUserData = async () => {
-  try {
-    // 优先从localStorage获取
-    const savedUsername = localStorage.getItem('username')
-    const savedPatientName = localStorage.getItem('patientName')
-    const savedPatientId = localStorage.getItem('patientId')
-    
-    if (savedPatientName) {
-      username.value = savedPatientName
-    } else if (savedUsername) {
-      username.value = savedUsername
-    } else {
-      username.value = '患者'
-    }
-    
-    // 尝试获取患者列表（如果没有patientId）
-    if (!savedPatientId) {
-      const patientRes = await getPatientList({ pageNum: 1, pageSize: 10 })
-      if (patientRes.rows && patientRes.rows.length > 0) {
-        const patient = patientRes.rows.find(p => p.name === savedUsername) || patientRes.rows[0]
-        localStorage.setItem('patientId', patient.patientId)
-        localStorage.setItem('patientName', patient.name)
-        username.value = patient.name
-      }
-    }
-    
-    // 加载预约列表
-    const registerRes = await getRegisterList({ pageNum: 1, pageSize: 10 })
-    if (registerRes.rows) {
-      appointmentList.value = registerRes.rows
-      todayAppointments.value = registerRes.rows.filter(r => {
-        const today = new Date().toDateString()
-        const regDate = new Date(r.registerTime).toDateString()
-        return today === regDate
-      }).length
-    }
-  } catch (error) {
-    console.error('加载用户数据失败', error)
-  }
-}
+const displayName = computed(() => username.value || '患者')
+const visibleServiceItems = computed(() => (showAllServices.value ? serviceItems : serviceItems.slice(0, 4)))
 
 const goToRegister = () => {
   router.push('/register')
@@ -290,15 +181,76 @@ const goToRecord = () => {
 }
 
 const goToChat = () => {
-  // 清除旧的 AI 会话数据
   localStorage.removeItem('aiChatSessionId')
-  // 清除旧的 patientId（如果需要）
-  // localStorage.removeItem('patientId')
   router.push('/chat')
 }
 
 const goToMyAppointments = () => {
   router.push('/my-appointments')
+}
+
+const toggleServices = () => {
+  showAllServices.value = !showAllServices.value
+}
+
+const quickActions = [
+  { title: '预约挂号', image: guahaoIcon, className: 'icon-register', action: goToRegister },
+  { title: '病历查询', image: bingliIcon, className: 'icon-record', action: goToRecord },
+  { title: '我的预约', image: yuyueIcon, className: 'icon-appointment', action: goToMyAppointments },
+  { title: '健康报告', image: baogaoIcon, className: 'icon-report', action: () => showToast('健康报告') }
+]
+
+const serviceItems = [
+  { title: '科室医生', icon: 'manager-o', action: goToDoctors },
+  { title: '健康资讯', icon: 'newspaper-o', action: () => showToast('健康资讯') },
+  { title: '在线问诊', icon: 'chat-o', action: goToChat },
+  { title: '检查预约', icon: 'records-o', action: () => showToast('检查预约') },
+  { title: '个人中心', icon: 'user-circle-o', action: () => router.push('/profile') }
+]
+
+const formatRegisterTime = (value) => {
+  if (!value) return '--:--'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '--:--'
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
+const loadUserData = async () => {
+  try {
+    const savedUsername = localStorage.getItem('username')
+    const savedPatientName = localStorage.getItem('patientName')
+    const savedPatientId = localStorage.getItem('patientId')
+
+    if (savedPatientName) {
+      username.value = savedPatientName
+    } else if (savedUsername) {
+      username.value = savedUsername
+    } else {
+      username.value = '患者'
+    }
+
+    if (!savedPatientId) {
+      const patientRes = await getPatientList({ pageNum: 1, pageSize: 10 })
+      if (patientRes.rows && patientRes.rows.length > 0) {
+        const patient = patientRes.rows.find((p) => p.name === savedUsername) || patientRes.rows[0]
+        localStorage.setItem('patientId', patient.patientId)
+        localStorage.setItem('patientName', patient.name)
+        username.value = patient.name
+      }
+    }
+
+    const registerRes = await getRegisterList({ pageNum: 1, pageSize: 10 })
+    if (registerRes.rows) {
+      appointmentList.value = registerRes.rows
+      todayAppointments.value = registerRes.rows.filter((r) => {
+        const today = new Date().toDateString()
+        const regDate = new Date(r.registerTime).toDateString()
+        return today === regDate
+      }).length
+    }
+  } catch (error) {
+    console.error('加载用户数据失败', error)
+  }
 }
 
 onMounted(() => {
@@ -310,276 +262,615 @@ onMounted(() => {
 .home-page {
   min-height: 100vh;
   background: var(--bg-gradient);
-  padding-bottom: 60px;
+  color: var(--text-primary);
+  padding-bottom: calc(78px + env(safe-area-inset-bottom));
   position: relative;
   overflow: hidden;
 }
 
-.medical-visual-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+.ambient-layer {
+  position: fixed;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 
-.medical-art {
+.mesh {
   position: absolute;
-  top: -100px;
-  left: -50px;
-  width: 150%;
-  height: 150%;
-  opacity: 0.18;
+  border-radius: 999px;
+  filter: blur(3px);
+  opacity: .72;
+  animation: drift 9s ease-in-out infinite;
+}
+
+.mesh-a {
+  width: 280px;
+  height: 280px;
+  top: -88px;
+  right: -92px;
+  background: radial-gradient(circle, rgba(185, 225, 205, .72), rgba(185, 225, 205, 0) 68%);
+}
+
+.mesh-b {
+  width: 230px;
+  height: 230px;
+  left: -110px;
+  top: 280px;
+  background: radial-gradient(circle, rgba(142, 214, 242, .52), rgba(142, 214, 242, 0) 70%);
+  animation-delay: -3s;
+}
+
+.mesh-c {
+  width: 190px;
+  height: 190px;
+  right: -74px;
+  bottom: 120px;
+  background: radial-gradient(circle, rgba(255, 253, 248, .9), rgba(255, 253, 248, 0) 72%);
+  animation-delay: -5s;
+}
+
+.grid-plane {
+  position: absolute;
+  inset: 0;
+  opacity: .28;
+  background-image:
+    linear-gradient(rgba(26, 77, 69, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 77, 69, .08) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .8), transparent 74%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .8), transparent 74%);
 }
 
 .content-wrapper {
   position: relative;
   z-index: 1;
-  padding: 20px 16px 0;
+  padding: 18px 16px 0;
 }
 
-.header-section {
+.hero-section {
+  min-height: 210px;
+  border: 1px solid rgba(213, 237, 243, .74);
+  border-radius: 18px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255, 253, 248, .86), rgba(255, 253, 248, .42)),
+    linear-gradient(120deg, rgba(185, 225, 205, .24), rgba(142, 214, 242, .16));
+  box-shadow: 0 28px 70px rgba(102, 170, 189, .2);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 0%, rgba(255, 253, 248, .58) 45%, transparent 72%);
+    transform: translateX(-110%);
+    animation: sheen 5.8s ease-in-out infinite;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(26, 77, 69, .24), transparent);
+  }
+}
+
+.hero-copy,
+.hero-visual {
+  position: relative;
+  z-index: 1;
+}
+
+.top-row {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
   align-items: flex-start;
-  padding: 16px 0 24px;
 }
 
-.greeting {
-  h1 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
+.eyebrow {
+  margin: 0 0 6px;
+  color: rgba(26, 77, 69, .74);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
 
-  p {
-    margin: 6px 0 0;
-    font-size: 14px;
-    color: var(--text-regular);
-  }
+.hero-copy h1 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 22px;
+  line-height: 1.18;
+  font-weight: 800;
+}
+
+.hero-desc {
+  margin: 8px 0 0;
+  color: var(--text-regular);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .status-badge {
-  display: flex;
+  flex: 0 0 auto;
+  height: 34px;
+  border: 1px solid rgba(185, 225, 205, .56);
+  border-radius: 10px;
+  padding: 0 12px;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: rgba(255, 253, 248, 0.85);
-  border-radius: 20px;
-  border: 1px solid rgba(185, 225, 205, 0.3);
-  backdrop-filter: blur(10px);
+  gap: 7px;
+  background: rgba(255, 253, 248, .72);
+  color: #5f9e8c;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6);
+}
 
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    background: #82d7bf;
-    border-radius: 50%;
-    animation: pulse 2s ease-in-out infinite;
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #82d7bf;
+  box-shadow: 0 0 0 6px rgba(130, 215, 191, .16);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.metric-card {
+  min-height: 54px;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(255, 253, 248, .54);
+  border: 1px solid rgba(213, 237, 243, .64);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+.metric-value {
+  color: var(--primary-color);
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.metric-label {
+  color: var(--text-light);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.hero-visual {
+  height: 82px;
+  margin-top: 4px;
+}
+
+.radar-ring {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  border: 1px solid rgba(26, 77, 69, .13);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ring-one {
+  width: 188px;
+  height: 58px;
+  animation: radarBreath 4.4s ease-in-out infinite;
+}
+
+.ring-two {
+  width: 246px;
+  height: 76px;
+  animation: radarBreath 4.4s ease-in-out infinite reverse;
+}
+
+.core-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(220px, 72vw);
+  height: 58px;
+  transform: translate(-50%, -50%);
+  border-radius: 14px;
+  background: rgba(255, 253, 248, .78);
+  border: 1px solid rgba(213, 237, 243, .78);
+  box-shadow: 0 20px 50px rgba(102, 170, 189, .18);
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  padding: 10px;
+}
+
+.cross-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(185, 225, 205, .92), rgba(142, 214, 242, .52));
+  position: relative;
+  box-shadow: 0 12px 28px rgba(102, 170, 189, .18);
+
+  span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 22px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 253, 248, .96);
+    transform: translate(-50%, -50%);
   }
 
   span:last-child {
-    font-size: 13px;
-    font-weight: 600;
-    color: #5f9e8c;
+    transform: translate(-50%, -50%) rotate(90deg);
   }
+}
+
+.pulse-track {
+  svg {
+    width: 100%;
+    height: 32px;
+    overflow: visible;
+  }
+}
+
+.pulse-shadow,
+.pulse-line {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.pulse-shadow {
+  stroke: rgba(142, 214, 242, .22);
+}
+
+.pulse-line {
+  stroke: #6fbacb;
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+  animation: pulseDraw 3.2s ease-in-out infinite;
+}
+
+.float-chip {
+  position: absolute;
+  height: 24px;
+  border-radius: 9px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 253, 248, .78);
+  border: 1px solid rgba(185, 225, 205, .42);
+  color: rgba(26, 77, 69, .72);
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(102, 170, 189, .12);
+  animation: floatSoft 5s ease-in-out infinite;
+}
+
+.chip-a {
+  left: 10px;
+  top: 6px;
+}
+
+.chip-b {
+  right: 18px;
+  top: 0;
+  animation-delay: -1.6s;
+}
+
+.chip-c {
+  right: 54px;
+  bottom: 2px;
+  animation-delay: -2.7s;
+}
+
+.quick-actions,
+.info-section,
+.more-section {
+  margin-top: 12px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .action-card {
+  min-width: 0;
+  min-height: 94px;
+  border: 1px solid rgba(213, 237, 243, .76);
+  border-radius: 14px;
+  padding: 12px 10px;
+  background: rgba(255, 253, 248, .72);
+  box-shadow: 0 14px 32px rgba(102, 170, 189, .12);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 16px;
-  border-radius: 20px;
-  background: rgba(255, 253, 248, 0.85);
-  border: 1px solid rgba(213, 237, 243, 0.5);
-  backdrop-filter: blur(12px);
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 40px rgba(102, 170, 189, 0.15);
-    background: rgba(255, 253, 248, 0.95);
-  }
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-primary);
+  transition: transform .22s ease, box-shadow .22s ease;
 
   &:active {
-    transform: translateY(-2px);
+    transform: translateY(2px) scale(.98);
   }
 
-  span {
-    margin-top: 14px;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
+  span:last-child {
+    width: 100%;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 750;
+    line-height: 1.25;
   }
 }
 
 .action-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.3s ease;
-  background: transparent;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, rgba(185, 225, 205, .24), rgba(142, 214, 242, .12));
+  border: 1px solid rgba(185, 225, 205, .22);
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 13px;
+    border: 1px solid rgba(185, 225, 205, .16);
+    opacity: 0;
+    animation: iconHalo 3.6s ease-in-out infinite;
+  }
 
   img {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     object-fit: contain;
-    transition: transform 0.3s ease;
+  }
+
+  .van-icon {
+    color: #6fbacb;
+    font-size: 24px;
   }
 }
 
-.action-card:hover .action-icon {
-  transform: rotate(-6deg) scale(1.05);
-}
+.icon-register::after { animation-delay: -.3s; }
+.icon-record::after { animation-delay: -.9s; }
+.icon-appointment::after { animation-delay: -1.8s; }
+.icon-report::after { animation-delay: -2.7s; }
 
-.action-card:hover .action-icon img {
-  transform: scale(1.1);
-}
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 12px;
 
-.action-card:hover .action-icon svg {
-  transform: scale(1.1);
-}
-
-.icon-doctor svg {
-  width: 36px;
-  height: 36px;
-  transition: transform 0.3s ease;
-}
-
-.info-section {
-  margin-bottom: 20px;
-
-  .info-card {
-    background: rgba(255, 253, 248, 0.85);
-    border: 1px solid rgba(213, 237, 243, 0.5);
-    backdrop-filter: blur(12px);
-    border-radius: 20px;
-    padding: 20px;
+  h2 {
+    margin: 2px 0 0;
+    color: var(--primary-color);
+    font-size: 17px;
+    line-height: 1.2;
   }
 
-  .info-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .info-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-
-    .info-count {
-      font-size: 24px;
-      font-weight: 700;
-      color: #b9e1cd;
-    }
-  }
-
-  .info-detail {
-    .detail-item {
-      display: flex;
-      gap: 12px;
-      padding: 12px 0;
-
-      &:not(:last-child) {
-        border-bottom: 1px solid rgba(213, 237, 243, 0.4);
-      }
-
-      .detail-label {
-        font-size: 14px;
-        font-weight: 600;
-        color: #8ed6f2;
-        min-width: 60px;
-      }
-
-      .detail-text {
-        font-size: 14px;
-        color: var(--text-regular);
-      }
-    }
+  button {
+    border: 0;
+    background: rgba(255, 253, 248, .54);
+    border: 1px solid rgba(213, 237, 243, .64);
+    border-radius: 8px;
+    color: rgba(26, 77, 69, .62);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 5px 9px;
   }
 }
 
-.more-section {
-  .section-title {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+.section-kicker {
+  color: var(--text-light);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
 
-    span:first-child {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
+.info-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(255, 253, 248, .76);
+  border: 1px solid rgba(213, 237, 243, .72);
+  box-shadow: 0 18px 44px rgba(102, 170, 189, .13);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
 
-    .more-link {
-      font-size: 14px;
-      color: #b9e1cd;
-      font-weight: 500;
-      cursor: pointer;
-    }
+.timeline-glow {
+  position: absolute;
+  left: 30px;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  border-radius: 4px;
+  background: linear-gradient(to bottom, rgba(185, 225, 205, .2), rgba(142, 214, 242, .6), rgba(185, 225, 205, .2));
+}
+
+.detail-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 12px;
+  align-items: center;
+  min-height: 64px;
+
+  + .detail-item {
+    border-top: 1px solid rgba(213, 237, 243, .45);
+  }
+}
+
+.time-pill {
+  justify-self: start;
+  min-width: 58px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(185, 225, 205, .18);
+  color: #5f9e8c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  strong {
+    color: var(--primary-color);
+    font-size: 15px;
+    line-height: 1.2;
   }
 
-  .service-list {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    background: rgba(255, 253, 248, 0.85);
-    border: 1px solid rgba(213, 237, 243, 0.5);
-    backdrop-filter: blur(12px);
-    border-radius: 20px;
-    padding: 20px;
+  span {
+    color: var(--text-regular);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+}
 
-    .service-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      transition: transform 0.2s ease;
+.empty-state {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  align-items: center;
 
-      &:active {
-        transform: scale(0.95);
-      }
+  strong,
+  span {
+    display: block;
+  }
 
-      .service-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
-        background: rgba(185, 225, 205, 0.08);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+  strong {
+    color: var(--primary-color);
+    font-size: 15px;
+    margin-bottom: 5px;
+  }
 
-        svg {
-          width: 24px;
-          height: 24px;
-        }
-      }
+  span {
+    color: var(--text-regular);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+}
 
-      span {
-        font-size: 13px;
-        color: var(--text-primary);
-        font-weight: 500;
-        text-align: center;
-      }
-    }
+.empty-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(185, 225, 205, .16);
+  color: #6fbacb;
+  font-size: 24px;
+}
+
+.service-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.service-item {
+  min-height: 72px;
+  border: 1px solid rgba(213, 237, 243, .72);
+  border-radius: 12px;
+  padding: 13px;
+  background: rgba(255, 253, 248, .7);
+  box-shadow: 0 14px 30px rgba(102, 170, 189, .11);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 800;
+  transition: transform .2s ease;
+
+  &:active {
+    transform: scale(.98);
+  }
+}
+
+.service-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(185, 225, 205, .16);
+  color: #6fbacb;
+  font-size: 22px;
+  flex: 0 0 auto;
+}
+
+.slide-up-animation {
+  animation: slideUp .58s cubic-bezier(.2, .78, .24, 1) both;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(12px, -16px, 0) scale(1.04);
+  }
+}
+
+@keyframes sheen {
+  0%, 52% {
+    transform: translateX(-115%);
+  }
+  76%, 100% {
+    transform: translateX(115%);
   }
 }
 
@@ -589,97 +880,88 @@ onMounted(() => {
     transform: scale(1);
   }
   50% {
-    opacity: 0.6;
-    transform: scale(1.2);
+    opacity: .62;
+    transform: scale(1.22);
   }
 }
 
-.wave-lines {
-  animation: waveMove 9s ease-in-out infinite;
-}
-
-.cloud {
-  opacity: .88;
-  animation: cloudDrift 9s ease-in-out infinite;
-}
-
-.cloud-b {
-  animation-delay: -3s;
-}
-
-.floating,
-.pill,
-.plant {
-  animation: floatSoft 5.8s ease-in-out infinite;
-}
-
-.form-card { animation-delay: -.8s; }
-.med-kit { animation-delay: -1.4s; }
-.stethoscope { animation-delay: -2s; }
-.pill-a { animation-delay: -2.8s; }
-.pill-b { animation-delay: -1.8s; }
-.plant-left { animation-delay: -1.2s; }
-.plant-right { animation-delay: -2.4s; }
-
-.heart-pulse {
-  animation: heartbeat 3.4s ease-in-out infinite;
-  transform-origin: 306px 214px;
-}
-
-.pulse-line {
-  stroke-dasharray: 190;
-  stroke-dashoffset: 190;
-  animation: pulseDraw 3.4s ease-in-out infinite;
-}
-
-.tiny-crosses {
-  animation: twinkle 4.8s ease-in-out infinite;
-}
-
-@keyframes waveMove {
-  0%, 100% { transform: translateX(-8px) translateY(0); opacity: .48; }
-  50% { transform: translateX(12px) translateY(-8px); opacity: .76; }
-}
-
-@keyframes cloudDrift {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(18px); }
-}
-
-@keyframes floatSoft {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes heartbeat {
-  0%, 100% { transform: scale(1); }
-  45% { transform: scale(1.035); }
-  60% { transform: scale(.99); }
+@keyframes radarBreath {
+  0%, 100% {
+    opacity: .42;
+    transform: translate(-50%, -50%) scale(.97);
+  }
+  50% {
+    opacity: .8;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
 }
 
 @keyframes pulseDraw {
-  0% { stroke-dashoffset: 190; opacity: .2; }
-  45%, 75% { stroke-dashoffset: 0; opacity: 1; }
-  100% { stroke-dashoffset: -190; opacity: .25; }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: .38; }
-  50% { opacity: .88; }
-}
-
-.slide-up-animation {
-  animation: slideUp 0.5s ease-out forwards;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+  0% {
+    stroke-dashoffset: 260;
+    opacity: .25;
   }
-  to {
+  45%, 75% {
+    stroke-dashoffset: 0;
     opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -260;
+    opacity: .35;
+  }
+}
+
+@keyframes floatSoft {
+  0%, 100% {
     transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes iconHalo {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(.92);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@media (max-width: 360px) {
+  .content-wrapper {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .hero-section {
+    border-radius: 16px;
+    padding: 14px;
+  }
+
+  .hero-copy h1 {
+    font-size: 21px;
+  }
+
+  .quick-actions {
+    gap: 8px;
+  }
+
+  .action-card {
+    min-height: 88px;
+  }
+
+  .action-icon {
+    width: 42px;
+    height: 42px;
+
+    img {
+      width: 31px;
+      height: 31px;
+    }
   }
 }
 </style>

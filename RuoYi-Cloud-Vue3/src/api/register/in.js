@@ -42,3 +42,11 @@ export function delIn(checkInId) {
     method: 'delete'
   })
 }
+
+// 获取可签到的挂号列表（已挂号但未签到）
+export function getAvailableRegisters() {
+  return request({
+    url: '/register/in/availableRegisters',
+    method: 'get'
+  })
+}

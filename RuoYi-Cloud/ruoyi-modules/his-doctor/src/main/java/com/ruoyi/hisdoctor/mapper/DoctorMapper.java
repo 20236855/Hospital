@@ -7,15 +7,15 @@ import com.ruoyi.hisdoctor.domain.Doctor;
 
 /**
  * 医生信息Mapper接口
- * 
+ *
  * @author ruoyi
  * @date 2026-05-30
  */
-public interface DoctorMapper 
+public interface DoctorMapper
 {
     /**
      * 查询医生信息
-     * 
+     *
      * @param doctorId 医生信息主键
      * @return 医生信息
      */
@@ -23,7 +23,7 @@ public interface DoctorMapper
 
     /**
      * 查询医生信息列表
-     * 
+     *
      * @param doctor 医生信息
      * @return 医生信息集合
      */
@@ -31,7 +31,7 @@ public interface DoctorMapper
 
     /**
      * 新增医生信息
-     * 
+     *
      * @param doctor 医生信息
      * @return 结果
      */
@@ -39,7 +39,7 @@ public interface DoctorMapper
 
     /**
      * 修改医生信息
-     * 
+     *
      * @param doctor 医生信息
      * @return 结果
      */
@@ -47,7 +47,7 @@ public interface DoctorMapper
 
     /**
      * 删除医生信息
-     * 
+     *
      * @param doctorId 医生信息主键
      * @return 结果
      */
@@ -55,7 +55,7 @@ public interface DoctorMapper
 
     /**
      * 批量删除医生信息
-     * 
+     *
      * @param doctorIds 需要删除的数据主键集合
      * @return 结果
      */
@@ -63,7 +63,7 @@ public interface DoctorMapper
 
     /**
      * 根据用户ID查询医生信息
-     * 
+     *
      * @param userId 用户ID
      * @return 医生信息
      */
@@ -85,12 +85,14 @@ public interface DoctorMapper
     public String selectDoctorUserNickName(Long userId);
 
     /**
-     * 查询接诊医生候选池。
+     * 查询可接待医生列表
      *
      * @param roleId 角色ID
-     * @return 接诊医生集合
+     * @return 可接待医生列表
      */
     public List<AgentScheduleDoctor> selectReceptionDoctors(Long roleId);
+
+    /**
      * 查询系统用户基本信息用于自动创建医生档案
      *
      * @param userId 用户ID

@@ -17,10 +17,10 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="拼音码(检索用)" prop="pyCode">
+      <el-form-item label="拼音码" prop="pyCode">
         <el-input
           v-model="queryParams.pyCode"
-          placeholder="请输入拼音码(检索用)"
+          placeholder="请输入拼音码"
           clearable
           @keyup.enter="handleQuery"
         />
@@ -118,7 +118,7 @@
       <el-table-column label="药品ID(主键)" align="center" prop="id" />
       <el-table-column label="药品编码" align="center" prop="drugCode" />
       <el-table-column label="药品名称" align="center" prop="drugName" />
-      <el-table-column label="拼音码(检索用)" align="center" prop="pyCode" />
+      <el-table-column label="拼音码" align="center" prop="pyCode" />
       <el-table-column label="药品规格" align="center" prop="spec" />
       <el-table-column label="包装单位" align="center" prop="unit" />
       <el-table-column label="单价" align="center" prop="drugPrice" />
@@ -148,8 +148,11 @@
       <el-form ref="drugRef" :model="form" :rules="rules" label-width="100px">
         <el-row>
           <el-col :span="24">
-            <el-form-item label="药品编码" prop="drugCode">
-              <el-input v-model="form.drugCode" placeholder="请输入药品编码" />
+            <el-form-item label="药品编码" prop="drugCode" v-if="form.id">
+              <el-input v-model="form.drugCode" placeholder="请输入药品编码" disabled />
+            </el-form-item>
+            <el-form-item label="药品编码" v-else>
+              <el-input v-model="form.drugCode" placeholder="系统自动生成" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -158,8 +161,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="拼音码(检索用)" prop="pyCode">
-              <el-input v-model="form.pyCode" placeholder="请输入拼音码(检索用)" />
+            <el-form-item label="拼音码" prop="pyCode">
+              <el-input v-model="form.pyCode" placeholder="请输入拼音码" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -237,7 +240,16 @@ const data = reactive({
   },
   rules: {
     drugCode: [
-      { required: true, message: "药品编码不能为空", trigger: "blur" }
+      { required: true, message: "药品编码不能为空", trigger: "blur", validator: (rule, value, callback) => {
+        // 新增时药品编码由后端自动生成，不校验
+        if (!form.value.id && !value) {
+          callback()
+        } else if (form.value.id && !value) {
+          callback(new Error('药品编码不能为空'))
+        } else {
+          callback()
+        }
+      }}
     ],
     drugName: [
       { required: true, message: "药品名称不能为空", trigger: "blur" }

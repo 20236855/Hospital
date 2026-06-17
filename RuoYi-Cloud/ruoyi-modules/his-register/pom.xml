@@ -85,6 +85,12 @@
             <artifactId>ruoyi-api-his</artifactId>
         </dependency>
 
+        <!-- Redis（签到排队号分布式锁） -->
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-common-redis</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

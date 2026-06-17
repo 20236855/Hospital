@@ -25,6 +25,7 @@ import com.ruoyi.his.api.RemoteDoctorService;
 import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.register.domain.CheckIn;
 import com.ruoyi.register.domain.Register;
+import com.ruoyi.register.mapper.RegisterMapper;
 import com.ruoyi.register.service.ICheckInService;
 import com.ruoyi.register.service.IRegisterService;
 import com.ruoyi.common.core.domain.R;
@@ -58,6 +59,9 @@ public class CheckInController extends BaseController
 
     @Autowired
     private RemoteDoctorService remoteDoctorService;
+
+    @Autowired
+    private RegisterMapper registerMapper;
 
     /**
      * 查询签到列表
@@ -352,6 +356,17 @@ public class CheckInController extends BaseController
             throw new ServiceException("当前医生档案不存在，请先完善医生信息");
         }
         return doctorId instanceof Number ? ((Number) doctorId).longValue() : Long.valueOf(doctorId.toString());
+    }
+
+    /**
+     * 获取可签到的挂号列表（已挂号但未签到）
+     */
+    @RequiresPermissions("register:in:list")
+    @GetMapping("/availableRegisters")
+    public AjaxResult availableRegisters()
+    {
+        List<Map<String, Object>> list = registerMapper.selectAvailableRegistersForCheckIn();
+        return success(list);
     }
 
     private boolean isOutpatientDoctorRole()

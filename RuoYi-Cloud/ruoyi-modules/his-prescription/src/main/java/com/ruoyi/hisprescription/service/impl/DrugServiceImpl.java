@@ -1,6 +1,9 @@
 package com.ruoyi.hisprescription.service.impl;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import com.ruoyi.common.core.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,7 +57,17 @@ public class DrugServiceImpl implements IDrugService
     public int insertDrug(Drug drug)
     {
         drug.setCreateTime(DateUtils.getNowDate());
+        // 自动生成药品编码：YP + yyyyMMdd + 4位随机数
+        if (drug.getDrugCode() == null || drug.getDrugCode().isEmpty()) {
+            drug.setDrugCode(generateDrugCode());
+        }
         return drugMapper.insertDrug(drug);
+    }
+
+    private String generateDrugCode() {
+        String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        int randomNum = new Random().nextInt(9000) + 1000;
+        return "YP" + dateStr + randomNum;
     }
 
     /**

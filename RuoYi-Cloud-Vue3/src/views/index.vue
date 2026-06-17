@@ -349,11 +349,18 @@ const isAdminOrDoctor = computed(() => {
   return userStore.userType === 'admin' || userStore.userType === 'doctor' || userStore.roles?.some(role => role.roleKey?.includes('admin') || role.roleKey?.includes('doctor'))
 })
 
+// 是否为管理员
+const isAdmin = computed(() => {
+  return userStore.roles?.some(role => role.roleKey?.includes('admin')) || false
+})
+
 // 页面加载时检查是否需要完善信息 + 加载待分配医护工作者数量
 onMounted(() => {
   nextTick(() => {
-    // 加载待分配医护工作者数量
-    loadPendingMedicalStaff()
+    // 仅管理员加载待分配医护工作者数量
+    if (isAdmin.value) {
+      loadPendingMedicalStaff()
+    }
     // 延迟一下，确保用户信息已经加载
     setTimeout(() => {
       if (userStore.needCompleteInfo && userStore.userType) {

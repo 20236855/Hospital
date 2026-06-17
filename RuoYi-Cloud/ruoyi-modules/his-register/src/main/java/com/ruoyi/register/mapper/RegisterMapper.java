@@ -55,4 +55,9 @@ public interface RegisterMapper
     public int updateRegisterPayStatus(@Param("registerId") Long registerId, @Param("payStatus") String payStatus, @Param("updateTime") Date updateTime);
 
     public List<Register> selectExpiredUnpaidRegisters(@Param("expireTime") Date expireTime);
+
+    /**
+     * 查询所有已挂号但未签到的记录（用于签到下拉框）
+     */
+    public List<Map<String, Object>> selectAvailableRegistersForCheckIn();
 }

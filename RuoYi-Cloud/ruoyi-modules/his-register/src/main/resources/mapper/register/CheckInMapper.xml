@@ -105,4 +105,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             #{checkInId}
         </foreach>
     </delete>
+
+    <select id="selectMaxQueueNoByScheduleId" parameterType="Long" resultType="Long">
+        select COALESCE(MAX(ci.queue_no), 0)
+        from check_in ci
+        inner join register r on r.register_id = ci.register_id
+        where r.schedule_id = #{scheduleId}
+    </select>
 </mapper>

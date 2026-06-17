@@ -105,13 +105,20 @@
       <el-form ref="inRef" :model="form" :rules="rules" label-width="100px">
         <el-row>
           <el-col :span="24">
-            <el-form-item label="挂号ID" prop="registerId">
-              <el-input v-model="form.registerId" placeholder="请输入挂号ID" />
+            <el-form-item label="挂号信息" prop="registerId">
+              <el-select v-model="form.registerId" placeholder="请选择待签到的挂号" filterable clearable style="width: 100%">
+                <el-option
+                  v-for="item in availableRegisters"
+                  :key="item.registerId"
+                  :label="item.patientName + ' - ' + item.doctorName + ' (' + item.registerNo + ')'"
+                  :value="item.registerId"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="排队号" prop="queueNo">
-              <el-input v-model="form.queueNo" placeholder="请输入排队号" />
+              <el-input v-model="form.queueNo" placeholder="系统自动计算" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -137,12 +144,14 @@
 </template>
 
 <script setup name="In">
-import { listIn, getIn, delIn, addIn, updateIn } from "@/api/register/in"
+import { listIn, getIn, delIn, addIn, updateIn, getAvailableRegisters } from "@/api/register/in"
 import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
 const NURSE_POST_ID = 2
+
+const availableRegisters = ref([])
 const isPatientUser = computed(() => userStore.userType === "patient" || userStore.roles.includes("patient"))
 const isNurseUser = computed(() => userStore.roles.includes("doctor") && (userStore.postIds || []).some(postId => Number(postId) === NURSE_POST_ID))
 
@@ -228,8 +237,16 @@ function handleSelectionChange(selection) {
 function handleAdd() {
   if (isPatientUser.value) return
   reset()
+  loadAvailableRegisters()
   open.value = true
   title.value = "添加签到"
+}
+
+/** 加载可签到的挂号列表 */
+function loadAvailableRegisters() {
+  getAvailableRegisters().then(res => {
+    availableRegisters.value = res.data || []
+  })
 }
 
 /** 修改按钮操作 */

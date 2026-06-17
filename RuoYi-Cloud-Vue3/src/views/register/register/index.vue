@@ -256,12 +256,13 @@
                 filterable
                 clearable
                 :disabled="!form.deptId"
+                @change="handleDoctorChange"
                 style="width: 100%"
               >
                 <el-option
                   v-for="item in doctorList"
                   :key="item.doctorId"
-                  :label="item.doctorName"
+                  :label="item.doctorName + (item.levelName ? ' - ' + item.levelName : '')"
                   :value="item.doctorId"
                 />
               </el-select>
@@ -575,6 +576,20 @@ async function handleLevelChange(levelId) {
   }
   const res = await getRegisterFee(levelId)
   form.value.registerFee = res.data
+}
+
+/** 选医生后自动填挂号级别和费用 */
+async function handleDoctorChange(doctorId) {
+  if (!doctorId) {
+    form.value.levelId = null
+    form.value.registerFee = null
+    return
+  }
+  const doctor = doctorList.value.find(d => d.doctorId === doctorId)
+  if (doctor && doctor.levelId) {
+    form.value.levelId = doctor.levelId
+    await handleLevelChange(doctor.levelId)
+  }
 }
 
 async function handleIdCardBlur() {

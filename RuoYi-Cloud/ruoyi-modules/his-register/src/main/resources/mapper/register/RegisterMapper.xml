@@ -112,11 +112,13 @@
         order by order_num, dept_id
     </select>
 
-    <!-- 医生下拉：返回doctorId、doctor_name（之前已经改好联表doctor） -->
+    <!-- 医生下拉：返回doctorId、doctorName、level_id、挂号级别名称 -->
     <select id="selectDoctorListByDeptId" resultType="java.util.Map">
-        select d.doctor_id as doctorId, d.doctor_name as doctorName
+        select d.doctor_id as doctorId, d.doctor_name as doctorName,
+               d.level_id as levelId, rl.level_name as levelName
         from doctor d
                  inner join sys_user u on d.user_id = u.user_id
+                 left join regist_level rl on rl.level_id = d.level_id
         where u.del_flag = '0' and u.status = '0' and u.dept_id = #{deptId}
         order by d.doctor_id
     </select>
@@ -228,5 +230,22 @@
           and lower(r.pay_status) = 'unpaid'
           and r.create_time &lt;= #{expireTime}
         order by r.create_time asc
+    </select>
+
+    <!-- 查询已挂号但未签到的记录（用于签到下拉框） -->
+    <select id="selectAvailableRegistersForCheckIn" resultType="java.util.Map">
+        select r.register_id as registerId, r.register_no as registerNo,
+               r.register_time as registerTime,
+               p.name as patientName, d.doctor_name as doctorName,
+               dept.dept_name as deptName
+        from register r
+        left join patient p on p.patient_id = r.patient_id
+        left join doctor d on d.doctor_id = r.doctor_id
+        left join sys_dept dept on dept.dept_id = r.dept_id
+        where r.register_status = 'registered'
+          and not exists (
+              select 1 from check_in ci where ci.register_id = r.register_id
+          )
+        order by r.register_time desc
     </select>
 </mapper>

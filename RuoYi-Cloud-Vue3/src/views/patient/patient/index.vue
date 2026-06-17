@@ -24,12 +24,10 @@
         </el-col>
         <el-col :span="6">
           <el-form-item label="性别" prop="gender">
-            <el-input
-              v-model="queryParams.gender"
-              placeholder="请输入性别"
-              clearable
-              @keyup.enter="handleQuery"
-            />
+            <el-select v-model="queryParams.gender" placeholder="请选择性别" clearable style="width: 100%">
+              <el-option label="男" value="男" />
+              <el-option label="女" value="女" />
+            </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="6">
@@ -216,7 +214,10 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="性别" prop="gender">
-              <el-input v-model="form.gender" placeholder="请输入性别" />
+              <el-select v-model="form.gender" placeholder="请选择性别" clearable style="width: 100%">
+                <el-option label="男" value="男" />
+                <el-option label="女" value="女" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -226,6 +227,7 @@
                 type="date"
                 value-format="YYYY-MM-DD"
                 placeholder="请选择出生日期"
+                @change="calcAge"
                 style="width: 100%">
               </el-date-picker>
             </el-form-item>
@@ -234,7 +236,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="年龄" prop="age">
-              <el-input v-model="form.age" placeholder="请输入年龄" />
+              <el-input v-model="form.age" placeholder="选择出生日期自动计算" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -270,12 +272,24 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="血型" prop="bloodType">
-              <el-input v-model="form.bloodType" placeholder="请输入血型" />
+              <el-select v-model="form.bloodType" placeholder="请选择血型" clearable style="width: 100%">
+                <el-option label="A型" value="A" />
+                <el-option label="B型" value="B" />
+                <el-option label="AB型" value="AB" />
+                <el-option label="O型" value="O" />
+                <el-option label="Rh阳性" value="RH+" />
+                <el-option label="Rh阴性" value="RH-" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="婚姻状态" prop="maritalStatus">
-              <el-input v-model="form.maritalStatus" placeholder="请输入婚姻状态" />
+              <el-select v-model="form.maritalStatus" placeholder="请选择婚姻状态" clearable style="width: 100%">
+                <el-option label="未婚" value="未婚" />
+                <el-option label="已婚" value="已婚" />
+                <el-option label="离异" value="离异" />
+                <el-option label="丧偶" value="丧偶" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -517,6 +531,22 @@ function handleExport() {
   proxy.download('patient/patient/export', {
     ...queryParams.value
   }, `patient_${new Date().getTime()}.xlsx`)
+}
+
+/** 根据出生日期自动计算年龄 */
+function calcAge(dateStr) {
+  if (!dateStr) {
+    form.value.age = null
+    return
+  }
+  const birthday = new Date(dateStr)
+  const today = new Date()
+  let age = today.getFullYear() - birthday.getFullYear()
+  const monthDiff = today.getMonth() - birthday.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate())) {
+    age--
+  }
+  form.value.age = age > 0 ? age : 0
 }
 
 getList()

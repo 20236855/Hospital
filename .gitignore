@@ -11,6 +11,7 @@ yarn.lock
 target/
 *.log
 *.xml.versionsBackup
+.m2repo/
 
 # IDE / OS
 .idea/

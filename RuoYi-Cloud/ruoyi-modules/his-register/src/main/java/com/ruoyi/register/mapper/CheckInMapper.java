@@ -66,4 +66,11 @@ public interface CheckInMapper
      * @return 结果
      */
     public int deleteCheckInByCheckInIds(Long[] checkInIds);
+
+    /**
+     * 查询指定排班下已签到的最大排队号（无签到时返回0）
+     * @param scheduleId 排班ID
+     * @return 当前最大排队号
+     */
+    public Long selectMaxQueueNoByScheduleId(Long scheduleId);
 }
