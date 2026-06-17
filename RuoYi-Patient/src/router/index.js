@@ -4,6 +4,12 @@ import { getPatientByUserId } from '@/api/patient'
 
 const routes = [
   {
+    path: '/guide',
+    name: 'Guide',
+    component: () => import('@/views/Guide.vue'),
+    meta: { title: '引导页' }
+  },
+  {
     path: '/',
     name: 'Home',
     component: () => import('@/views/Home.vue'),
@@ -78,6 +84,15 @@ const router = createRouter({
 
 router.beforeEach(async (to, from) => {
   const token = localStorage.getItem('token')
+
+  // 未登录且首次打开 → 先进引导页
+  if (!token && to.path === '/') {
+    const guideSeen = localStorage.getItem('guideSeen')
+    if (guideSeen !== '1') {
+      return '/guide'
+    }
+  }
+
   if (to.meta.requiresAuth && !token) {
     return '/login'
   }

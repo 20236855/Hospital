@@ -1,5 +1,105 @@
 <template>
-  <div class="app-container">
+  <div class="app-container patient-console">
+    <section class="patient-dashboard">
+      <div class="dashboard-bg" aria-hidden="true">
+        <span class="scan-line"></span>
+        <span class="pulse-ring ring-one"></span>
+        <span class="pulse-ring ring-two"></span>
+        <span class="float-icon fi-a">
+          <svg viewBox="0 0 40 40" fill="none"><rect x="8" y="8" width="24" height="24" rx="6" stroke="currentColor" stroke-width="2.5"/><path d="M20 14v12M14 20h12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </span>
+        <span class="float-icon fi-b">
+          <svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="12" stroke="currentColor" stroke-width="2.5"/><path d="M20 14v12M14 20h12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </span>
+        <span class="float-icon fi-c">
+          <svg viewBox="0 0 40 40" fill="none"><path d="M8 32L20 12L32 32H8z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><circle cx="20" cy="24" r="2" fill="currentColor"/></svg>
+        </span>
+      </div>
+      <div class="dashboard-head">
+        <div>
+          <div class="dashboard-kicker">
+            <span class="live-dot"></span>
+            Patient Data Command Center
+          </div>
+          <h2>患者数据驾驶舱</h2>
+          <p>聚合患者建档、年龄结构、联系完整度与血型分布，为门诊接诊和档案治理提供实时洞察。</p>
+        </div>
+        <div class="dashboard-health">
+          <span>档案完整度</span>
+          <strong>{{ dashboardStats.completeRate }}%</strong>
+          <i :style="{ width: `${dashboardStats.completeRate}%` }"></i>
+        </div>
+      </div>
+
+      <div class="metric-grid">
+        <article v-for="(item, index) in dashboardCards" :key="item.label" class="metric-card" :style="{ '--delay': `${index * 90}ms` }">
+          <div class="metric-icon" :class="item.tone">
+            <el-icon><component :is="item.icon" /></el-icon>
+          </div>
+          <div class="metric-copy">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+            <small>{{ item.note }}</small>
+          </div>
+          <div class="metric-spark">
+            <span v-for="bar in item.spark" :key="bar" :style="{ height: `${bar}%` }"></span>
+          </div>
+        </article>
+      </div>
+
+      <div class="dashboard-panels">
+        <div class="panel age-panel">
+          <div class="panel-title">
+            <span>Age Distribution</span>
+            <strong>年龄结构</strong>
+          </div>
+          <div class="age-bars">
+            <div v-for="item in ageGroups" :key="item.label" class="age-row">
+              <span>{{ item.label }}</span>
+              <div>
+                <i :style="{ width: `${item.percent}%` }"></i>
+              </div>
+              <em>{{ item.count }}</em>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel gender-panel">
+          <div class="panel-title">
+            <span>Gender Ratio</span>
+            <strong>性别占比</strong>
+          </div>
+          <div class="donut-wrap">
+            <div class="gender-donut" :style="{ '--male': `${dashboardStats.maleRate}%` }">
+              <div>
+                <strong>{{ dashboardStats.maleRate }}%</strong>
+                <span>男性</span>
+              </div>
+            </div>
+            <div class="legend-list">
+              <span><i class="male"></i>男 {{ dashboardStats.genderMale }}</span>
+              <span><i class="female"></i>女 {{ dashboardStats.genderFemale }}</span>
+              <span><i class="unknown"></i>未知 {{ dashboardStats.genderUnknown }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel blood-panel">
+          <div class="panel-title">
+            <span>Blood Type</span>
+            <strong>血型分布</strong>
+          </div>
+          <div class="blood-grid">
+            <div v-for="item in bloodTypes" :key="item.label" class="blood-item">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+              <i :style="{ height: `${item.percent}%` }"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <el-form :model="queryParams" ref="queryRef" v-show="showSearch" label-width="90px">
       <el-row :gutter="20">
         <el-col :span="6">
@@ -321,6 +421,7 @@
 <script setup name="Patient">
 import useUserStore from '@/store/modules/user'
 import { listPatient, getPatient, delPatient, addPatient, updatePatient } from "@/api/patient/patient"
+import { Histogram, Iphone, WarningFilled, UserFilled } from '@element-plus/icons-vue'
 
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
@@ -334,9 +435,109 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
+const dashboardPatients = ref([])
 const NURSE_POST_ID = 2
 const isPatientUser = computed(() => userStore.userType === 'patient' || userStore.roles.includes('patient'))
 const isNurseUser = computed(() => userStore.roles.includes('doctor') && (userStore.postIds || []).some(postId => Number(postId) === NURSE_POST_ID))
+
+const dashboardStats = computed(() => {
+  const source = dashboardPatients.value.length ? dashboardPatients.value : patientList.value
+  const sourceTotal = source.length
+  const male = source.filter(item => item.gender === '男').length
+  const female = source.filter(item => item.gender === '女').length
+  const phoneReady = source.filter(item => Boolean(item.phone)).length
+  const emergencyReady = source.filter(item => Boolean(item.emergencyContact && item.emergencyPhone)).length
+  const completeReady = source.filter(item => Boolean(item.name && item.gender && item.phone && item.idCard && item.address)).length
+  const elder = source.filter(item => getPatientAge(item) >= 60).length
+  const child = source.filter(item => {
+    const age = getPatientAge(item)
+    return age >= 0 && age < 18
+  }).length
+  const maleRate = sourceTotal ? Math.round((male / sourceTotal) * 100) : 0
+
+  return {
+    archiveTotal: total.value || sourceTotal,
+    sourceTotal,
+    genderMale: male,
+    genderFemale: female,
+    genderUnknown: Math.max(sourceTotal - male - female, 0),
+    maleRate,
+    phoneReady,
+    emergencyReady,
+    completeRate: sourceTotal ? Math.round((completeReady / sourceTotal) * 100) : 0,
+    elder,
+    child
+  }
+})
+
+const dashboardCards = computed(() => [
+  {
+    label: '患者档案总量',
+    value: dashboardStats.value.archiveTotal,
+    note: `当前视图样本 ${dashboardStats.value.sourceTotal} 份`,
+    icon: Histogram,
+    tone: 'blue',
+    spark: [34, 48, 42, 62, 56, 72, 86]
+  },
+  {
+    label: '联系方式可达',
+    value: dashboardStats.value.phoneReady,
+    note: `手机留存率 ${calcRate(dashboardStats.value.phoneReady, dashboardStats.value.sourceTotal)}%`,
+    icon: Iphone,
+    tone: 'cyan',
+    spark: [42, 54, 50, 68, 74, 78, 88]
+  },
+  {
+    label: '高龄重点关注',
+    value: dashboardStats.value.elder,
+    note: '60 岁及以上患者',
+    icon: WarningFilled,
+    tone: 'orange',
+    spark: [24, 38, 46, 44, 52, 64, 70]
+  },
+  {
+    label: '应急联系人',
+    value: dashboardStats.value.emergencyReady,
+    note: `应急信息完整 ${calcRate(dashboardStats.value.emergencyReady, dashboardStats.value.sourceTotal)}%`,
+    icon: UserFilled,
+    tone: 'green',
+    spark: [28, 36, 44, 58, 66, 60, 76]
+  }
+])
+
+const ageGroups = computed(() => {
+  const groups = [
+    { label: '0-17', min: 0, max: 17, count: 0 },
+    { label: '18-35', min: 18, max: 35, count: 0 },
+    { label: '36-59', min: 36, max: 59, count: 0 },
+    { label: '60+', min: 60, max: 200, count: 0 }
+  ]
+  const source = dashboardPatients.value.length ? dashboardPatients.value : patientList.value
+  source.forEach(item => {
+    const age = getPatientAge(item)
+    const group = groups.find(entry => age >= entry.min && age <= entry.max)
+    if (group) group.count += 1
+  })
+  const max = Math.max(...groups.map(item => item.count), 1)
+  return groups.map(item => ({
+    ...item,
+    percent: Math.max(Math.round((item.count / max) * 100), item.count ? 8 : 0)
+  }))
+})
+
+const bloodTypes = computed(() => {
+  const source = dashboardPatients.value.length ? dashboardPatients.value : patientList.value
+  const labels = ['A', 'B', 'AB', 'O', 'RH+', 'RH-']
+  const rows = labels.map(label => ({
+    label,
+    count: source.filter(item => item.bloodType === label).length
+  }))
+  const max = Math.max(...rows.map(item => item.count), 1)
+  return rows.map(item => ({
+    ...item,
+    percent: Math.max(Math.round((item.count / max) * 100), item.count ? 16 : 4)
+  }))
+})
 
 const data = reactive({
   form: {},
@@ -391,10 +592,49 @@ function getList() {
     params.userId = userStore.id
   }
   listPatient(params).then(response => {
-    patientList.value = response.rows
+    patientList.value = response.rows || []
     total.value = response.total
     loading.value = false
+    loadDashboardPatients()
   })
+}
+
+function loadDashboardPatients() {
+  const params = {
+    ...queryParams.value,
+    pageNum: 1,
+    pageSize: 1000
+  }
+  if (isPatientUser.value) {
+    params.userId = userStore.id
+  }
+  listPatient(params).then(response => {
+    dashboardPatients.value = response.rows || []
+  })
+}
+
+function calcRate(value, base) {
+  return base ? Math.round((value / base) * 100) : 0
+}
+
+function getPatientAge(patient) {
+  if (patient.age !== undefined && patient.age !== null && patient.age !== '') {
+    return Number(patient.age)
+  }
+  if (!patient.birthday) {
+    return -1
+  }
+  const birthday = new Date(patient.birthday)
+  if (Number.isNaN(birthday.getTime())) {
+    return -1
+  }
+  const today = new Date()
+  let age = today.getFullYear() - birthday.getFullYear()
+  const monthDiff = today.getMonth() - birthday.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate())) {
+    age--
+  }
+  return age
 }
 
 /** 取消按钮 */
@@ -551,3 +791,557 @@ function calcAge(dateStr) {
 
 getList()
 </script>
+
+<style scoped lang="scss">
+// ========== 主色调 ==========
+$mint: #4da88a;
+$mint-light: #6ec7a6;
+$sky: #5db8d8;
+$sky-light: #9dd8ed;
+$white-card: rgba(255, 255, 255, 0.92);
+$border: rgba(160, 210, 220, 0.55);
+$text-primary: #3d5a66;
+$text-secondary: #5e727c;
+$text-light: #789099;
+$shadow: 0 12px 48px rgba(80, 160, 180, 0.08);
+$radius: 8px;
+
+.patient-console {
+  min-height: calc(100vh - 84px);
+  padding: 18px;
+  background: #e8edf2;
+}
+
+.patient-dashboard {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 18px;
+  padding: 26px 24px 22px;
+  border: 1px solid $border;
+  border-radius: $radius;
+  color: $text-primary;
+  background: $white-card;
+  backdrop-filter: blur(16px);
+  box-shadow: $shadow;
+  animation: dashEnter 0.6s ease-out;
+}
+
+.patient-dashboard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 25%, rgba(77, 168, 138, 0.06) 0%, transparent 55%),
+    radial-gradient(circle at 85% 75%, rgba(93, 184, 216, 0.06) 0%, transparent 55%);
+  border-radius: inherit;
+}
+
+.patient-dashboard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: $mint;
+  opacity: 0.4;
+  animation: shimmerTop 2s ease-in-out infinite;
+}
+
+// ---------- 背景层 ----------
+.dashboard-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: -30%;
+  width: 34%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(104, 199, 169, 0.1), transparent);
+  animation: scanMove 7s linear infinite;
+}
+
+.pulse-ring {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border: 2px solid rgba(104, 199, 169, 0.18);
+  border-radius: 50%;
+  animation: pulseScale 5s ease-in-out infinite;
+  box-shadow: 0 0 40px rgba(104, 199, 169, 0.06);
+}
+
+.ring-one { right: 6%; top: -130px; }
+.ring-two { right: -90px; bottom: -170px; animation-delay: 2s; width: 310px; height: 310px; }
+
+.float-icon {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  opacity: 0.14;
+  pointer-events: none;
+  animation: iconDrift 4.8s ease-in-out infinite;
+
+  svg { width: 100%; height: 100%; }
+}
+.fi-a { top: 18%; right: 14%; color: $mint; animation-delay: 0s; }
+.fi-b { top: 55%; left: 8%; color: $sky; animation-delay: 1.6s; width: 36px; height: 36px; }
+.fi-c { bottom: 22%; right: 10%; color: $mint; animation-delay: 3.2s; width: 38px; height: 38px; }
+
+// ---------- 头部 ----------
+.dashboard-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.dashboard-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: $mint;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $mint;
+  box-shadow: 0 0 0 6px rgba(104, 199, 169, 0.2);
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+.dashboard-head h2 {
+  margin: 0;
+  color: $text-primary;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.dashboard-head p {
+  max-width: 720px;
+  margin: 8px 0 0;
+  color: $text-secondary;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.dashboard-health {
+  flex: 0 0 190px;
+  padding: 16px 18px;
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $white-card;
+  box-shadow: 0 6px 24px rgba(80, 160, 180, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+  &:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 10px 36px rgba(77, 168, 138, 0.14);
+  }
+}
+
+.dashboard-health span {
+  display: block;
+  color: $text-light;
+  font-size: 13px;
+}
+
+.dashboard-health strong {
+  display: block;
+  margin: 6px 0;
+  color: $mint;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dashboard-health i {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: $mint;
+  box-shadow: 0 0 14px rgba(77, 168, 138, 0.35);
+  animation: barPulse 1.8s ease-in-out infinite;
+}
+
+// ---------- 指标卡片网格 ----------
+.metric-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.metric-card {
+  display: grid;
+  grid-template-columns: 48px 1fr 54px;
+  gap: 12px;
+  align-items: center;
+  min-height: 106px;
+  padding: 16px;
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $white-card;
+  box-shadow: 0 3px 18px rgba(80, 160, 180, 0.05);
+  animation: cardRise 480ms ease both;
+  animation-delay: var(--delay);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+
+  &:hover {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 10px 36px rgba(77, 168, 138, 0.15);
+    border-color: $mint;
+  }
+}
+
+.metric-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: $radius;
+  color: #fff;
+  font-size: 22px;
+  animation: iconFloat 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--delay) * 1.5);
+
+  &.blue   { background: #4da88a; }
+  &.cyan   { background: #5db8d8; }
+  &.orange { background: #e89860; }
+  &.green  { background: #58b894; }
+}
+
+.metric-copy span {
+  display: block;
+  color: $text-light;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.metric-copy strong {
+  display: block;
+  margin-top: 6px;
+  color: $text-primary;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.metric-copy small {
+  display: block;
+  margin-top: 8px;
+  color: $mint;
+  font-weight: 600;
+}
+
+.metric-spark {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 46px;
+}
+
+.metric-spark span {
+  width: 5px;
+  min-height: 8px;
+  border-radius: 999px;
+  background: $mint;
+  opacity: 0.8;
+  animation: barPop 1.2s ease-in-out infinite;
+
+  &:nth-child(odd)  { animation-delay: 0.3s; }
+  &:nth-child(3n)   { animation-delay: 0.6s; }
+  &:nth-child(4n+1) { background: $sky; }
+}
+
+// ---------- 底部面板 ----------
+.dashboard-panels {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1.25fr 0.9fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.panel {
+  min-height: 210px;
+  padding: 16px;
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $white-card;
+  box-shadow: 0 3px 18px rgba(80, 160, 180, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 32px rgba(77, 168, 138, 0.1);
+  }
+}
+
+.panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.panel-title span {
+  color: $mint;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.panel-title strong {
+  color: $text-primary;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+// ---------- 年龄结构 ----------
+.age-row {
+  display: grid;
+  grid-template-columns: 54px 1fr 36px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.age-row span,
+.age-row em {
+  color: $text-secondary;
+  font-size: 13px;
+  font-style: normal;
+}
+
+.age-row div {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(77, 168, 138, 0.08);
+}
+
+.age-row i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: $mint;
+  box-shadow: 0 0 10px rgba(77, 168, 138, 0.25);
+  transition: width 0.45s ease;
+  animation: barShine 1.6s ease-in-out infinite;
+}
+
+// ---------- 性别占比 ----------
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-height: 150px;
+}
+
+.gender-donut {
+  display: grid;
+  width: 120px;
+  height: 120px;
+  place-items: center;
+  border-radius: 50%;
+  border: 6px solid;
+  border-color: $sky transparent #e89880 $sky;
+  box-shadow: 0 0 24px rgba(93, 184, 216, 0.12);
+}
+
+.gender-donut div { text-align: center; }
+.gender-donut strong,
+.gender-donut span { display: block; }
+.gender-donut strong { color: $text-primary; font-size: 24px; font-weight: 800; }
+.gender-donut span { margin-top: 4px; color: $text-light; font-size: 12px; }
+
+.legend-list {
+  display: grid;
+  gap: 10px;
+  min-width: 80px;
+}
+
+.legend-list span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: $text-secondary;
+  font-size: 13px;
+}
+
+.legend-list i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.legend-list .male    { background: $sky; }
+.legend-list .female  { background: #f0a0b8; }
+.legend-list .unknown { background: #a5b8c0; }
+
+// ---------- 血型分布 ----------
+.blood-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: end;
+  gap: 10px;
+  height: 150px;
+}
+
+.blood-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+.blood-item i {
+  display: block;
+  width: 100%;
+  min-height: 8px;
+  border-radius: 6px 6px 2px 2px;
+  background: $mint;
+  opacity: 0.8;
+  transition: height 0.45s ease;
+}
+
+.blood-item strong {
+  margin-bottom: 6px;
+  color: $text-primary;
+  font-weight: 700;
+}
+
+.blood-item span {
+  margin-top: 8px;
+  color: $text-light;
+  font-size: 12px;
+}
+
+// ---------- 动画关键帧 ----------
+@keyframes scanMove {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(380%); }
+}
+
+@keyframes pulseScale {
+  0%, 100% { transform: scale(0.86); opacity: 0.14; }
+  50%      { transform: scale(1.08); opacity: 0.36; }
+}
+
+@keyframes livePulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50%      { transform: scale(1.4); opacity: 1; }
+}
+
+@keyframes cardRise {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes shimmerTop {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.8; }
+}
+
+@keyframes barPulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.4); }
+}
+
+@keyframes dashEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes donutSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30%      { transform: translateY(-5px) scale(1.06); }
+  60%      { transform: translateY(2px) scale(0.98); }
+}
+
+@keyframes barPop {
+  0%, 100% { transform: scaleY(0.65); }
+  30%      { transform: scaleY(1); }
+}
+
+@keyframes barShine {
+  0%, 100% { opacity: 0.75; }
+  50%      { opacity: 1; }
+}
+
+@keyframes iconDrift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0.12; }
+  25%      { transform: translate(6px, -8px) rotate(6deg) scale(1.08); opacity: 0.18; }
+  50%      { transform: translate(-4px, -14px) rotate(-3deg) scale(0.94); opacity: 0.1; }
+  75%      { transform: translate(-8px, -4px) rotate(4deg) scale(1.04); opacity: 0.16; }
+}
+
+@media (max-width: 1360px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-panels {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .blood-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .patient-console {
+    padding: 12px;
+  }
+
+  .dashboard-head,
+  .donut-wrap {
+    flex-direction: column;
+  }
+
+  .dashboard-health {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .metric-grid,
+  .dashboard-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .blood-panel {
+    grid-column: auto;
+  }
+}
+</style>

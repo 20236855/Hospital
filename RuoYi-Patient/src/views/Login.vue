@@ -103,6 +103,9 @@
     </div>
 
     <div class="auth-shell">
+      <div class="auth-back" @click="goGuide">
+        <van-icon name="arrow-left" />
+      </div>
       <main class="auth-panel">
         <form class="auth-form" @submit.prevent="handleLogin">
           <div class="form-sparkles">
@@ -300,6 +303,10 @@ const goRegister = () => {
   router.push('/register-account')
 }
 
+const goGuide = () => {
+  router.replace('/guide')
+}
+
 onMounted(() => {
   getCode()
 })
@@ -312,8 +319,8 @@ onMounted(() => {
   min-height: 100vh;
   padding: 20px;
   overflow: hidden;
-  color: var(--text-primary);
-  background: var(--bg-gradient);
+  color: #fff;
+  background: linear-gradient(180deg, #1a8a84 0%, #168079 35%, #1a8a84 68%, #168079 100%);
   align-items: center;
   justify-content: center;
 }
@@ -334,7 +341,34 @@ onMounted(() => {
   left: -50px;
   width: 150%;
   height: 150%;
-  opacity: 0.18;
+  opacity: 0.08;
+}
+
+.auth-back {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 0 12px;
+
+  .van-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.35);
+    }
+  }
 }
 
 .auth-shell {
@@ -344,18 +378,18 @@ onMounted(() => {
   width: 100%;
   max-width: 420px;
   overflow: hidden;
-  border: 1px solid var(--glass-border);
-  border-radius: 28px;
-  background: var(--glass-bg);
-  box-shadow: var(--card-shadow);
-  backdrop-filter: blur(18px);
+  border: none;
+  border-radius: 0;
+  background: rgba(255, 255, 255, .15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .15);
+  backdrop-filter: blur(24px);
 }
 
 .auth-panel {
   position: relative;
   display: flex;
-  padding: 32px 24px;
-  background: linear-gradient(180deg, rgba(255, 253, 248, .72), rgba(244, 252, 254, .86)), rgba(255, 253, 248, .6);
+  padding: 28px 24px;
+  background: transparent;
   align-items: center;
   justify-content: center;
 }
@@ -363,22 +397,18 @@ onMounted(() => {
 .auth-form {
   position: relative;
   width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
   padding: 28px 24px 24px;
   overflow: hidden;
-  border: 1px solid var(--card-border);
-  border-radius: 24px;
-  background: var(--card-bg);
-  box-shadow: 0 18px 46px rgba(102, 170, 189, .16), inset 0 1px 0 rgba(255, 255, 255, .9);
-  backdrop-filter: blur(18px);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 
   &::before {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    content: "";
-    border-radius: inherit;
-    background: linear-gradient(135deg, rgba(168, 234, 215, .2), transparent 34%, rgba(144, 215, 241, .18));
-    opacity: .8;
+    display: none;
   }
 }
 
@@ -398,8 +428,8 @@ onMounted(() => {
   span::after {
     position: absolute;
     content: "";
-    border-radius: 6px;
-    background: rgba(129, 215, 191, .72);
+    border-radius: 2px;
+    background: rgba(255, 255, 255, .3);
   }
 
   span::before {
@@ -437,21 +467,21 @@ onMounted(() => {
 
 .brand-mark {
   display: inline-grid;
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
   margin-bottom: 14px;
-  border: 1px solid rgba(185, 225, 205, .6);
-  border-radius: 16px;
+  border: none;
+  border-radius: 4px;
   color: #fff;
-  background: rgb(185, 225, 205);
-  box-shadow: 0 14px 32px rgba(185, 225, 205, .28);
+  background: rgba(255, 255, 255, .2);
+  box-shadow: none;
   place-items: center;
   overflow: hidden;
 }
 
 .brand-mark img {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   animation: brandPulse 2.4s ease-in-out infinite;
 }
@@ -463,7 +493,7 @@ onMounted(() => {
 
 .title {
   margin: 0;
-  color: var(--text-primary);
+  color: #fff;
   font-size: 24px;
   font-weight: 800;
   line-height: 1.25;
@@ -471,7 +501,7 @@ onMounted(() => {
 
 .slogan {
   margin: 0 0 8px;
-  color: var(--secondary-color);
+  color: rgba(255, 255, 255, .75);
   font-size: 13px;
   font-weight: 600;
 }
@@ -488,19 +518,18 @@ onMounted(() => {
   align-items: center;
   min-height: 48px;
   padding: 0 16px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, .82);
-  box-shadow: inset 0 0 0 1px rgba(181, 221, 231, .9);
-  transition: box-shadow .25s ease, background .25s ease, transform .25s ease;
+  border-radius: 0;
+  background: rgba(255, 255, 255, .18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25);
+  transition: box-shadow .25s ease, background .25s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, .94);
-    box-shadow: inset 0 0 0 1px rgba(185, 225, 205, .9);
+    background: rgba(255, 255, 255, .24);
   }
 
   &:focus-within {
-    background: #fff;
-    box-shadow: inset 0 0 0 1px rgba(120, 216, 189, .96), 0 0 0 4px rgba(133, 219, 194, .18);
+    background: rgba(255, 255, 255, .3);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .45), 0 0 0 3px rgba(255, 255, 255, .1);
   }
 }
 
@@ -508,7 +537,7 @@ onMounted(() => {
   width: 18px;
   height: 18px;
   margin-right: 10px;
-  color: var(--secondary-color);
+  color: rgba(255, 255, 255, .55);
   flex-shrink: 0;
 }
 
@@ -518,12 +547,12 @@ onMounted(() => {
   border: none;
   outline: none;
   background: transparent;
-  color: var(--text-primary);
+  color: #fff;
   font-size: 15px;
   font-weight: 500;
 
   &::placeholder {
-    color: var(--text-light);
+    color: rgba(255, 255, 255, .55);
   }
 }
 
@@ -531,7 +560,7 @@ onMounted(() => {
   width: 20px;
   height: 20px;
   margin-left: 8px;
-  color: var(--text-light);
+  color: rgba(255, 255, 255, .55);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -541,9 +570,9 @@ onMounted(() => {
     width: 100px;
     height: 36px;
     margin-left: 10px;
-    border: 1px solid rgba(180, 224, 235, .82);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, .72);
+    border: 1px solid rgba(255, 255, 255, .3);
+    border-radius: 0;
+    background: rgba(255, 255, 255, .18);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -553,12 +582,12 @@ onMounted(() => {
     img {
       width: 100%;
       height: 100%;
-      border-radius: 8px;
+      border-radius: 0;
       object-fit: cover;
     }
 
     span {
-      color: var(--text-regular);
+      color: rgba(255, 255, 255, .65);
       font-size: 12px;
     }
   }
@@ -585,7 +614,7 @@ onMounted(() => {
   }
 
   span {
-    color: var(--text-regular);
+    color: rgba(255, 255, 255, .7);
     font-size: 14px;
   }
 }
@@ -596,19 +625,17 @@ onMounted(() => {
   width: 100%;
   height: 48px;
   border: 0;
-  border-radius: 14px;
-  color: #fff;
+  border-radius: 0;
+  color: #1a8a84;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
-  box-shadow: 0 14px 26px rgba(185, 225, 205, .26);
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .15);
   cursor: pointer;
-  transition: transform .25s ease, box-shadow .25s ease, filter .25s ease, opacity .25s ease;
+  transition: transform .25s ease, box-shadow .25s ease, opacity .25s ease;
 
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #78d2b5, var(--primary-dark));
-    box-shadow: 0 18px 32px rgba(93, 185, 156, .32);
-    filter: saturate(1.04);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, .2);
     transform: translateY(-2px);
   }
 
@@ -617,7 +644,7 @@ onMounted(() => {
   }
 
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: not-allowed;
   }
 }
@@ -630,11 +657,11 @@ onMounted(() => {
   font-size: 14px;
 
   span:first-child {
-    color: var(--text-regular);
+    color: rgba(255, 255, 255, .7);
   }
 
   span:last-child {
-    color: var(--primary-color);
+    color: #fff;
     font-weight: 600;
     cursor: pointer;
     margin-left: 4px;
