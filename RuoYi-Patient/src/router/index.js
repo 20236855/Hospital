@@ -58,6 +58,12 @@ const routes = [
     meta: { title: '智能问诊', requiresAuth: true }
   },
   {
+    path: '/health-news',
+    name: 'HealthNews',
+    component: () => import('@/views/HealthNews.vue'),
+    meta: { title: '健康资讯', requiresAuth: true }
+  },
+  {
     path: '/doctors',
     name: 'DoctorList',
     component: () => import('@/views/DoctorList.vue'),

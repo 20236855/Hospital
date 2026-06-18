@@ -339,7 +339,7 @@ const serviceItems = [
   { title: '我的预约', icon: 'calendar-o', action: goToMyAppointments },
   { title: '检查预约', icon: 'records-o', action: () => showToast('检查预约功能建设中') },
   { title: '在线问诊', icon: 'chat-o', action: goToChat },
-  { title: '健康资讯', icon: 'newspaper-o', action: () => showToast('健康资讯') },
+  { title: '健康资讯', icon: 'newspaper-o', action: () => router.push('/health-news') },
   { title: '个人中心', icon: 'user-circle-o', action: () => router.push('/profile') }
 ]
 
