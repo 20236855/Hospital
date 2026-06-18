@@ -172,24 +172,33 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="医生ID" prop="doctorId">
-              <el-input v-model="form.doctorId" placeholder="请输入医生ID" />
+              <el-input v-model="form.doctorId" placeholder="医生登录自动填入" :disabled="isDoctorUser" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="科室ID" prop="deptId">
-              <el-input v-model="form.deptId" placeholder="请输入科室ID" />
+              <el-input v-model="form.deptId" placeholder="医生登录自动填入" :disabled="isDoctorUser" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="接诊类型" prop="encounterType">
-              <el-input v-model="form.encounterType" placeholder="请输入接诊类型" />
+              <el-select v-model="form.encounterType" placeholder="请选择接诊类型" clearable style="width: 100%">
+                <el-option label="普通门诊" value="普通门诊" />
+                <el-option label="复诊" value="复诊" />
+                <el-option label="急诊" value="急诊" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="接诊状态" prop="encounterStatus">
-              <el-input v-model="form.encounterStatus" placeholder="请输入接诊状态" />
+              <el-select v-model="form.encounterStatus" placeholder="请选择接诊状态" clearable style="width: 100%">
+                <el-option label="待接诊" value="待接诊" />
+                <el-option label="接诊中" value="接诊中" />
+                <el-option label="就诊已完成" value="就诊已完成" />
+                <el-option label="已取消就诊" value="已取消就诊" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -232,8 +241,11 @@
 import { listEncounter, getEncounter, delEncounter, addEncounter, updateEncounter } from "@/api/emr/encounter"
 import { listPatient } from "@/api/patient/patient"
 import { listRegister } from "@/api/register/register"
+import { getDoctorByUserId } from "@/api/hisdoctor/doctor"
+import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
 
 const encounterList = ref([])
 const open = ref(false)
@@ -246,6 +258,10 @@ const total = ref(0)
 const title = ref("")
 const patientOptions = ref([])
 const registerOptions = ref([])
+
+const isDoctorUser = computed(() => {
+  return userStore.roles?.some(r => r === 'doctor') || false
+})
 
 const data = reactive({
   form: {},
@@ -362,10 +378,22 @@ function handleSelectionChange(selection) {
   multiple.value = !selection.length
 }
 
-function handleAdd() {
+async function handleAdd() {
   reset()
   getPatientOptions()
   getRegisterOptions()
+  // 医生登录时自动填入自己的 doctorId 和 deptId
+  if (isDoctorUser.value && userStore.userId) {
+    try {
+      const res = await getDoctorByUserId(userStore.userId)
+      if (res.data && res.data.doctorId) {
+        form.value.doctorId = res.data.doctorId
+        form.value.deptId = res.data.deptId || userStore.deptId
+      }
+    } catch (e) {
+      console.error('获取医生信息失败', e)
+    }
+  }
   open.value = true
   title.value = "添加接诊"
 }
