@@ -117,10 +117,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectDoctorIdByEncounterId" parameterType="Long" resultType="java.lang.Long">
-        select e.doctor_id
-        from medical_record mr
-        left join encounter e on e.encounter_id = mr.encounter_id
-        where mr.encounter_id = #{encounterId}
+        select doctor_id
+        from encounter
+        where encounter_id = #{encounterId}
         limit 1
     </select>
 

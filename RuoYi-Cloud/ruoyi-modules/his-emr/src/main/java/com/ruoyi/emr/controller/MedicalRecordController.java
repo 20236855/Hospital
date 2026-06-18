@@ -237,6 +237,10 @@ public class MedicalRecordController extends BaseController
         }
         Long currentDoctorId = getCurrentDoctorId();
         Long recordDoctorId = medicalRecordService.selectDoctorIdByEncounterId(medicalRecord.getEncounterId());
+        if (recordDoctorId == null)
+        {
+            throw new ServiceException("接诊记录不存在或未绑定医生，不能创建电子病历");
+        }
         if (!Objects.equals(recordDoctorId, currentDoctorId))
         {
             throw new ServiceException("无权限为其他医生的接诊记录创建电子病历");
