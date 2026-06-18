@@ -1,450 +1,660 @@
 <template>
-  <div class="doctor-page">
-    <div class="page-hero">
-      <div class="hero-content">
-        <h1 class="hero-title">科室医生</h1>
-        <p class="hero-subtitle">专业医疗团队，为您的健康保驾护航</p>
+  <div class="resource-page">
+    <header class="top-bar">
+      <button class="back-btn" type="button" @click="goBack">
+        <van-icon name="arrow-left" />
+      </button>
+      <div>
+        <p>HOSPITAL RESOURCE</p>
+        <h1>医院资源</h1>
       </div>
-      <svg class="hero-bg" viewBox="0 0 400 200" aria-hidden="true">
-        <defs>
-          <linearGradient id="heroGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#cfe8d8" />
-            <stop offset="1" stop-color="#b9e1cd" />
-          </linearGradient>
-        </defs>
-        <circle cx="350" cy="40" r="60" fill="url(#heroGradient)" opacity="0.5" />
-        <circle cx="320" cy="120" r="40" fill="url(#heroGradient)" opacity="0.3" />
-        <path d="M0 160 Q 100 130, 200 150 T 400 140 L 400 200 L 0 200 Z" fill="#cfe8d8" opacity="0.4" />
-      </svg>
-    </div>
+    </header>
 
-    <div class="search-bar">
-      <div class="search-input-wrap">
-        <svg viewBox="0 0 24 24" class="search-icon" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <input
-          v-model="searchName"
-          type="text"
-          placeholder="搜索医生姓名..."
-          class="search-input"
-          @input="handleSearch"
-        />
+    <section class="summary-panel">
+      <div class="summary-copy">
+        <span class="summary-label">优质医疗资源</span>
+        <strong>覆盖门诊医生、重点科室与专长介绍</strong>
+        <p>可按姓名、科室、职称快速查找医生，进入详情查看医生简介与擅长方向。</p>
       </div>
-    </div>
+      <div class="summary-grid">
+        <div>
+          <strong>{{ total || doctorList.length }}</strong>
+          <span>医生</span>
+        </div>
+        <div>
+          <strong>{{ deptCount }}</strong>
+          <span>科室</span>
+        </div>
+        <div>
+          <strong>{{ seniorCount }}</strong>
+          <span>高级职称</span>
+        </div>
+      </div>
+    </section>
 
-    <div class="doctor-list">
+    <section class="search-section">
+      <van-search
+        v-model="searchName"
+        placeholder="搜索医生姓名、科室、擅长方向"
+        shape="round"
+        background="transparent"
+        @update:model-value="handleSearch"
+      />
+      <div class="dept-scroll">
+        <button
+          v-for="item in deptFilters"
+          :key="item.value"
+          type="button"
+          class="dept-chip"
+          :class="{ active: activeDept === item.value }"
+          @click="selectDept(item.value)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+    </section>
+
+    <section class="resource-section">
+      <div class="section-title">
+        <div>
+          <span>DOCTORS</span>
+          <h2>医生团队</h2>
+        </div>
+        <em>{{ filteredDoctors.length }} 位</em>
+      </div>
+
       <div v-if="loading" class="loading-state">
-        <div class="loading-spinner"></div>
-        <span>加载中...</span>
-      </div>
-      <div
-        v-else
-        v-for="doctor in doctorList"
-        :key="doctor.doctorId"
-        class="doctor-card"
-        @click="goToDetail(doctor.doctorId)"
-      >
-        <div class="card-avatar-wrap">
-          <img :src="getAvatar(doctor)" @error="onAvatarError" class="card-avatar" />
-          <span class="status-badge" :class="{ online: doctor.status === '0' }">
-            {{ doctor.status === '0' ? '在职' : '停诊' }}
-          </span>
-        </div>
-        <div class="card-body">
-          <div class="card-header">
-            <h3 class="doctor-name">{{ doctor.doctorName }}</h3>
-            <span class="doctor-level">{{ doctor.levelName }}</span>
-          </div>
-          <div class="doctor-dept-row">
-            <svg viewBox="0 0 24 24" class="row-icon" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" />
-              <path d="M9 9v0M9 12v0M9 15v0M9 18v0" />
-            </svg>
-            <span>{{ doctor.deptId }}</span>
-          </div>
-          <div class="doctor-specialty" v-if="doctor.specialty">
-            <span class="label">擅长</span>
-            <span class="content">{{ doctor.specialty }}</span>
-          </div>
-          <div class="doctor-intro" v-if="doctor.introduction">
-            <span class="label">简介</span>
-            <span class="content">{{ doctor.introduction }}</span>
-          </div>
-        </div>
-        <div class="card-action">
-          <span>查看详情</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </div>
+        <van-loading color="#347b70" />
+        <span>正在加载医生资源</span>
       </div>
 
-      <div class="empty-state" v-if="!loading && doctorList.length === 0">
-        <svg viewBox="0 0 120 120" class="empty-icon" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="60" cy="45" r="25" />
-          <path d="M20 100c8-20 28-30 40-30s32 10 40 30" />
-        </svg>
-        <p>暂无医生信息</p>
-      </div>
-    </div>
+      <template v-else>
+        <article
+          v-for="doctor in filteredDoctors"
+          :key="doctor.doctorId"
+          class="doctor-card"
+          @click="goToDetail(doctor.doctorId)"
+        >
+          <div class="avatar-box">
+            <img v-if="doctor.avatar" :src="doctor.avatar" alt="" @error="hideBrokenAvatar" />
+            <span v-else>{{ getInitial(doctor.doctorName) }}</span>
+          </div>
+          <div class="doctor-main">
+            <div class="doctor-head">
+              <div>
+                <h3>{{ doctor.doctorName || '未命名医生' }}</h3>
+                <p>{{ getDeptName(doctor) }} · {{ getLevelName(doctor) }}</p>
+              </div>
+              <span class="status-pill" :class="{ off: doctor.status !== '0' }">
+                {{ doctor.status === '0' ? '可预约' : '停诊' }}
+              </span>
+            </div>
 
-    <div class="load-more" v-if="total > doctorList.length">
-      <button @click="loadMore" :disabled="loadingMore" class="load-btn">
-        <span v-if="!loadingMore">加载更多</span>
-        <span v-else>加载中...</span>
+            <div class="tag-row">
+              <span>{{ getGenderText(doctor.gender) }}</span>
+              <span>{{ getLevelName(doctor) }}</span>
+              <span>{{ doctor.doctorNo || '院内医生' }}</span>
+            </div>
+
+            <p class="specialty">
+              <b>擅长</b>
+              {{ doctor.specialty || getDefaultSpecialty(doctor) }}
+            </p>
+            <p class="intro">{{ doctor.introduction || getDefaultIntro(doctor) }}</p>
+
+            <div class="card-footer">
+              <span>查看医生详情</span>
+              <van-icon name="arrow" />
+            </div>
+          </div>
+        </article>
+
+        <div v-if="filteredDoctors.length === 0" class="empty-state">
+          <van-icon name="friends-o" />
+          <strong>暂无医生资源</strong>
+          <span>请更换筛选条件后重试</span>
+        </div>
+      </template>
+    </section>
+
+    <div v-if="!loading && total > doctorList.length && !searchName && !activeDept" class="load-more">
+      <button type="button" :disabled="loadingMore" @click="loadMore">
+        {{ loadingMore ? '加载中...' : '加载更多医生' }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { listDoctor } from '@/api/doctor'
-import defAva from '@/assets/images/guahao.png'
+import { getDeptList } from '@/api/register'
 
 const router = useRouter()
 const loading = ref(false)
 const loadingMore = ref(false)
 const total = ref(0)
 const doctorList = ref([])
+const deptList = ref([])
 const searchName = ref('')
+const activeDept = ref('')
+let searchTimer = null
+
+const levelNameMap = {
+  1: '普通号',
+  2: '专家号',
+  3: '主任号'
+}
+
 const queryParams = ref({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 100,
   doctorName: undefined
 })
 
-function getAvatar(doctor) {
-  return doctor?.avatar || defAva
+const deptFilters = computed(() => {
+  const ids = Array.from(new Set(doctorList.value.map((item) => item.deptId).filter(Boolean)))
+  return [
+    { label: '全部', value: '' },
+    ...ids.map((id) => ({ label: getDeptName({ deptId: id }), value: id }))
+  ]
+})
+
+const filteredDoctors = computed(() => {
+  const keyword = searchName.value.trim().toLowerCase()
+  return doctorList.value.filter((doctor) => {
+    const matchDept = !activeDept.value || String(doctor.deptId) === String(activeDept.value)
+    if (!keyword) return matchDept
+    const text = [
+      doctor.doctorName,
+      doctor.levelName,
+      getDeptName(doctor),
+      doctor.specialty,
+      doctor.introduction
+    ].filter(Boolean).join(' ').toLowerCase()
+    return matchDept && text.includes(keyword)
+  })
+})
+
+const deptCount = computed(() => new Set(doctorList.value.map((item) => item.deptId).filter(Boolean)).size)
+const seniorCount = computed(() => doctorList.value.filter((item) => Number(item.levelId) >= 2 || /专家|主任/.test(item.levelName || '')).length)
+
+function getDeptName(doctor) {
+  const dept = deptList.value.find((item) => String(item.deptId) === String(doctor?.deptId))
+  return doctor?.deptName || dept?.deptName || (doctor?.deptId ? `科室${doctor.deptId}` : '门诊科室')
 }
 
-function onAvatarError(e) {
-  e.target.src = defAva
+function getLevelName(doctor) {
+  return doctor?.levelName || levelNameMap[doctor?.levelId] || '门诊医生'
 }
 
-function fetchDoctorList() {
-  loading.value = true
-  listDoctor(queryParams.value).then(response => {
-    doctorList.value = response.rows || []
-    total.value = response.total || 0
+function getGenderText(value) {
+  if (!value) return '专业医生'
+  return value === '0' ? '男医生' : value === '1' ? '女医生' : value
+}
+
+function getInitial(name) {
+  return (name || '医').slice(0, 1)
+}
+
+function getDefaultSpecialty(doctor) {
+  return `${getDeptName(doctor)}常见病、多发病诊疗及会诊评估`
+}
+
+function getDefaultIntro(doctor) {
+  return `${doctor?.doctorName || '该医生'}长期参与${getDeptName(doctor)}临床诊疗工作，注重规范化诊疗与患者沟通。`
+}
+
+function fetchDoctorList(append = false) {
+  if (append) {
+    loadingMore.value = true
+  } else {
+    loading.value = true
+  }
+
+  listDoctor(queryParams.value).then((response) => {
+    const rows = response.rows || []
+    doctorList.value = append ? [...doctorList.value, ...rows] : rows
+    total.value = response.total || doctorList.value.length
+  }).finally(() => {
     loading.value = false
+    loadingMore.value = false
+  })
+}
+
+function fetchDeptList() {
+  return getDeptList({ pageNum: 1, pageSize: 500 }).then((response) => {
+    deptList.value = response.rows || response.data || []
   }).catch(() => {
-    loading.value = false
+    deptList.value = []
   })
 }
 
 function handleSearch() {
-  queryParams.value.pageNum = 1
-  queryParams.value.doctorName = searchName.value || undefined
-  fetchDoctorList()
+  window.clearTimeout(searchTimer)
+  searchTimer = window.setTimeout(() => {
+    activeDept.value = ''
+  }, 260)
+}
+
+function selectDept(deptId) {
+  activeDept.value = deptId
 }
 
 function loadMore() {
   if (loadingMore.value) return
   queryParams.value.pageNum += 1
-  loadingMore.value = true
-  listDoctor(queryParams.value).then(response => {
-    doctorList.value = [...doctorList.value, ...(response.rows || [])]
-    total.value = response.total || doctorList.value.length
-    loadingMore.value = false
-  }).catch(() => {
-    loadingMore.value = false
-  })
+  fetchDoctorList(true)
 }
 
 function goToDetail(doctorId) {
   router.push(`/doctor/${doctorId}`)
 }
 
+function goBack() {
+  router.back()
+}
+
+function hideBrokenAvatar(event) {
+  event.target.style.display = 'none'
+}
+
 onMounted(() => {
+  fetchDeptList()
   fetchDoctorList()
 })
 </script>
 
-<style scoped>
-.doctor-page {
+<style scoped lang="scss">
+.resource-page {
   min-height: 100vh;
-  background: #f5faf7;
-  padding-bottom: 80px;
+  padding: 14px 14px 34px;
+  background:
+    linear-gradient(180deg, rgba(232, 248, 246, .96) 0%, rgba(247, 250, 252, 1) 42%),
+    #f7fafc;
+  color: #183f4a;
 }
 
-.page-hero {
-  position: relative;
-  background: linear-gradient(135deg, rgb(185, 225, 205) 0%, rgb(223, 246, 239) 100%);
-  padding: 48px 20px 32px;
-  overflow: hidden;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-}
-
-.hero-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: rgb(26, 77, 69);
-  margin: 0 0 8px;
-}
-
-.hero-subtitle {
-  font-size: 14px;
-  color: rgba(26, 77, 69, 0.7);
-  margin: 0;
-}
-
-.hero-bg {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 300px;
-  height: 200px;
-}
-
-.search-bar {
-  padding: 16px 20px;
-  background: transparent;
-  position: relative;
-  margin-top: -20px;
-  z-index: 3;
-}
-
-.search-input-wrap {
-  position: relative;
-  background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 4px 20px rgba(26, 77, 69, 0.12);
+.top-bar {
   display: flex;
   align-items: center;
-  padding: 0 18px;
+  gap: 12px;
+  padding: 6px 2px 12px;
+
+  p {
+    margin: 0 0 2px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #6f93a0;
+    letter-spacing: 0;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.2;
+    color: #173e48;
+  }
 }
 
-.search-icon {
-  width: 20px;
-  height: 20px;
-  color: rgb(185, 225, 205);
-  flex-shrink: 0;
+.back-btn {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .86);
+  color: #315f68;
+  box-shadow: 0 8px 22px rgba(81, 137, 151, .13);
 }
 
-.search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  height: 48px;
-  font-size: 14px;
-  padding-left: 10px;
-  background: transparent;
-  color: rgb(26, 77, 69);
+.summary-panel {
+  border-radius: 18px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .76)),
+    linear-gradient(120deg, rgba(108, 181, 194, .18), rgba(123, 207, 170, .2));
+  border: 1px solid rgba(206, 232, 238, .9);
+  box-shadow: 0 18px 44px rgba(75, 132, 145, .13);
 }
 
-.search-input::placeholder {
-  color: #a8c0b8;
+.summary-copy {
+  strong,
+  p,
+  span {
+    display: block;
+  }
+
+  .summary-label {
+    width: fit-content;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: rgba(52, 123, 112, .1);
+    color: #347b70;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  strong {
+    margin-top: 10px;
+    font-size: 18px;
+    line-height: 1.35;
+    color: #173e48;
+  }
+
+  p {
+    margin: 7px 0 0;
+    color: #607982;
+    font-size: 13px;
+    line-height: 1.55;
+  }
 }
 
-.doctor-list {
-  padding: 0 20px;
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+
+  div {
+    min-height: 58px;
+    border-radius: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, .72);
+    border: 1px solid rgba(206, 232, 238, .72);
+  }
+
+  strong {
+    display: block;
+    color: #276b63;
+    font-size: 19px;
+    line-height: 1;
+  }
+
+  span {
+    display: block;
+    margin-top: 7px;
+    color: #718b94;
+    font-size: 11px;
+    font-weight: 700;
+  }
+}
+
+.search-section {
+  margin-top: 12px;
+
+  :deep(.van-search) {
+    padding: 0;
+  }
+
+  :deep(.van-search__content) {
+    background: #fff;
+    border: 1px solid rgba(206, 232, 238, .8);
+    box-shadow: 0 10px 28px rgba(75, 132, 145, .1);
+  }
+}
+
+.dept-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 2px 2px;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.dept-chip {
+  flex: 0 0 auto;
+  height: 32px;
+  border: 1px solid rgba(206, 232, 238, .95);
+  border-radius: 999px;
+  padding: 0 13px;
+  background: #fff;
+  color: #55727b;
+  font-size: 12px;
+  font-weight: 800;
+
+  &.active {
+    border-color: #347b70;
+    background: #347b70;
+    color: #fff;
+  }
+}
+
+.resource-section {
+  margin-top: 16px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 10px;
+
+  span {
+    color: #7f98a0;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  h2 {
+    margin: 2px 0 0;
+    color: #173e48;
+    font-size: 18px;
+  }
+
+  em {
+    font-style: normal;
+    color: #347b70;
+    font-size: 12px;
+    font-weight: 800;
+  }
 }
 
 .doctor-card {
-  background: #fff;
+  display: grid;
+  grid-template-columns: 66px 1fr;
+  gap: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
   border-radius: 16px;
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid rgba(211, 232, 237, .86);
+  box-shadow: 0 12px 30px rgba(75, 132, 145, .1);
+  transition: transform .18s ease, box-shadow .18s ease;
+
+  &:active {
+    transform: scale(.985);
+    box-shadow: 0 8px 20px rgba(75, 132, 145, .12);
+  }
+}
+
+.avatar-box {
+  width: 66px;
+  height: 76px;
+  border-radius: 14px;
   overflow: hidden;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(26, 77, 69, 0.08);
-  transition: all 0.25s ease;
+  background: linear-gradient(145deg, #dff4ef, #d5edf3);
+  display: grid;
+  place-items: center;
+  color: #276b63;
+  font-size: 25px;
+  font-weight: 900;
+  border: 1px solid rgba(255, 255, 255, .78);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
-.doctor-card:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(26, 77, 69, 0.12);
+.doctor-main {
+  min-width: 0;
 }
 
-.card-avatar-wrap {
-  position: relative;
-  width: 100%;
-  height: 180px;
-  background: linear-gradient(135deg, rgb(185, 225, 205) 0%, rgb(223, 246, 239) 100%);
+.doctor-head {
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.card-avatar {
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 4px solid #fff;
-  box-shadow: 0 4px 16px rgba(26, 77, 69, 0.15);
-  background: #fff;
-}
-
-.status-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 4px 12px;
-  background: rgba(144, 147, 153, 0.9);
-  color: #fff;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-badge.online {
-  background: rgba(103, 194, 58, 0.95);
-}
-
-.card-body {
-  padding: 16px;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.doctor-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: rgb(26, 77, 69);
-  margin: 0;
-}
-
-.doctor-level {
-  font-size: 12px;
-  color: rgb(230, 162, 60);
-  background: #fdf6ec;
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-weight: 500;
-}
-
-.doctor-dept-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: rgba(26, 77, 69, 0.75);
-  margin-bottom: 8px;
-}
-
-.row-icon {
-  width: 16px;
-  height: 16px;
-  color: rgb(185, 225, 205);
-}
-
-.doctor-specialty,
-.doctor-intro {
-  display: flex;
   align-items: flex-start;
+  gap: 8px;
+
+  h3 {
+    margin: 0;
+    color: #173e48;
+    font-size: 17px;
+    line-height: 1.25;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: #657f88;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+}
+
+.status-pill {
+  flex: 0 0 auto;
+  height: 24px;
+  border-radius: 8px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(52, 123, 112, .1);
+  color: #347b70;
+  font-size: 11px;
+  font-weight: 900;
+
+  &.off {
+    background: rgba(151, 164, 170, .14);
+    color: #7a8a90;
+  }
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+
+  span {
+    max-width: 100%;
+    min-height: 22px;
+    border-radius: 7px;
+    padding: 4px 7px;
+    background: #f3f8f9;
+    color: #6a848d;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+}
+
+.specialty,
+.intro {
+  margin: 9px 0 0;
+  color: #4c666e;
   font-size: 13px;
-  color: rgba(26, 77, 69, 0.7);
-  line-height: 1.6;
-  margin-top: 6px;
-}
-
-.doctor-specialty .label,
-.doctor-intro .label {
-  color: rgba(26, 77, 69, 0.5);
-  flex-shrink: 0;
-  margin-right: 6px;
-}
-
-.doctor-specialty .content,
-.doctor-intro .content {
-  flex: 1;
+  line-height: 1.55;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
   overflow: hidden;
 }
 
-.card-action {
+.specialty {
+  -webkit-line-clamp: 2;
+
+  b {
+    margin-right: 5px;
+    color: #d35f45;
+  }
+}
+
+.intro {
+  -webkit-line-clamp: 2;
+  color: #748b93;
+}
+
+.card-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 16px;
-  background: linear-gradient(to right, rgb(223, 246, 239) 0%, rgb(185, 225, 205) 100%);
-  color: rgb(26, 77, 69);
-  font-size: 14px;
-  font-weight: 500;
+  justify-content: flex-end;
+  gap: 3px;
+  margin-top: 10px;
+  color: #347b70;
+  font-size: 12px;
+  font-weight: 900;
 }
 
-.card-action svg {
-  width: 16px;
-  height: 16px;
-}
-
-.loading-state {
+.loading-state,
+.empty-state {
+  min-height: 190px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .76);
+  border: 1px solid rgba(211, 232, 237, .86);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60px 20px;
-  color: rgba(26, 77, 69, 0.6);
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(185, 225, 205, 0.3);
-  border-top-color: rgb(185, 225, 205);
-  border-radius: 50%;
-  margin-bottom: 12px;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  justify-content: center;
+  color: #6f8790;
+  gap: 10px;
 }
 
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60px 20px;
-  color: rgba(26, 77, 69, 0.4);
-}
+  .van-icon {
+    color: #6fbacb;
+    font-size: 42px;
+  }
 
-.empty-icon {
-  width: 120px;
-  height: 120px;
-  color: rgb(185, 225, 205);
-  margin-bottom: 16px;
-}
+  strong {
+    color: #173e48;
+    font-size: 16px;
+  }
 
-.empty-state p {
-  font-size: 14px;
-  margin: 0;
+  span {
+    font-size: 13px;
+  }
 }
 
 .load-more {
-  padding: 20px;
-  display: flex;
-  justify-content: center;
+  padding: 4px 0 18px;
+  text-align: center;
+
+  button {
+    height: 38px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 22px;
+    background: #347b70;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+
+    &:disabled {
+      opacity: .68;
+    }
+  }
 }
 
-.load-btn {
-  padding: 10px 40px;
-  border: none;
-  border-radius: 20px;
-  background: #fff;
-  color: rgb(26, 77, 69);
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 2px 12px rgba(26, 77, 69, 0.1);
-  cursor: pointer;
-}
+@media (max-width: 360px) {
+  .resource-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 
-.load-btn:disabled {
-  opacity: 0.6;
+  .doctor-card {
+    grid-template-columns: 58px 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .avatar-box {
+    width: 58px;
+    height: 70px;
+  }
 }
 </style>

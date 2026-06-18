@@ -458,7 +458,7 @@ let showcaseObserver
 let showcaseScrollRoot
 
 const showcaseSections = [
-  {
+{
     key: 'easy-register',
     title: '轻松线上挂号',
     description: '线上预约、减少排队、便捷就诊，患者可快速完成科室选择与时段确认。',

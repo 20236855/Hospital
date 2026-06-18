@@ -189,6 +189,10 @@ const goToMyAppointments = () => {
   router.push('/my-appointments')
 }
 
+const goToPayment = () => {
+  router.push('/my-payment')
+}
+
 const toggleServices = () => {
   showAllServices.value = !showAllServices.value
 }
@@ -201,10 +205,12 @@ const quickActions = [
 ]
 
 const serviceItems = [
-  { title: '科室医生', icon: 'manager-o', action: goToDoctors },
-  { title: '健康资讯', icon: 'newspaper-o', action: () => showToast('健康资讯') },
+  { title: '医院资源', icon: 'manager-o', action: goToDoctors },
+  { title: '我的缴费', icon: 'balance-list-o', action: goToPayment },
+  { title: '我的预约', icon: 'calendar-o', action: goToMyAppointments },
+  { title: '检查预约', icon: 'records-o', action: () => showToast('检查预约功能建设中') },
   { title: '在线问诊', icon: 'chat-o', action: goToChat },
-  { title: '检查预约', icon: 'records-o', action: () => showToast('检查预约') },
+  { title: '健康资讯', icon: 'newspaper-o', action: () => showToast('健康资讯') },
   { title: '个人中心', icon: 'user-circle-o', action: () => router.push('/profile') }
 ]
 
@@ -806,10 +812,11 @@ button {
 .service-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .service-item {
+  min-width: 0;
   min-height: 72px;
   border: 1px solid rgba(213, 237, 243, .72);
   border-radius: 12px;
@@ -826,6 +833,15 @@ button {
 
   &:active {
     transform: scale(.98);
+  }
+
+  > span:last-child {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 

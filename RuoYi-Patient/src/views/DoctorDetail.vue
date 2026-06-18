@@ -1,159 +1,146 @@
 <template>
-  <div class="detail-page">
-    <div class="back-btn" @click="goBack">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="m15 18-6-6 6-6" />
-      </svg>
-    </div>
+  <div class="doctor-detail-page">
+    <button class="back-btn" type="button" @click="goBack">
+      <van-icon name="arrow-left" />
+    </button>
 
     <div v-if="loading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <span>加载中...</span>
+      <van-loading color="#347b70" />
+      <span>正在加载医生详情</span>
     </div>
 
     <template v-else-if="doctor">
-        <!-- 头部区域：大头像+基本信息 -->
-        <div class="detail-hero">
-          <div class="hero-bg">
-            <svg viewBox="0 0 400 300" aria-hidden="true">
-              <defs>
-                <linearGradient id="heroBgGrad" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0" stop-color="#cfe8d8" />
-                  <stop offset="1" stop-color="#b9e1cd" />
-                </linearGradient>
-              </defs>
-              <circle cx="350" cy="60" r="80" fill="url(#heroBgGrad)" opacity="0.4" />
-              <circle cx="320" cy="200" r="50" fill="url(#heroBgGrad)" opacity="0.3" />
-              <circle cx="50" cy="180" r="40" fill="url(#heroBgGrad)" opacity="0.3" />
-              <path d="M0 260 Q 100 230, 200 250 T 400 240 L 400 300 L 0 300 Z" fill="#cfe8d8" opacity="0.5" />
-            </svg>
+      <section class="profile-panel">
+        <div class="avatar-wrap">
+          <img v-if="doctor.avatar" :src="doctor.avatar" alt="" @error="hideBrokenAvatar" />
+          <span v-else>{{ getInitial(doctor.doctorName) }}</span>
+        </div>
+        <div class="profile-info">
+          <div class="name-row">
+            <h1>{{ doctor.doctorName || '未命名医生' }}</h1>
+            <span :class="{ off: doctor.status !== '0' }">
+              {{ doctor.status === '0' ? '可预约' : '停诊' }}
+            </span>
           </div>
-
-          <div class="hero-content">
-            <div class="big-avatar-wrap">
-              <img :src="getAvatar(doctor)" @error="onAvatarError" class="big-avatar" />
-              <div class="avatar-ring" aria-hidden="true"></div>
-            </div>
-            <div class="hero-info">
-              <h1 class="doctor-name">{{ doctor.doctorName }}</h1>
-              <div class="level-row">
-                <span class="level-tag" v-if="doctor.levelName">{{ doctor.levelName }}</span>
-                <span class="status-tag" :class="{ online: doctor.status === '0' }">
-                  {{ doctor.status === '0' ? '在职' : '停诊' }}
-                </span>
-              </div>
-              <div class="dept-row" v-if="doctor.deptId">
-                <svg viewBox="0 0 24 24" class="info-icon" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" />
-                </svg>
-                <span>{{ doctor.deptId }}</span>
-              </div>
-            </div>
+          <p>{{ getDeptName(doctor) }} · {{ getLevelName(doctor) }}</p>
+          <div class="profile-tags">
+            <em>{{ getGenderText(doctor.gender) }}</em>
+            <em>{{ doctor.doctorNo || '院内医生' }}</em>
+            <em>{{ doctor.phone ? '可电话咨询' : '门诊接诊' }}</em>
           </div>
         </div>
+      </section>
 
-        <!-- 基本信息区 -->
-        <div class="info-section">
-          <div class="info-card">
-            <div class="info-row" v-if="doctor.gender">
-              <div class="info-icon-wrap">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="8" r="5" />
-                  <path d="M20 21a8 8 0 0 0-16 0" />
-                </svg>
-              </div>
-              <div class="info-content">
-                <span class="info-label">性别</span>
-                <span class="info-value">{{ doctor.gender }}</span>
-              </div>
-            </div>
+      <section class="resource-metrics">
+        <div>
+          <strong>{{ getLevelName(doctor) }}</strong>
+          <span>挂号级别</span>
+        </div>
+        <div>
+          <strong>{{ getDeptName(doctor) }}</strong>
+          <span>所在科室</span>
+        </div>
+        <div>
+          <strong>{{ doctor.status === '0' ? '开放' : '暂停' }}</strong>
+          <span>接诊状态</span>
+        </div>
+      </section>
 
-            <div class="info-row" v-if="doctor.phone">
-              <div class="info-icon-wrap">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z" />
-                </svg>
-              </div>
-              <div class="info-content">
-                <span class="info-label">联系电话</span>
-                <span class="info-value">{{ doctor.phone }}</span>
-              </div>
-            </div>
+      <section class="detail-section">
+        <div class="section-heading">
+          <van-icon name="medal-o" />
+          <h2>擅长方向</h2>
+        </div>
+        <p class="rich-text">{{ doctor.specialty || getDefaultSpecialty(doctor) }}</p>
+      </section>
 
-            <div class="info-row" v-if="doctor.doctorNo">
-              <div class="info-icon-wrap">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-                  <path d="M14 2v6h6" />
-                </svg>
-              </div>
-              <div class="info-content">
-                <span class="info-label">工号</span>
-                <span class="info-value">{{ doctor.doctorNo }}</span>
-              </div>
-            </div>
+      <section class="detail-section">
+        <div class="section-heading">
+          <van-icon name="description-o" />
+          <h2>医生简介</h2>
+        </div>
+        <p class="rich-text">{{ doctor.introduction || getDefaultIntro(doctor) }}</p>
+      </section>
+
+      <section class="detail-section">
+        <div class="section-heading">
+          <van-icon name="hotel-o" />
+          <h2>医院优质资源</h2>
+        </div>
+        <div class="resource-list">
+          <div>
+            <strong>规范诊疗</strong>
+            <span>按科室、职称与接诊状态统一展示，便于患者选择。</span>
+          </div>
+          <div>
+            <strong>便捷预约</strong>
+            <span>医生信息与挂号流程联动，减少反复查找。</span>
+          </div>
+          <div>
+            <strong>持续服务</strong>
+            <span>结合电子病历与预约记录，支持后续复诊管理。</span>
           </div>
         </div>
+      </section>
 
-        <!-- 擅长领域 -->
-        <div class="info-section" v-if="doctor.specialty">
-          <div class="section-title">
-            <div class="title-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-            </div>
-            <span>擅长领域</span>
-          </div>
-          <div class="content-card">
-            <p>{{ doctor.specialty }}</p>
-          </div>
-        </div>
+      <div class="bottom-action">
+        <button type="button" @click="goRegister">
+          <van-icon name="add-o" />
+          预约挂号
+        </button>
+      </div>
+    </template>
 
-        <!-- 医生简介 -->
-        <div class="info-section" v-if="doctor.introduction">
-          <div class="section-title">
-            <div class="title-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2Z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7Z" />
-              </svg>
-            </div>
-            <span>医生简介</span>
-          </div>
-          <div class="content-card">
-            <p>{{ doctor.introduction }}</p>
-          </div>
-        </div>
-
-        <!-- 装饰性底部 -->
-        <div class="bottom-deco" aria-hidden="true">
-          <svg viewBox="0 0 300 80">
-            <path d="M0 60 Q 75 20, 150 50 T 300 40 L 300 80 L 0 80 Z" fill="#b9e1cd" opacity="0.3" />
-            <path d="M0 70 Q 75 40, 150 60 T 300 55 L 300 80 L 0 80 Z" fill="#cfe8d8" opacity="0.5" />
-          </svg>
-        </div>
-      </template>
+    <div v-else class="empty-state">
+      <van-icon name="warning-o" />
+      <strong>未找到医生信息</strong>
+      <span>该医生可能已停用或暂未公开展示</span>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getDoctor } from '@/api/doctor'
-import defAva from '@/assets/images/title.png'
+import { getDeptList } from '@/api/register'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
 const doctor = ref(null)
+const deptList = ref([])
 
-function getAvatar(d) {
-  return d?.avatar || defAva
+const levelNameMap = {
+  1: '普通号',
+  2: '专家号',
+  3: '主任号'
 }
 
-function onAvatarError(e) {
-  e.target.src = defAva
+function getDeptName(item) {
+  const dept = deptList.value.find((deptItem) => String(deptItem.deptId) === String(item?.deptId))
+  return item?.deptName || dept?.deptName || (item?.deptId ? `科室${item.deptId}` : '门诊科室')
+}
+
+function getLevelName(item) {
+  return item?.levelName || levelNameMap[item?.levelId] || '门诊医生'
+}
+
+function getGenderText(value) {
+  if (!value) return '专业医生'
+  return value === '0' ? '男医生' : value === '1' ? '女医生' : value
+}
+
+function getInitial(name) {
+  return (name || '医').slice(0, 1)
+}
+
+function getDefaultSpecialty(item) {
+  return `${getDeptName(item)}常见病、多发病诊疗及会诊评估，提供规范化门诊诊疗服务。`
+}
+
+function getDefaultIntro(item) {
+  return `${item?.doctorName || '该医生'}长期参与${getDeptName(item)}临床诊疗工作，重视病情评估、治疗沟通和复诊管理。`
 }
 
 function fetchDoctorDetail() {
@@ -162,12 +149,20 @@ function fetchDoctorDetail() {
     goBack()
     return
   }
+
   loading.value = true
-  getDoctor(doctorId).then(response => {
-    doctor.value = response.data
+  getDoctor(doctorId).then((response) => {
+    doctor.value = response.data || null
+  }).finally(() => {
     loading.value = false
+  })
+}
+
+function fetchDeptList() {
+  return getDeptList({ pageNum: 1, pageSize: 500 }).then((response) => {
+    deptList.value = response.rows || response.data || []
   }).catch(() => {
-    loading.value = false
+    deptList.value = []
   })
 }
 
@@ -175,290 +170,288 @@ function goBack() {
   if (window.history.length > 1) {
     router.back()
   } else {
-    router.push('/')
+    router.push('/doctors')
   }
 }
 
+function goRegister() {
+  router.push('/register')
+}
+
+function hideBrokenAvatar(event) {
+  event.target.style.display = 'none'
+}
+
 onMounted(() => {
+  fetchDeptList()
   fetchDoctorDetail()
 })
 </script>
 
-<style scoped>
-.detail-page {
+<style scoped lang="scss">
+.doctor-detail-page {
   min-height: 100vh;
-  background: #f5faf7;
-  position: relative;
-  padding-bottom: 40px;
+  padding: 14px 14px 92px;
+  background:
+    linear-gradient(180deg, rgba(232, 248, 246, .96) 0%, rgba(247, 250, 252, 1) 42%),
+    #f7fafc;
+  color: #183f4a;
 }
 
 .back-btn {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  z-index: 100;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 2px 10px rgba(26, 77, 69, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgb(26, 77, 69);
-  cursor: pointer;
-}
-
-.back-btn svg {
-  width: 22px;
-  height: 22px;
-}
-
-/* 头部英雄区 */
-.detail-hero {
-  position: relative;
-  background: linear-gradient(135deg, rgb(185, 225, 205) 0%, rgb(223, 246, 239) 100%);
-  padding: 60px 20px 48px;
-  overflow: hidden;
-}
-
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.hero-bg svg {
-  width: 100%;
-  height: 100%;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-}
-
-.big-avatar-wrap {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 20px;
-}
-
-.big-avatar {
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 6px solid #fff;
-  box-shadow: 0 8px 32px rgba(26, 77, 69, 0.2);
-  background: #fff;
-  position: relative;
-  z-index: 2;
-}
-
-.avatar-ring {
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  border: 2px dashed rgba(255, 255, 255, 0.7);
-  animation: rotateRing 20s linear infinite;
-}
-
-@keyframes rotateRing {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.doctor-name {
-  font-size: 26px;
-  font-weight: 700;
-  color: rgb(26, 77, 69);
-  margin: 0 0 12px;
-}
-
-.level-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.level-tag {
-  font-size: 13px;
-  color: rgb(230, 162, 60);
-  background: #fdf6ec;
-  padding: 6px 14px;
-  border-radius: 12px;
-  font-weight: 500;
-}
-
-.status-tag {
-  font-size: 13px;
-  color: #fff;
-  background: rgba(144, 147, 153, 0.9);
-  padding: 6px 14px;
-  border-radius: 12px;
-  font-weight: 500;
-}
-
-.status-tag.online {
-  background: rgba(103, 194, 58, 0.95);
-}
-
-.dept-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: rgba(26, 77, 69, 0.75);
-  padding: 6px 14px;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 16px;
-}
-
-.info-icon {
-  width: 16px;
-  height: 16px;
-}
-
-/* 信息区 */
-.info-section {
-  padding: 0 20px;
-  margin-top: 20px;
-}
-
-.info-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 8px 16px;
-  box-shadow: 0 2px 12px rgba(26, 77, 69, 0.08);
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  padding: 14px 0;
-  border-bottom: 1px solid rgba(185, 225, 205, 0.3);
-}
-
-.info-row:last-child {
-  border-bottom: none;
-}
-
-.info-icon-wrap {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgb(185, 225, 205) 0%, rgb(223, 246, 239) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 14px;
-  flex-shrink: 0;
-  color: rgb(26, 77, 69);
-}
-
-.info-icon-wrap svg {
-  width: 20px;
-  height: 20px;
-}
-
-.info-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-
-.info-label {
-  font-size: 12px;
-  color: rgba(26, 77, 69, 0.5);
-}
-
-.info-value {
-  font-size: 15px;
-  color: rgb(26, 77, 69);
-  font-weight: 500;
-}
-
-/* 章节标题 */
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  color: rgb(26, 77, 69);
-}
-
-.title-icon {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
+  border: 0;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgb(185, 225, 205) 0%, rgb(223, 246, 239) 100%);
+  background: rgba(255, 255, 255, .9);
+  color: #315f68;
+  box-shadow: 0 8px 22px rgba(81, 137, 151, .13);
+}
+
+.profile-panel {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .78)),
+    linear-gradient(120deg, rgba(108, 181, 194, .18), rgba(123, 207, 170, .2));
+  border: 1px solid rgba(206, 232, 238, .9);
+  box-shadow: 0 18px 44px rgba(75, 132, 145, .13);
+}
+
+.avatar-wrap {
+  width: 104px;
+  height: 118px;
+  margin: 0 auto 14px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #dff4ef, #d5edf3);
+  display: grid;
+  place-items: center;
+  color: #276b63;
+  font-size: 38px;
+  font-weight: 900;
+  border: 2px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 12px 30px rgba(75, 132, 145, .15);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.name-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+
+  h1 {
+    margin: 0;
+    color: #173e48;
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  span {
+    height: 24px;
+    border-radius: 8px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    background: rgba(52, 123, 112, .1);
+    color: #347b70;
+    font-size: 11px;
+    font-weight: 900;
+
+    &.off {
+      background: rgba(151, 164, 170, .14);
+      color: #7a8a90;
+    }
+  }
+}
+
+.profile-info {
+  text-align: center;
+
+  p {
+    margin: 8px 0 0;
+    color: #607982;
+    font-size: 14px;
+  }
+}
+
+.profile-tags {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+
+  em {
+    min-height: 24px;
+    border-radius: 8px;
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, .78);
+    color: #5d7881;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 800;
+  }
+}
+
+.resource-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+
+  div {
+    min-height: 62px;
+    border-radius: 14px;
+    padding: 10px 8px;
+    background: rgba(255, 255, 255, .94);
+    border: 1px solid rgba(211, 232, 237, .86);
+    box-shadow: 0 10px 24px rgba(75, 132, 145, .09);
+  }
+
+  strong,
+  span {
+    display: block;
+    text-align: center;
+  }
+
+  strong {
+    color: #276b63;
+    font-size: 14px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  span {
+    margin-top: 8px;
+    color: #718b94;
+    font-size: 11px;
+    font-weight: 800;
+  }
+}
+
+.detail-section {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid rgba(211, 232, 237, .86);
+  box-shadow: 0 12px 30px rgba(75, 132, 145, .1);
+}
+
+.section-heading {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: rgb(26, 77, 69);
+  gap: 8px;
+  margin-bottom: 10px;
+
+  .van-icon {
+    color: #347b70;
+    font-size: 19px;
+  }
+
+  h2 {
+    margin: 0;
+    color: #173e48;
+    font-size: 17px;
+  }
 }
 
-.title-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.content-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 16px 20px;
-  box-shadow: 0 2px 12px rgba(26, 77, 69, 0.08);
-}
-
-.content-card p {
+.rich-text {
   margin: 0;
+  color: #4d6971;
   font-size: 14px;
-  color: rgba(26, 77, 69, 0.8);
-  line-height: 1.8;
+  line-height: 1.75;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-/* 底部装饰 */
-.bottom-deco {
-  margin-top: 40px;
-  height: 80px;
-  overflow: hidden;
+.resource-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  div {
+    padding: 12px;
+    border-radius: 12px;
+    background: #f5fafb;
+    border: 1px solid rgba(206, 232, 238, .72);
+  }
+
+  strong {
+    display: block;
+    color: #276b63;
+    font-size: 14px;
+  }
+
+  span {
+    display: block;
+    margin-top: 5px;
+    color: #6f8790;
+    font-size: 12px;
+    line-height: 1.55;
+  }
 }
 
-.bottom-deco svg {
-  width: 100%;
-  height: 100%;
+.bottom-action {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(247, 250, 252, .9);
+  border-top: 1px solid rgba(211, 232, 237, .86);
+  backdrop-filter: blur(12px);
+
+  button {
+    width: 100%;
+    height: 46px;
+    border: 0;
+    border-radius: 14px;
+    background: #347b70;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
 }
 
-/* 加载状态 */
-.loading-state {
+.loading-state,
+.empty-state {
+  min-height: 70vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 100px 20px;
-  color: rgba(26, 77, 69, 0.6);
+  gap: 10px;
+  color: #6f8790;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(185, 225, 205, 0.3);
-  border-top-color: rgb(185, 225, 205);
-  border-radius: 50%;
-  margin-bottom: 12px;
-  animation: spin 0.8s linear infinite;
-}
+.empty-state {
+  .van-icon {
+    color: #d35f45;
+    font-size: 42px;
+  }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  strong {
+    color: #173e48;
+    font-size: 16px;
+  }
+
+  span {
+    font-size: 13px;
+  }
 }
 </style>
