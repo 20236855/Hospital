@@ -723,10 +723,9 @@ button {
   overflow: hidden;
   border-radius: 14px;
   padding: 16px;
-  background: rgba(255, 253, 248, .76);
-  border: 1px solid rgba(213, 237, 243, .72);
-  box-shadow: 0 18px 44px rgba(102, 170, 189, .13);
-  backdrop-filter: blur(14px);
+  background: #fff;
+  border: 1px solid rgba(93, 184, 216, .18);
+  box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
 }
 
 .timeline-glow {
@@ -828,11 +827,11 @@ button {
 
 .service-item {
   min-height: 72px;
-  border: 1px solid rgba(213, 237, 243, .72);
+  border: 1px solid rgba(93, 184, 216, .18);
   border-radius: 12px;
   padding: 13px;
-  background: rgba(255, 253, 248, .7);
-  box-shadow: 0 14px 30px rgba(102, 170, 189, .11);
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
   display: flex;
   align-items: center;
   gap: 11px;

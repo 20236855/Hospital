@@ -178,6 +178,14 @@
         </div>
       </div>
     </div>
+
+    <!-- 注册成功弹窗 -->
+    <div class="success-overlay" v-if="showSuccess" @click="showSuccess = false">
+      <div class="success-card" @click.stop>
+        <img :src="successImg" alt="注册成功" class="success-img" />
+        <p class="success-tip">点击任意位置进入登录</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -185,6 +193,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { register, getCodeImg } from '@/api/login'
+import successImg from '@/assets/register_success.png'
 
 const router = useRouter()
 
@@ -204,6 +213,7 @@ const confirmPassword = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const loading = ref(false)
+const showSuccess = ref(false)
 
 const getCode = async () => {
   try {
@@ -269,10 +279,11 @@ const handleRegister = async () => {
       uuid: registerForm.value.uuid
     })
     console.log('注册成功，响应:', result)
-    alert('注册成功，请登录')
+    showSuccess.value = true
     setTimeout(() => {
+      showSuccess.value = false
       router.push('/login')
-    }, 1500)
+    }, 2500)
   } catch (error) {
     console.error('注册错误:', error)
     alert(error.message || '注册失败，请稍后重试')
@@ -654,5 +665,50 @@ onMounted(() => {
 
 .slide-up-animation {
   animation: slideUp 0.5s ease-out;
+}
+
+// ========== 注册成功弹窗 ==========
+.success-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, .5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn .3s ease;
+}
+
+.success-card {
+  width: 85%;
+  max-width: 340px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .2);
+  animation: scaleIn .35s ease;
+}
+
+.success-img {
+  width: 100%;
+  display: block;
+}
+
+.success-tip {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 </style>

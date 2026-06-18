@@ -746,11 +746,9 @@ onMounted(() => {
 .appointment-card {
   border-radius: 14px;
   padding: 12px;
-  background: rgba(255, 253, 248, .76);
+  background: #fff;
   border: 1px solid rgba(213, 237, 243, .72);
   box-shadow: 0 18px 44px rgba(102, 170, 189, .13);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
   position: relative;
   overflow: hidden;
 
