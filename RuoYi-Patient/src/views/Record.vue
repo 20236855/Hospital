@@ -19,7 +19,7 @@
 
     <div class="content-section">
       <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-        <van-list v-model:loading="loading" :finished="finished" @load="onLoad">
+        <van-list v-model:loading="loading" :finished="finished" :immediate-check="false" @load="onLoad">
           <div v-if="recordList.length === 0 && !loading" class="empty-state slide-up-animation">
             <div class="empty-icon">
               <svg viewBox="0 0 120 120" class="empty-svg">
@@ -37,8 +37,8 @@
               </svg>
             </div>
             <div class="empty-text">
-              <h3>暂无病历记录</h3>
-              <p>您还没有就诊记录</p>
+              <h3>暂无病例</h3>
+              <p>当前患者暂无电子病历记录</p>
             </div>
           </div>
 
@@ -231,14 +231,17 @@ const formatFullDate = (dateStr) => {
 
 const getStoredPatientId = () => {
   const value = localStorage.getItem('patientId')
-  console.log('从 localStorage 获取 patientId:', value)
   return value ? Number(value) : null
 }
 
 const onLoad = async () => {
   try {
     const patientId = getStoredPatientId()
-    console.log('查询病历列表 - patientId:', patientId)
+    if (!patientId) {
+      recordList.value = []
+      finished.value = true
+      return
+    }
     
     const res = await getMedicalRecordList({
       pageNum: pageNum.value,
@@ -246,22 +249,25 @@ const onLoad = async () => {
       patientId: patientId
     })
     
-    console.log('查询病历列表返回:', res)
-    
+    const rows = res.rows || []
+    const total = Number(res.total || 0)
+
     if (pageNum.value === 1) {
-      recordList.value = res.rows || []
+      recordList.value = rows
     } else {
-      recordList.value = [...recordList.value, ...(res.rows || [])]
+      recordList.value = [...recordList.value, ...rows]
     }
-    loading.value = false
-    if (recordList.value.length >= (res.total || 10)) {
+
+    if (rows.length === 0 || total === 0 || recordList.value.length >= total) {
       finished.value = true
     } else {
       pageNum.value++
     }
   } catch (error) {
-    loading.value = false
+    finished.value = true
     console.error(error)
+  } finally {
+    loading.value = false
   }
 }
 

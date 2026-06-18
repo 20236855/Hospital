@@ -58,10 +58,16 @@ const routes = [
     meta: { title: '智能问诊', requiresAuth: true }
   },
   {
+    path: '/health-news',
+    name: 'HealthNews',
+    component: () => import('@/views/HealthNews.vue'),
+    meta: { title: '健康资讯', requiresAuth: true }
+  },
+  {
     path: '/doctors',
     name: 'DoctorList',
     component: () => import('@/views/DoctorList.vue'),
-    meta: { title: '科室医生', requiresAuth: true }
+    meta: { title: '医院资源', requiresAuth: true }
   },
   {
     path: '/doctor/:id',
@@ -74,6 +80,12 @@ const routes = [
     name: 'MyAppointments',
     component: () => import('@/views/MyAppointments.vue'),
     meta: { title: '我的预约', requiresAuth: true }
+  },
+  {
+    path: '/my-payment',
+    name: 'MyPayment',
+    component: () => import('@/views/MyPayment.vue'),
+    meta: { title: '我的缴费', requiresAuth: true }
   }
 ]
 
