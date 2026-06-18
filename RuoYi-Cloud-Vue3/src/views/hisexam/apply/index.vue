@@ -1,178 +1,239 @@
 <template>
-  <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="挂号ID" prop="registerId">
-        <el-input
-          v-model="queryParams.registerId"
-          placeholder="请输入挂号ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="接诊ID" prop="encounterId">
-        <el-input
-          v-model="queryParams.encounterId"
-          placeholder="请输入接诊ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="患者ID" prop="patientId">
-        <el-input
-          v-model="queryParams.patientId"
-          placeholder="请输入患者ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="开单医生ID" prop="doctorId">
-        <el-input
-          v-model="queryParams.doctorId"
-          placeholder="请输入开单医生ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="开单科室ID" prop="deptId">
-        <el-input
-          v-model="queryParams.deptId"
-          placeholder="请输入开单科室ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="医技项目ID" prop="techId">
-        <el-input
-          v-model="queryParams.techId"
-          placeholder="请输入医技项目ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="检查/检验/处置部位" prop="applyPosition">
-        <el-input
-          v-model="queryParams.applyPosition"
-          placeholder="请输入检查/检验/处置部位"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="执行人员ID" prop="operatorId">
-        <el-input
-          v-model="queryParams.operatorId"
-          placeholder="请输入执行人员ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="结果录入人员ID" prop="inputerId">
-        <el-input
-          v-model="queryParams.inputerId"
-          placeholder="请输入结果录入人员ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="开立时间" prop="applyTime">
-        <el-date-picker clearable
-          v-model="queryParams.applyTime"
-          type="date"
-          value-format="YYYY-MM-DD"
-          placeholder="请选择开立时间">
-        </el-date-picker>
-      </el-form-item>
-      <el-form-item label="执行时间" prop="examTime">
-        <el-date-picker clearable
-          v-model="queryParams.examTime"
-          type="date"
-          value-format="YYYY-MM-DD"
-          placeholder="请选择执行时间">
-        </el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
+  <div class="app-container hisexam-apply">
+    <!-- ==================== 三大专业分类卡片区域 ==================== -->
+    <div class="category-section">
+      <div class="section-header">
+        <div class="header-decoration">
+          <span class="deco-line"></span>
+          <span class="deco-icon"><el-icon :size="22"><Plus /></el-icon></span>
+          <span class="deco-line"></span>
+        </div>
+        <h2 class="section-title">医疗项目申请中心</h2>
+        <p class="section-subtitle">请选择您需要申请的医疗项目类型，系统将引导您完成检查、检验或处置申请</p>
+      </div>
+      <el-row :gutter="24" class="category-row">
+        <el-col
+          v-for="cat in categories"
+          :key="cat.type"
+          :xs="24"
+          :sm="24"
+          :md="8"
+          class="category-col"
+        >
+          <div
+            class="category-card"
+            :style="{ '--card-color': cat.color }"
+            @click="goDetail(cat.type)"
+            @mouseenter="cat.paused = true"
+            @mouseleave="cat.paused = false"
+          >
+            <!-- 图片轮播区域（所有图片层叠，无缝切换） -->
+            <div class="card-banner">
+              <div
+                v-for="(img, idx) in cat.images"
+                :key="idx"
+                class="banner-slide"
+                :class="{ active: idx === cat.currentIndex }"
+                :style="{ backgroundImage: `url(${img})` }"
+              ></div>
+              <!-- 渐变遮罩 -->
+              <div class="banner-overlay"></div>
+              <!-- 轮播进度条 -->
+              <div class="carousel-progress">
+                <span
+                  v-for="(img, idx) in cat.images"
+                  :key="idx"
+                  class="progress-dot"
+                  :class="{ active: idx === cat.currentIndex }"
+                  @click.stop="switchImage(cat, idx)"
+                >
+                  <span v-if="idx === cat.currentIndex" class="progress-fill"></span>
+                </span>
+              </div>
+              <!-- 卡片上的类型标识 -->
+              <div class="banner-badge" :style="{ background: cat.color }">
+                {{ cat.name }}
+              </div>
+            </div>
+            <!-- 卡片内容 -->
+            <div class="card-body">
+              <div class="card-icon-wrap" :style="{ background: cat.colorBg, color: cat.color }">
+                <el-icon :size="24">
+                  <component :is="cat.icon" />
+                </el-icon>
+              </div>
+              <div class="card-info">
+                <h3 class="card-title">{{ cat.subtitle }}</h3>
+                <p class="card-desc">{{ cat.description }}</p>
+              </div>
+              <div class="card-items">
+                <span
+                  v-for="item in cat.items"
+                  :key="item"
+                  class="item-tag"
+                  :style="{ color: cat.color, borderColor: cat.color, background: cat.colorBg }"
+                >
+                  {{ item }}
+                </span>
+              </div>
+              <div class="card-footer">
+                <div class="card-stats">
+                  <span class="stat" :style="{ color: cat.color }">
+                    <el-icon><Document /></el-icon>
+                    {{ cat.itemCount }} 个项目
+                  </span>
+                </div>
+                <button
+                  class="action-btn"
+                  :style="{ background: cat.color, '--btn-hover': cat.color }"
+                  @click.stop="goDetail(cat.type)"
+                >
+                  进入{{ cat.name }}
+                  <el-icon class="btn-arrow"><ArrowRight /></el-icon>
+                </button>
+              </div>
+            </div>
+            <!-- 卡片 Hover 发光效果 -->
+            <div class="card-glow"></div>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
 
-    <el-row :gutter="10" class="mb8">
+    <!-- ==================== 搜索区域 ==================== -->
+    <div class="search-panel" v-show="showSearch">
+      <el-form :model="queryParams" ref="queryRef" label-width="110px" class="search-form">
+        <el-row :gutter="16">
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="挂号ID" prop="registerId">
+              <el-input v-model="queryParams.registerId" placeholder="请输入" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="接诊ID" prop="encounterId">
+              <el-input v-model="queryParams.encounterId" placeholder="请输入" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="患者ID" prop="patientId">
+              <el-input v-model="queryParams.patientId" placeholder="请输入" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="开单医生ID" prop="doctorId">
+              <el-input v-model="queryParams.doctorId" placeholder="请输入" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="开单科室ID" prop="deptId">
+              <el-input v-model="queryParams.deptId" placeholder="请输入" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="医技项目ID" prop="techId">
+              <el-input v-model="queryParams.techId" placeholder="请输入" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="部位" prop="applyPosition">
+              <el-input v-model="queryParams.applyPosition" placeholder="请输入" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="执行人员ID" prop="operatorId">
+              <el-input v-model="queryParams.operatorId" placeholder="请输入" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="结果录入人员ID" prop="inputerId">
+              <el-input v-model="queryParams.inputerId" placeholder="请输入" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="开立时间" prop="applyTime">
+              <el-date-picker clearable v-model="queryParams.applyTime" type="date" value-format="YYYY-MM-DD" placeholder="选择日期" style="width:100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="执行时间" prop="examTime">
+              <el-date-picker clearable v-model="queryParams.examTime" type="date" value-format="YYYY-MM-DD" placeholder="选择日期" style="width:100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label=" " label-width="10px">
+              <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+              <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+    </div>
+
+    <!-- ==================== 工具栏 ==================== -->
+    <el-row :gutter="10" class="toolbar-row">
       <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="Plus"
-          @click="handleAdd"
-          v-hasPermi="['hisexam:apply:add']"
-        >新增</el-button>
+        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['hisexam:apply:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="Edit"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['hisexam:apply:edit']"
-        >修改</el-button>
+        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['hisexam:apply:edit']">修改</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['hisexam:apply:remove']"
-        >删除</el-button>
+        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['hisexam:apply:remove']">删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="Download"
-          @click="handleExport"
-          v-hasPermi="['hisexam:apply:export']"
-        >导出</el-button>
+        <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['hisexam:apply:export']">导出</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="applyList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="申请ID(主键)" align="center" prop="applyId" />
-      <el-table-column label="挂号ID" align="center" prop="registerId" />
-      <el-table-column label="接诊ID" align="center" prop="encounterId" />
-      <el-table-column label="患者ID" align="center" prop="patientId" />
-      <el-table-column label="开单医生ID" align="center" prop="doctorId" />
-      <el-table-column label="开单科室ID" align="center" prop="deptId" />
-      <el-table-column label="类型：CHECK检查/INSPEC检验/DISPOSAL处置" align="center" prop="applyType" />
-      <el-table-column label="医技项目ID" align="center" prop="techId" />
-      <el-table-column label="目的要求" align="center" prop="applyInfo" />
-      <el-table-column label="检查/检验/处置部位" align="center" prop="applyPosition" />
-      <el-table-column label="执行人员ID" align="center" prop="operatorId" />
-      <el-table-column label="结果录入人员ID" align="center" prop="inputerId" />
-      <el-table-column label="开立时间" align="center" prop="applyTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.applyTime, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="执行时间" align="center" prop="examTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.examTime, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="执行结果" align="center" prop="examResult" />
-      <el-table-column label="CT/影像文件访问地址，检验、处置类可留空" align="center" prop="imageUrl" />
-      <el-table-column label="状态：待缴费/待执行/已完成" align="center" prop="applyStatus" />
-      <el-table-column label="支付状态" align="center" prop="payStatus" />
-      <el-table-column label="备注" align="center" prop="remark" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['hisexam:apply:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['hisexam:apply:remove']">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- ==================== 数据表格 ==================== -->
+    <div class="table-wrap">
+      <el-table v-loading="loading" :data="applyList" @selection-change="handleSelectionChange" stripe>
+        <el-table-column type="selection" width="45" align="center" fixed="left" />
+        <el-table-column label="申请ID" align="center" prop="applyId" width="90" show-overflow-tooltip />
+        <el-table-column label="类型" align="center" prop="applyType" width="80">
+          <template #default="scope">
+            <span :class="'type-' + scope.row.applyType">{{ scope.row.applyType }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="挂号ID" align="center" prop="registerId" width="80" />
+        <el-table-column label="接诊ID" align="center" prop="encounterId" width="80" />
+        <el-table-column label="患者ID" align="center" prop="patientId" width="80" />
+        <el-table-column label="医生ID" align="center" prop="doctorId" width="80" />
+        <el-table-column label="科室ID" align="center" prop="deptId" width="80" />
+        <el-table-column label="医技项目" align="center" prop="techId" width="90" />
+        <el-table-column label="目的要求" align="center" prop="applyInfo" min-width="120" show-overflow-tooltip />
+        <el-table-column label="部位" align="center" prop="applyPosition" min-width="100" show-overflow-tooltip />
+        <el-table-column label="执行人员" align="center" prop="operatorId" width="90" />
+        <el-table-column label="录入人员" align="center" prop="inputerId" width="90" />
+        <el-table-column label="开立时间" align="center" prop="applyTime" width="110">
+          <template #default="scope">
+            <span>{{ parseTime(scope.row.applyTime, '{y}-{m}-{d}') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="执行时间" align="center" prop="examTime" width="110">
+          <template #default="scope">
+            <span>{{ parseTime(scope.row.examTime, '{y}-{m}-{d}') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" align="center" prop="applyStatus" width="90">
+          <template #default="scope">
+            <el-tag :type="statusTagType(scope.row.applyStatus)" size="small">{{ scope.row.applyStatus || '-' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="支付" align="center" prop="payStatus" width="80">
+          <template #default="scope">
+            <el-tag :type="scope.row.payStatus === '已支付' ? 'success' : 'warning'" size="small">{{ scope.row.payStatus || '-' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center" width="140" fixed="right">
+          <template #default="scope">
+            <el-button link type="primary" size="small" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['hisexam:apply:edit']">修改</el-button>
+            <el-button link type="danger" size="small" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['hisexam:apply:remove']">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
     
     <pagination
       v-show="total>0"
@@ -284,8 +345,113 @@
 </template>
 
 <script setup name="Apply">
+import { ref, reactive, toRefs, getCurrentInstance, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { listApply, getApply, delApply, addApply, updateApply } from "@/api/hisexam/apply"
+import { Plus, ArrowRight, Document, View, Monitor, FirstAidKit } from '@element-plus/icons-vue'
 
+// ============ 分类卡片数据 ============
+const router = useRouter()
+
+import checkImg1 from '@/assets/exam/检查1.png'
+import checkImg2 from '@/assets/exam/检查2.png'
+import checkImg3 from '@/assets/exam/检查3.png'
+import inspecImg1 from '@/assets/exam/检验1.png'
+import inspecImg2 from '@/assets/exam/检验2.png'
+import inspecImg3 from '@/assets/exam/检验3.png'
+import disposalImg1 from '@/assets/exam/处置1.png'
+import disposalImg3 from '@/assets/exam/处置3.png'
+
+const categories = reactive([
+  {
+    type: 'CHECK',
+    name: '检查',
+    subtitle: '影像学检查',
+    icon: View,
+    description: '利用 CT、超声等影像设备进行医学诊断，包含颅内病变CT、肺部病变CT及皮肤病变等检查项目',
+    images: [checkImg1, checkImg2, checkImg3],
+    color: '#1A6B54',
+    colorBg: '#E8F3EF',
+    items: ['颅内病变CT', '肺部病变CT', '皮肤病变'],
+    itemCount: 3,
+    currentIndex: 0,
+    paused: false,
+    timer: null
+  },
+  {
+    type: 'INSPEC',
+    name: '检验',
+    subtitle: '实验室检验',
+    icon: Monitor,
+    description: '通过分析血液、体液等样本提供诊断依据，包含验血、生化分析等实验室检验项目',
+    images: [inspecImg1, inspecImg2, inspecImg3],
+    color: '#1A6B54',
+    colorBg: '#E8F3EF',
+    items: ['验血', '生化检验', '免疫检验'],
+    itemCount: 3,
+    currentIndex: 0,
+    paused: false,
+    timer: null
+  },
+  {
+    type: 'DISPOSAL',
+    name: '处置',
+    subtitle: '临床处置',
+    icon: FirstAidKit,
+    description: '为患者提供直接的治疗与护理服务，包含手术、住院、注射等临床处置项目',
+    images: [disposalImg1, disposalImg3, disposalImg1],
+    color: '#1A6B54',
+    colorBg: '#E8F3EF',
+    items: ['手术', '住院', '注射'],
+    itemCount: 3,
+    currentIndex: 0,
+    paused: false,
+    timer: null
+  }
+])
+
+// 手动切换图片
+function switchImage(cat, idx) {
+  cat.currentIndex = idx
+  resetTimer(cat)
+}
+
+// 启动/重置轮播定时器
+function startCarousel(cat) {
+  stopCarousel(cat)
+  cat.timer = setInterval(() => {
+    if (!cat.paused) {
+      cat.currentIndex = (cat.currentIndex + 1) % cat.images.length
+    }
+  }, 3500)
+}
+
+function stopCarousel(cat) {
+  if (cat.timer) {
+    clearInterval(cat.timer)
+    cat.timer = null
+  }
+}
+
+function resetTimer(cat) {
+  stopCarousel(cat)
+  startCarousel(cat)
+}
+
+// 跳转到详情页
+function goDetail(type) {
+  router.push({ path: '/hisexam/apply-detail', query: { applyType: type } })
+}
+
+onMounted(() => {
+  categories.forEach(cat => startCarousel(cat))
+})
+
+onUnmounted(() => {
+  categories.forEach(cat => stopCarousel(cat))
+})
+
+// ============ 原有业务逻辑 ============
 const { proxy } = getCurrentInstance()
 
 const applyList = ref([])
@@ -468,5 +634,401 @@ function handleExport() {
   }, `apply_${new Date().getTime()}.xlsx`)
 }
 
+function statusTagType(status) {
+  const map = { '待缴费': 'warning', '待执行': 'info', '已完成': 'success' }
+  return map[status] || 'info'
+}
+
 getList()
 </script>
+
+<style scoped lang="scss">
+.hisexam-apply {
+  /* ============ 分类卡片区域 ============ */
+  .category-section {
+    margin-bottom: 28px;
+    animation: sectionIn 0.6s ease-out;
+  }
+
+  @keyframes sectionIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 32px;
+
+    .header-decoration {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+
+      .deco-line {
+        display: block;
+        width: 60px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #1A6B54, transparent);
+        border-radius: 1px;
+      }
+
+      .deco-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #1A6B54;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(26, 107, 84, 0.4);
+        animation: pulseIcon 2s ease-in-out infinite;
+      }
+    }
+
+    @keyframes pulseIcon {
+      0%, 100% { box-shadow: 0 4px 15px rgba(26, 107, 84, 0.3); }
+      50%      { box-shadow: 0 4px 25px rgba(26, 107, 84, 0.55); }
+    }
+
+    .section-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #1E293B;
+      margin: 0 0 8px;
+      letter-spacing: 2px;
+    }
+
+    .section-subtitle {
+      font-size: 14px;
+      color: #64748B;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .category-row {
+    .category-col {
+      margin-bottom: 20px;
+    }
+  }
+
+  /* 分类卡片 */
+  .category-card {
+    position: relative;
+    background: #FFFFFF;
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+
+      .card-glow {
+        opacity: 1;
+      }
+
+      .card-banner .banner-badge {
+        transform: scale(1.05);
+      }
+
+      .action-btn {
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      }
+    }
+  }
+
+  .card-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    background: radial-gradient(circle at 50% 0%, var(--card-color) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* 图片轮播 */
+  .card-banner {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    background: #F1F5F9;
+
+    .banner-slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      &.active {
+        opacity: 1;
+      }
+    }
+
+    .banner-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.05) 0%,
+        rgba(0, 0, 0, 0.02) 40%,
+        rgba(0, 0, 0, 0.45) 100%
+      );
+    }
+
+    .banner-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease;
+      z-index: 2;
+    }
+
+    /* 轮播进度点 */
+    .carousel-progress {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 2;
+
+      .progress-dot {
+        width: 24px;
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        overflow: hidden;
+
+        &.active {
+          width: 36px;
+          background: rgba(255, 255, 255, 0.8);
+        }
+
+        .progress-fill {
+          display: block;
+          height: 100%;
+          background: #FFFFFF;
+          border-radius: 2px;
+          animation: progressFill 3.5s linear forwards;
+        }
+      }
+    }
+
+    @keyframes progressFill {
+      from { width: 0%; }
+      to   { width: 100%; }
+    }
+  }
+
+  /* 轮播淡入淡出 */
+  /* 卡片内容 */
+  .card-body {
+    padding: 20px 24px 24px;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    transition: transform 0.3s ease;
+
+    .category-card:hover & {
+      transform: rotate(-5deg) scale(1.1);
+    }
+  }
+
+  .card-info {
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1E293B;
+      margin: 0 0 6px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: #64748B;
+      line-height: 1.6;
+      margin: 0 0 14px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+
+  .card-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+
+    .item-tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid;
+      line-height: 20px;
+      transition: all 0.2s;
+    }
+  }
+
+  .card-footer {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .card-stats {
+      .stat {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 20px;
+      border: none;
+      border-radius: 20px;
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover {
+        filter: brightness(0.9);
+        transform: translateY(-1px);
+      }
+
+      .btn-arrow {
+        transition: transform 0.3s ease;
+      }
+
+      &:hover .btn-arrow {
+        transform: translateX(3px);
+      }
+    }
+  }
+
+  /* ===== 搜索面板 ===== */
+  .search-panel {
+    background: #F8FAFC;
+    border-radius: 12px;
+    padding: 20px 20px 4px;
+    margin-bottom: 14px;
+    border: 1px solid #E2E8F0;
+
+    .search-form {
+      :deep(.el-form-item) {
+        margin-bottom: 16px;
+      }
+
+      :deep(.el-form-item__label) {
+        color: #475569;
+        font-weight: 500;
+      }
+
+      :deep(.el-input__wrapper) {
+        box-shadow: 0 0 0 1px #E2E8F0 inset;
+        &:hover { box-shadow: 0 0 0 1px #CBD5E1 inset; }
+      }
+    }
+  }
+
+  /* ===== 工具栏 ===== */
+  .toolbar-row {
+    margin-bottom: 14px;
+  }
+
+  /* ===== 表格 ===== */
+  .table-wrap {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    border: 1px solid #E2E8F0;
+
+    :deep(.el-table) {
+      font-size: 13px;
+
+      th.el-table__cell {
+        background: #F1F5F9;
+        color: #475569;
+        font-weight: 600;
+        font-size: 12px;
+        padding: 10px 0;
+        border-bottom: 2px solid #E2E8F0;
+      }
+
+      td.el-table__cell {
+        padding: 8px 0;
+        color: #334155;
+      }
+
+      .el-table__body tr:hover > td {
+        background: #F8FAFC;
+      }
+
+      /* 类型标识 */
+      .type-CHECK,
+      .type-INSPEC,
+      .type-DISPOSAL {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: #E8F3EF;
+        color: #1A6B54;
+        font-size: 12px;
+        font-weight: 600;
+      }
+    }
+
+    :deep(.el-table__fixed-right) {
+      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.06);
+    }
+  }
+}
+</style>

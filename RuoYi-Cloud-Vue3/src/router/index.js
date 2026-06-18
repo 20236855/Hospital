@@ -99,6 +99,32 @@ export const constantRoutes = [
     path: '/complete/doctor',
     component: () => import('@/views/complete/DoctorComplete'),
     hidden: true
+  },
+  {
+    path: '/hisexam/apply-detail',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/hisexam/apply/detail'),
+        name: 'ApplyDetail',
+        meta: { title: '申请单详情' }
+      }
+    ]
+  },
+  {
+    path: '/hisexam/check/brain-ct',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/hisexam/check/brain-ct/index'),
+        name: 'BrainCTCheck',
+        meta: { title: '颅内病变CT检查' }
+      }
+    ]
   }
 ]
 
