@@ -1,90 +1,46 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="处方ID" prop="prescriptionId">
-        <el-input
-          v-model="queryParams.prescriptionId"
-          placeholder="请输入处方ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="药品ID" prop="drugId">
-        <el-input
-          v-model="queryParams.drugId"
-          placeholder="请输入药品ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="药品名称" prop="drugName">
-        <el-input
-          v-model="queryParams.drugName"
-          placeholder="请输入药品名称"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="药品单价" prop="drugPrice">
-        <el-input
-          v-model="queryParams.drugPrice"
-          placeholder="请输入药品单价"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="药品数量" prop="quantity">
-        <el-input
-          v-model="queryParams.quantity"
-          placeholder="请输入药品数量"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="用法" prop="drugUsage">
-        <el-input
-          v-model="queryParams.drugUsage"
-          placeholder="请输入用法"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="单次用量" prop="dosage">
-        <el-input
-          v-model="queryParams.dosage"
-          placeholder="请输入单次用量"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="服用频次" prop="frequency">
-        <el-input
-          v-model="queryParams.frequency"
-          placeholder="请输入服用频次"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="使用天数" prop="useDays">
-        <el-input
-          v-model="queryParams.useDays"
-          placeholder="请输入使用天数"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="单种药品嘱托" prop="itemTip">
-        <el-input
-          v-model="queryParams.itemTip"
-          placeholder="请输入单种药品嘱托"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="55px">
+      <el-row :gutter="10">
+        <el-col :span="6">
+          <el-form-item label="处方" prop="prescriptionId">
+            <el-input v-model="queryParams.prescriptionId" placeholder="处方ID" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="药品" prop="drugName">
+            <el-input v-model="queryParams.drugName" placeholder="药品名称" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="单价" prop="drugPrice">
+            <el-input v-model="queryParams.drugPrice" placeholder="单价" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="用法" prop="drugUsage">
+            <el-input v-model="queryParams.drugUsage" placeholder="用法" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="10">
+        <el-col :span="6">
+          <el-form-item label="频次" prop="frequency">
+            <el-input v-model="queryParams.frequency" placeholder="频次" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="嘱托" prop="itemTip">
+            <el-input v-model="queryParams.itemTip" placeholder="嘱托" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item>
+            <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+            <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+          </el-form-item>
+        </el-col>
+      </el-row>
     </el-form>
 
     <el-row :gutter="10" class="mb8">
@@ -131,17 +87,21 @@
 
     <el-table v-loading="loading" :data="itemList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="明细ID(主键)" align="center" prop="itemId" />
-      <el-table-column label="处方ID" align="center" prop="prescriptionId" />
-      <el-table-column label="药品ID" align="center" prop="drugId" />
-      <el-table-column label="药品名称" align="center" prop="drugName" />
-      <el-table-column label="药品单价" align="center" prop="drugPrice" />
-      <el-table-column label="药品数量" align="center" prop="quantity" />
-      <el-table-column label="用法" align="center" prop="drugUsage" />
-      <el-table-column label="单次用量" align="center" prop="dosage" />
-      <el-table-column label="服用频次" align="center" prop="frequency" />
-      <el-table-column label="使用天数" align="center" prop="useDays" />
-      <el-table-column label="单种药品嘱托" align="center" prop="itemTip" />
+      <el-table-column label="明细ID" align="center" prop="itemId" width="80" />
+      <el-table-column label="处方" align="center" prop="prescriptionId" width="70" />
+      <el-table-column label="药品" align="center" prop="drugName" min-width="120" show-overflow-tooltip />
+      <el-table-column label="单价" align="center" prop="drugPrice" width="70" />
+      <el-table-column label="数量" align="center" prop="quantity" width="60" />
+      <el-table-column label="小计" align="center" width="80">
+        <template #default="{ row }">
+          {{ (row.drugPrice || 0) * (row.quantity || 0) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="用法" align="center" prop="drugUsage" width="80" />
+      <el-table-column label="用量" align="center" prop="dosage" width="80" />
+      <el-table-column label="频次" align="center" prop="frequency" width="80" />
+      <el-table-column label="天数" align="center" prop="useDays" width="60" />
+      <el-table-column label="嘱托" align="center" prop="itemTip" min-width="100" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['hisprescription:item:edit']">修改</el-button>
@@ -387,7 +347,7 @@ function handleExport() {
 }
 
 if (route.query.prescriptionId) {
-  queryParams.value.prescriptionId = route.query.prescriptionId
+  queryParams.value.prescriptionId = Number(route.query.prescriptionId)
 }
 getList()
 </script>

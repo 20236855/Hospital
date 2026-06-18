@@ -58,4 +58,9 @@ public interface PrescriptionItemMapper
      * @return 结果
      */
     public int deletePrescriptionItemByItemIds(Long[] itemIds);
+
+    /**
+     * 根据处方ID删除所有明细
+     */
+    public int deletePrescriptionItemByPrescriptionId(Long prescriptionId);
 }

@@ -42,3 +42,21 @@ export function delPrescription(prescriptionId) {
     method: 'delete'
   })
 }
+
+// 保存处方主+明细（事务统一处理）
+export function savePrescriptionWithItems(data) {
+  return request({
+    url: '/hisprescription/prescription/saveWithItems',
+    method: 'post',
+    data: data
+  })
+}
+
+// 更新处方主+明细
+export function updatePrescriptionWithItems(data) {
+  return request({
+    url: '/hisprescription/prescription/saveWithItems',
+    method: 'put',
+    data: data
+  })
+}

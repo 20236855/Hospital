@@ -22,6 +22,7 @@ import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.hisprescription.domain.Prescription;
+import com.ruoyi.hisprescription.domain.PrescriptionItem;
 import com.ruoyi.hisprescription.service.IPrescriptionService;
 import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.model.LoginUser;
@@ -94,7 +95,58 @@ public class PrescriptionController extends BaseController
     }
 
     /**
-     * 新增处方主
+     * 新增处方主（含明细，事务统一处理）
+     */
+    @RequiresPermissions("hisprescription:prescription:add")
+    @Log(title = "处方主", businessType = BusinessType.INSERT)
+    @PostMapping("/saveWithItems")
+    public AjaxResult saveWithItems(@RequestBody Map<String, Object> requestMap)
+    {
+        // 解析处方主信息
+        Map<String, Object> pMap = (Map<String, Object>) requestMap.get("prescription");
+        Prescription prescription = new Prescription();
+        prescription.setRegisterId(toLong(pMap.get("registerId")));
+        prescription.setEncounterId(toLong(pMap.get("encounterId")));
+        prescription.setPatientId(toLong(pMap.get("patientId")));
+        prescription.setDoctorId(toLong(pMap.get("doctorId")));
+        prescription.setDeptId(toLong(pMap.get("deptId")));
+        prescription.setDrugTip((String) pMap.get("drugTip"));
+        prescription.setTotalAmount(pMap.get("totalAmount") != null
+                ? new java.math.BigDecimal(pMap.get("totalAmount").toString()) : null);
+        applyPatientScope(prescription);
+
+        // 解析明细列表
+        List<Map<String, Object>> itemMaps = (List<Map<String, Object>>) requestMap.get("items");
+        java.util.List<PrescriptionItem> items = new java.util.ArrayList<>();
+        if (itemMaps != null) {
+            for (Map<String, Object> im : itemMaps) {
+                PrescriptionItem item = new PrescriptionItem();
+                item.setDrugId(toLong(im.get("drugId")));
+                item.setDrugName((String) im.get("drugName"));
+                item.setDrugPrice(im.get("drugPrice") != null
+                        ? new java.math.BigDecimal(im.get("drugPrice").toString()) : null);
+                item.setQuantity(toLong(im.get("quantity")));
+                item.setDrugUsage((String) im.get("drugUsage"));
+                item.setDosage((String) im.get("dosage"));
+                item.setFrequency((String) im.get("frequency"));
+                item.setUseDays(toLong(im.get("useDays")));
+                item.setItemTip((String) im.get("itemTip"));
+                items.add(item);
+            }
+        }
+
+        Prescription saved = prescriptionService.savePrescriptionWithItems(prescription, items);
+        return success(saved);
+    }
+
+    private Long toLong(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number) return ((Number) val).longValue();
+        try { return Long.valueOf(val.toString()); } catch (Exception e) { return null; }
+    }
+
+    /**
+     * 新增处方主（原有接口，兼容无明细场景）
      */
     @RequiresPermissions("hisprescription:prescription:add")
     @Log(title = "处方主", businessType = BusinessType.INSERT)
@@ -102,7 +154,6 @@ public class PrescriptionController extends BaseController
     public AjaxResult add(@RequestBody Prescription prescription)
     {
         applyPatientScope(prescription);
-        // 兜底：确保处方单号不为空（service层也会自动生成）
         if (prescription.getPrescriptionNo() == null || prescription.getPrescriptionNo().isEmpty()) {
             String dateStr = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
             int rand = new java.util.Random().nextInt(9000) + 1000;
@@ -112,7 +163,48 @@ public class PrescriptionController extends BaseController
     }
 
     /**
-     * 修改处方主
+     * 修改处方主+明细
+     */
+    @RequiresPermissions("hisprescription:prescription:edit")
+    @Log(title = "处方主", businessType = BusinessType.UPDATE)
+    @PutMapping("/saveWithItems")
+    public AjaxResult updateWithItems(@RequestBody Map<String, Object> requestMap)
+    {
+        Map<String, Object> pMap = (Map<String, Object>) requestMap.get("prescription");
+        Prescription prescription = new Prescription();
+        prescription.setPrescriptionId(toLong(pMap.get("prescriptionId")));
+        prescription.setRegisterId(toLong(pMap.get("registerId")));
+        prescription.setEncounterId(toLong(pMap.get("encounterId")));
+        prescription.setPatientId(toLong(pMap.get("patientId")));
+        prescription.setDoctorId(toLong(pMap.get("doctorId")));
+        prescription.setDeptId(toLong(pMap.get("deptId")));
+        prescription.setDrugTip((String) pMap.get("drugTip"));
+        applyPatientScope(prescription);
+
+        List<Map<String, Object>> itemMaps = (List<Map<String, Object>>) requestMap.get("items");
+        java.util.List<PrescriptionItem> items = new java.util.ArrayList<>();
+        if (itemMaps != null) {
+            for (Map<String, Object> im : itemMaps) {
+                PrescriptionItem item = new PrescriptionItem();
+                item.setDrugId(toLong(im.get("drugId")));
+                item.setDrugName((String) im.get("drugName"));
+                item.setDrugPrice(im.get("drugPrice") != null
+                        ? new java.math.BigDecimal(im.get("drugPrice").toString()) : null);
+                item.setQuantity(toLong(im.get("quantity")));
+                item.setDrugUsage((String) im.get("drugUsage"));
+                item.setDosage((String) im.get("dosage"));
+                item.setFrequency((String) im.get("frequency"));
+                item.setUseDays(toLong(im.get("useDays")));
+                item.setItemTip((String) im.get("itemTip"));
+                items.add(item);
+            }
+        }
+        Prescription saved = prescriptionService.updatePrescriptionWithItems(prescription, items);
+        return success(saved);
+    }
+
+    /**
+     * 修改处方主（原接口，仅更新主表）
      */
     @RequiresPermissions("hisprescription:prescription:edit")
     @Log(title = "处方主", businessType = BusinessType.UPDATE)

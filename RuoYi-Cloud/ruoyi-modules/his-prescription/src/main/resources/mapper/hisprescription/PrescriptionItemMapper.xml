@@ -64,7 +64,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         insert into prescription_item
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="prescriptionId != null">prescription_id,</if>
-            <if test="drugId != null">drug_id,</if>
+            drug_id,
             <if test="drugName != null and drugName != ''">drug_name,</if>
             <if test="drugPrice != null">drug_price,</if>
             <if test="quantity != null">quantity,</if>
@@ -77,7 +77,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="prescriptionId != null">#{prescriptionId},</if>
-            <if test="drugId != null">#{drugId},</if>
+            #{drugId},
             <if test="drugName != null and drugName != ''">#{drugName},</if>
             <if test="drugPrice != null">#{drugPrice},</if>
             <if test="quantity != null">#{quantity},</if>
@@ -117,5 +117,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <foreach item="itemId" collection="array" open="(" separator="," close=")">
             #{itemId}
         </foreach>
+    </delete>
+
+    <delete id="deletePrescriptionItemByPrescriptionId" parameterType="Long">
+        delete from prescription_item where prescription_id = #{prescriptionId}
     </delete>
 </mapper>
