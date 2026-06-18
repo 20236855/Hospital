@@ -102,6 +102,12 @@ public class PrescriptionController extends BaseController
     public AjaxResult add(@RequestBody Prescription prescription)
     {
         applyPatientScope(prescription);
+        // 兜底：确保处方单号不为空（service层也会自动生成）
+        if (prescription.getPrescriptionNo() == null || prescription.getPrescriptionNo().isEmpty()) {
+            String dateStr = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
+            int rand = new java.util.Random().nextInt(9000) + 1000;
+            prescription.setPrescriptionNo("CF" + dateStr + rand);
+        }
         return toAjax(prescriptionService.insertPrescription(prescription));
     }
 

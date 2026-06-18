@@ -301,7 +301,7 @@ import { listEncounter, getEncounter, delEncounter, addEncounter, updateEncounte
 import { saveRecord as saveRecordApi } from "@/api/emr/record"
 import { listPatient } from "@/api/patient/patient"
 import { listRegister } from "@/api/register/register"
-import { getDoctorByUserId } from "@/api/hisdoctor/doctor"
+import { getDoctorByUserId, getMyDoctorInfo } from "@/api/hisdoctor/doctor"
 import { aiChat } from "@/api/ai/assistant"
 import useUserStore from "@/store/modules/user"
 
@@ -310,11 +310,20 @@ const userStore = useUserStore()
 
 // ===== 接诊列表 =====
 const encounterList = ref([])
-const open = ref(false); const loading = ref(true); const showSearch = ref(true)
-const ids = ref([]); const single = ref(true); const multiple = ref(true)
-const total = ref(0); const title = ref("")
-const patientOptions = ref([]); const registerOptions = ref([])
-const isDoctorUser = computed(() => userStore.roles?.some(r => r === 'doctor') || false)
+const open = ref(false)
+const loading = ref(true)
+const showSearch = ref(true)
+const ids = ref([])
+const single = ref(true)
+const multiple = ref(true)
+const total = ref(0)
+const title = ref("")
+const patientOptions = ref([])
+const registerOptions = ref([])
+
+const isDoctorUser = computed(() => {
+  return userStore.roles?.some(r => r === 'doctor' || r.roleKey === 'doctor' || r.roleId === 5) || false
+})
 
 const data = reactive({
   form: {},
@@ -343,11 +352,34 @@ function handleQuery() { queryParams.value.pageNum = 1; getList() }
 function resetQuery() { proxy.resetForm("queryRef"); handleQuery() }
 function handleSelectionChange(sel) { ids.value = sel.map(i => i.encounterId); single.value = sel.length != 1; multiple.value = !sel.length }
 async function handleAdd() {
-  reset(); getPatientOptions(); getRegisterOptions()
-  if (isDoctorUser.value && userStore.userId) {
-    try { const res = await getDoctorByUserId(userStore.userId); if (res.data?.doctorId) { form.value.doctorId = res.data.doctorId; form.value.deptId = res.data.deptId || userStore.deptId } } catch {}
+  reset()
+  getPatientOptions()
+  getRegisterOptions()
+  if (isDoctorUser.value) {
+    form.value.deptId = userStore.deptId || form.value.deptId
+    try {
+      const res = await getMyDoctorInfo()
+      const doctor = res.data || {}
+      if (doctor.doctorId) {
+        form.value.doctorId = doctor.doctorId
+        form.value.deptId = doctor.deptId || userStore.deptId || form.value.deptId
+      }
+    } catch {
+      const userId = userStore.id
+      if (userId) {
+        try {
+          const res = await getDoctorByUserId(userId)
+          const doctor = res.data || {}
+          if (doctor.doctorId) {
+            form.value.doctorId = doctor.doctorId
+            form.value.deptId = doctor.deptId || userStore.deptId || form.value.deptId
+          }
+        } catch {}
+      }
+    }
   }
-  open.value = true; title.value = "添加接诊"
+  open.value = true
+  title.value = "添加接诊"
 }
 function handleUpdate(row) {
   reset(); getPatientOptions(); getRegisterOptions()

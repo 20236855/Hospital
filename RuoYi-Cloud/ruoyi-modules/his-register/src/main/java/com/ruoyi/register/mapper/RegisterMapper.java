@@ -60,4 +60,9 @@ public interface RegisterMapper
      * 查询所有已挂号但未签到的记录（用于签到下拉框）
      */
     public List<Map<String, Object>> selectAvailableRegistersForCheckIn();
+
+    /**
+     * 查询指定科室下可开方的挂号记录（用于处方新增下拉框）
+     */
+    public List<Map<String, Object>> selectAvailableRegistersForPrescription(@Param("deptId") Long deptId);
 }

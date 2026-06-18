@@ -33,6 +33,14 @@ export function getDoctorByUserId(userId) {
   })
 }
 
+// 获取当前登录用户自己的医生信息（无权限限制，处方开方等场景使用）
+export function getMyDoctorInfo() {
+  return request({
+    url: '/hisdoctor/doctor/current',
+    method: 'get'
+  })
+}
+
 // 新增医生信息
 export function addDoctor(data) {
   return request({

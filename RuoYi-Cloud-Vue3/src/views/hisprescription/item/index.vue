@@ -226,8 +226,10 @@
 
 <script setup name="Item">
 import { listItem, getItem, delItem, addItem, updateItem } from "@/api/hisprescription/item"
+import { useRoute } from 'vue-router'
 
 const { proxy } = getCurrentInstance()
+const route = useRoute()
 
 const itemList = ref([])
 const open = ref(false)
@@ -384,5 +386,8 @@ function handleExport() {
   }, `item_${new Date().getTime()}.xlsx`)
 }
 
+if (route.query.prescriptionId) {
+  queryParams.value.prescriptionId = route.query.prescriptionId
+}
 getList()
 </script>
