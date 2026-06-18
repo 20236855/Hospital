@@ -1,80 +1,125 @@
 <template>
   <div class="home-page">
-    <div class="ambient-layer" aria-hidden="true">
-      <span class="mesh mesh-a"></span>
-      <span class="mesh mesh-b"></span>
-      <span class="mesh mesh-c"></span>
-      <span class="grid-plane"></span>
+    <!-- ========== 模块1：全屏轮播 Banner ========== -->
+    <div class="banner-area">
+      <van-swipe
+        class="banner-swipe"
+        :autoplay="4000"
+        :duration="600"
+        indicator-color="rgba(255,255,255,.7)"
+        indicator-active-color="#5f9e8c"
+        :show-indicators="true"
+        @change="onBannerChange"
+      >
+        <van-swipe-item v-for="(slide, idx) in bannerSlides" :key="idx">
+          <div class="banner-slide" :style="{ background: slide.bgGradient }">
+            <!-- 底纹：心电图 + 十字 -->
+            <div class="banner-pattern" aria-hidden="true">
+              <svg class="ecg-wave" viewBox="0 0 400 120" fill="none">
+                <path d="M0 60H80L95 20L130 100L155 40H200L220 80L245 20L270 60H400" :stroke="slide.accentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.25"/>
+                <path d="M0 72H80L95 32L130 112L155 52H200L220 92L245 32L270 72H400" :stroke="slide.accentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.12"/>
+              </svg>
+              <svg class="ecg-bg" viewBox="0 0 400 200" fill="none">
+                <circle cx="60" cy="50" r="30" :stroke="slide.accentColor" stroke-width="1" opacity="0.08"/>
+                <circle cx="340" cy="150" r="40" :stroke="slide.accentColor" stroke-width="1" opacity="0.06"/>
+              </svg>
+              <!-- 爱心底纹 -->
+              <span class="banner-heart" v-for="h in 5" :key="'h'+h" :style="heartStyle(h, slide)">♥</span>
+              <!-- 十字底纹 -->
+              <span class="banner-cross" v-for="c in 4" :key="'c'+c" :style="crossStyle(c, slide)">+</span>
+            </div>
+
+            <!-- 左侧文案区 -->
+            <div class="banner-text">
+              <h1 class="banner-title">{{ slide.title }}</h1>
+              <div class="banner-metrics">
+                <div class="banner-metric">
+                  <span class="bm-number">{{ slide.data1 }}</span>
+                  <span class="bm-label">{{ slide.data1Label }}</span>
+                </div>
+                <div class="banner-divider"></div>
+                <div class="banner-metric">
+                  <span class="bm-number">{{ slide.data2 }}</span>
+                  <span class="bm-label">{{ slide.data2Label }}</span>
+                </div>
+              </div>
+              <button class="banner-cta" :style="{ background: slide.btnBg, color: slide.btnColor }" @click="slide.action">
+                {{ slide.btnText }}
+                <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                  <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- 右侧人物图 -->
+            <div class="banner-figure">
+              <img :src="slide.figure" :class="['banner-person', slide.figureClass]" alt="医生" />
+              <!-- 人物光环 -->
+              <span class="figure-glow" :style="{ background: slide.glowColor }"></span>
+            </div>
+
+          </div>
+        </van-swipe-item>
+      </van-swipe>
     </div>
 
-    <div class="content-wrapper">
-      <section class="hero-section slide-up-animation">
-        <div class="hero-copy">
-          <div class="top-row">
-            <div>
-              <p class="eyebrow">智慧医院 · 患者端</p>
-              <h1>早上好，{{ displayName }}</h1>
-            </div>
-            <button class="status-badge" type="button">
-              <span class="status-dot"></span>
-              在线
-            </button>
-          </div>
-          <p class="hero-desc">今天适合把就诊安排处理得更从容。</p>
-          <div class="hero-metrics">
-            <div class="metric-card">
-              <span class="metric-value">{{ todayAppointments }}</span>
-              <span class="metric-label">今日就诊</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-value">{{ appointmentList.length }}</span>
-              <span class="metric-label">预约记录</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-value">AI</span>
-              <span class="metric-label">在线问诊</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="hero-visual" aria-hidden="true">
-          <div class="radar-ring ring-one"></div>
-          <div class="radar-ring ring-two"></div>
-          <div class="core-card">
-            <div class="cross-mark">
-              <span></span>
-              <span></span>
-            </div>
-            <div class="pulse-track">
-              <svg viewBox="0 0 190 44" fill="none">
-                <path class="pulse-shadow" d="M2 25H45L58 8L78 39L94 20H126L140 12L153 31H188" />
-                <path class="pulse-line" d="M2 25H45L58 8L78 39L94 20H126L140 12L153 31H188" />
-              </svg>
-            </div>
-          </div>
-          <span class="float-chip chip-a">挂号</span>
-          <span class="float-chip chip-b">病历</span>
-          <span class="float-chip chip-c">报告</span>
-        </div>
-      </section>
-
-      <section class="quick-actions slide-up-animation" style="animation-delay: 0.08s">
-        <button
-          v-for="item in quickActions"
-          :key="item.title"
-          class="action-card"
-          type="button"
-          @click="item.action"
-        >
-          <span class="action-icon" :class="item.className">
-            <img v-if="item.image" :src="item.image" alt="" />
-            <van-icon v-else :name="item.icon" />
+    <!-- ========== 模块2：核心功能双卡片入口区 ========== -->
+    <div class="dual-cards">
+      <!-- 预约挂号卡片 -->
+      <div class="feature-card card-register" @click="goToRegister">
+        <div class="fc-body">
+          <span class="fc-icon">
+            <svg viewBox="0 0 40 40" fill="none">
+              <rect x="6" y="6" width="28" height="28" rx="6" stroke="#e89860" stroke-width="2.5"/>
+              <path d="M14 14h12M14 20h12M14 26h8" stroke="#e89860" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="28" cy="28" r="8" fill="#fef0e8" stroke="#e89860" stroke-width="2"/>
+              <path d="M26 28h4M28 26v4" stroke="#e89860" stroke-width="2" stroke-linecap="round"/>
+            </svg>
           </span>
-          <span>{{ item.title }}</span>
-        </button>
-      </section>
+          <div class="fc-info">
+            <div class="fc-title-row">
+              <strong>预约挂号</strong>
+              <span class="fc-tag tag-orange">互联网医院</span>
+            </div>
+            <span class="fc-desc">本院接诊范围</span>
+          </div>
+          <span class="fc-arrow">
+            <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
+              <path d="M6 4l4 4-4 4" stroke="#e89860" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </div>
+      </div>
 
-      <section class="info-section slide-up-animation" style="animation-delay: 0.18s">
+      <!-- 在线问诊卡片 -->
+      <div class="feature-card card-consult" @click="goToChat">
+        <div class="fc-body">
+          <span class="fc-icon">
+            <svg viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="20" r="14" stroke="#5db8d8" stroke-width="2.5"/>
+              <path d="M14 16c0-3.3 2.7-6 6-6s6 2.7 6 6c0 4-6 10-6 10s-6-6-6-10z" stroke="#5db8d8" stroke-width="2.5" stroke-linejoin="round"/>
+              <circle cx="20" cy="16" r="3" fill="#5db8d8"/>
+            </svg>
+          </span>
+          <div class="fc-info">
+            <div class="fc-title-row">
+              <strong>在线问诊</strong>
+              <span class="fc-tag tag-blue">急速</span>
+            </div>
+            <span class="fc-desc">AI 智能响应</span>
+          </div>
+          <span class="fc-arrow">
+            <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
+              <path d="M6 4l4 4-4 4" stroke="#5db8d8" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 模块3：今日就诊 + 更多服务（保留） ========== -->
+    <div class="content-wrapper">
+      <section class="info-section slide-up-animation">
         <div class="section-heading">
           <div>
             <span class="section-kicker">TODAY</span>
@@ -110,7 +155,7 @@
         </div>
       </section>
 
-      <section class="more-section slide-up-animation" style="animation-delay: 0.24s">
+      <section class="more-section slide-up-animation" style="animation-delay: 0.18s">
         <div class="section-heading">
           <div>
             <span class="section-kicker">SERVICES</span>
@@ -153,13 +198,13 @@ import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { getPatientList } from '@/api/patient'
 import { getRegisterList } from '@/api/register'
-import guahaoIcon from '@/assets/images/guahao.png'
-import yuyueIcon from '@/assets/images/yuyue.png'
-import bingliIcon from '@/assets/images/bingli.png'
-import baogaoIcon from '@/assets/images/baogao.png'
+import doctor1 from '@/assets/doctor1.png'
+import doctor2 from '@/assets/doctor2.png'
+import nurse1 from '@/assets/nurse1.png'
 
 const router = useRouter()
 const active = ref(0)
+const currentBanner = ref(0)
 const username = ref('')
 const todayAppointments = ref(0)
 const appointmentList = ref([])
@@ -168,37 +213,121 @@ const showAllServices = ref(false)
 const displayName = computed(() => username.value || '患者')
 const visibleServiceItems = computed(() => (showAllServices.value ? serviceItems : serviceItems.slice(0, 4)))
 
-const goToRegister = () => {
+// Banner 轮播数据
+const bannerSlides = [
+  {
+    title: '预约挂号不用等',
+    data1: '2000+',
+    data1Label: '三甲医院',
+    data2: '100万+',
+    data2Label: '名医',
+    btnText: '立即预约',
+    figure: doctor1,
+    figureClass: '',
+    bgGradient: 'linear-gradient(155deg, #e8f5f0 0%, #d4ece2 35%, #c9e8da 68%, #dfefe6 100%)',
+    accentColor: '#5f9e8c',
+    btnBg: '#e8f5f0',
+    btnColor: '#4a8a7a',
+    glowColor: 'radial-gradient(circle, rgba(120,200,170,.35) 0%, transparent 70%)',
+    action: () => router.push('/register')
+  },
+  {
+    title: '在线问诊更便捷',
+    data1: 'AI',
+    data1Label: '智能导诊',
+    data2: '24h',
+    data2Label: '在线医生',
+    btnText: '在线问诊',
+    figure: doctor2,
+    figureClass: '',
+    bgGradient: 'linear-gradient(155deg, #e0eef8 0%, #cde4f2 35%, #d8ebf6 68%, #e8f2f8 100%)',
+    accentColor: '#5db8d8',
+    btnBg: '#e0eef8',
+    btnColor: '#3a809b',
+    glowColor: 'radial-gradient(circle, rgba(93,184,216,.3) 0%, transparent 70%)',
+    action: () => router.push('/chat')
+  },
+  {
+    title: '健康档案随时看',
+    data1: '电子',
+    data1Label: '病历报告',
+    data2: '一键',
+    data2Label: '查阅下载',
+    btnText: '查看报告',
+    figure: nurse1,
+    figureClass: '',
+    bgGradient: 'linear-gradient(155deg, #f0f4e8 0%, #e4ecd5 35%, #d8e5c9 68%, #eaf0e0 100%)',
+    accentColor: '#8a9e6b',
+    btnBg: '#f0f4e8',
+    btnColor: '#6b7d4e',
+    glowColor: 'radial-gradient(circle, rgba(138,158,107,.3) 0%, transparent 70%)',
+    action: () => router.push('/record')
+  }
+]
+
+function onBannerChange(index) {
+  currentBanner.value = index
+}
+
+function goToRegister() {
   router.push('/register')
 }
 
-const goToDoctors = () => {
+function goToDoctors() {
   router.push('/doctors')
 }
 
-const goToRecord = () => {
+function goToRecord() {
   router.push('/record')
 }
 
-const goToChat = () => {
+function goToChat() {
   localStorage.removeItem('aiChatSessionId')
   router.push('/chat')
 }
 
-const goToMyAppointments = () => {
+function goToMyAppointments() {
   router.push('/my-appointments')
 }
 
-const toggleServices = () => {
+function toggleServices() {
   showAllServices.value = !showAllServices.value
 }
 
-const quickActions = [
-  { title: '预约挂号', image: guahaoIcon, className: 'icon-register', action: goToRegister },
-  { title: '病历查询', image: bingliIcon, className: 'icon-record', action: goToRecord },
-  { title: '我的预约', image: yuyueIcon, className: 'icon-appointment', action: goToMyAppointments },
-  { title: '健康报告', image: baogaoIcon, className: 'icon-report', action: () => showToast('健康报告') }
-]
+// 爱心位置样式
+function heartStyle(index, slide) {
+  const positions = [
+    { top: '12%', left: '42%' },
+    { top: '25%', left: '55%' },
+    { top: '58%', left: '38%' },
+    { top: '72%', left: '52%' },
+    { top: '35%', left: '62%' }
+  ]
+  const p = positions[index - 1]
+  return {
+    top: p.top,
+    left: p.left,
+    color: slide.accentColor,
+    opacity: (0.06 + index * 0.015)
+  }
+}
+
+// 十字位置样式
+function crossStyle(index, slide) {
+  const positions = [
+    { top: '15%', left: '30%' },
+    { top: '45%', left: '25%' },
+    { top: '68%', left: '44%' },
+    { top: '82%', left: '35%' }
+  ]
+  const p = positions[index - 1]
+  return {
+    top: p.top,
+    left: p.left,
+    color: slide.accentColor,
+    opacity: (0.04 + index * 0.01)
+  }
+}
 
 const serviceItems = [
   { title: '科室医生', icon: 'manager-o', action: goToDoctors },
@@ -259,329 +388,293 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+$mint-dark: #5f9e8c;
+$mint-pale: #e8f5f0;
+$sky-blue: #5db8d8;
+$sky-pale: #e0eef8;
+$orange-warm: #e89860;
+
 .home-page {
   min-height: 100vh;
   background: var(--bg-gradient);
   color: var(--text-primary);
   padding-bottom: calc(78px + env(safe-area-inset-bottom));
   position: relative;
+  overflow-x: hidden;
+}
+
+// ========== 模块1：Banner 轮播区 ==========
+.banner-area {
+  width: 100%;
+  border-radius: 0;
   overflow: hidden;
 }
 
-.ambient-layer {
-  position: fixed;
+.banner-swipe {
+  width: 100%;
+  height: 175px;
+
+  :deep(.van-swipe__indicators) {
+    bottom: 10px;
+  }
+
+  :deep(.van-swipe__indicator) {
+    width: 6px;
+    height: 6px;
+    border-radius: 0;
+    transition: all .3s ease;
+  }
+
+  :deep(.van-swipe__indicator--active) {
+    width: 18px;
+    border-radius: 0;
+  }
+}
+
+.banner-slide {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  padding: 20px 16px 16px;
+  display: flex;
+  align-items: center;
+}
+
+.banner-pattern {
+  position: absolute;
   inset: 0;
-  z-index: 0;
   pointer-events: none;
   overflow: hidden;
 }
 
-.mesh {
+.ecg-wave {
   position: absolute;
-  border-radius: 999px;
-  filter: blur(3px);
-  opacity: .72;
-  animation: drift 9s ease-in-out infinite;
+  top: 28%;
+  left: -2%;
+  width: 70%;
+  height: auto;
+  opacity: .5;
 }
 
-.mesh-a {
-  width: 280px;
-  height: 280px;
-  top: -88px;
-  right: -92px;
-  background: radial-gradient(circle, rgba(185, 225, 205, .72), rgba(185, 225, 205, 0) 68%);
-}
-
-.mesh-b {
-  width: 230px;
-  height: 230px;
-  left: -110px;
-  top: 280px;
-  background: radial-gradient(circle, rgba(142, 214, 242, .52), rgba(142, 214, 242, 0) 70%);
-  animation-delay: -3s;
-}
-
-.mesh-c {
-  width: 190px;
-  height: 190px;
-  right: -74px;
-  bottom: 120px;
-  background: radial-gradient(circle, rgba(255, 253, 248, .9), rgba(255, 253, 248, 0) 72%);
-  animation-delay: -5s;
-}
-
-.grid-plane {
+.ecg-bg {
   position: absolute;
-  inset: 0;
-  opacity: .28;
-  background-image:
-    linear-gradient(rgba(26, 77, 69, .08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26, 77, 69, .08) 1px, transparent 1px);
-  background-size: 28px 28px;
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .8), transparent 74%);
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .8), transparent 74%);
+  bottom: 5%;
+  right: 50%;
+  width: 60%;
+  height: auto;
+  opacity: .4;
 }
 
-.content-wrapper {
-  position: relative;
-  z-index: 1;
-  padding: 18px 16px 0;
-}
-
-.hero-section {
-  min-height: 210px;
-  border: 1px solid rgba(213, 237, 243, .74);
-  border-radius: 18px;
-  padding: 16px;
-  position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(145deg, rgba(255, 253, 248, .86), rgba(255, 253, 248, .42)),
-    linear-gradient(120deg, rgba(185, 225, 205, .24), rgba(142, 214, 242, .16));
-  box-shadow: 0 28px 70px rgba(102, 170, 189, .2);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(110deg, transparent 0%, rgba(255, 253, 248, .58) 45%, transparent 72%);
-    transform: translateX(-110%);
-    animation: sheen 5.8s ease-in-out infinite;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 18px;
-    right: 18px;
-    bottom: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(26, 77, 69, .24), transparent);
-  }
-}
-
-.hero-copy,
-.hero-visual {
-  position: relative;
-  z-index: 1;
-}
-
-.top-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.eyebrow {
-  margin: 0 0 6px;
-  color: rgba(26, 77, 69, .74);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
-.hero-copy h1 {
-  margin: 0;
-  color: var(--primary-color);
+.banner-heart {
+  position: absolute;
   font-size: 22px;
-  line-height: 1.18;
+  transform: rotate(-8deg);
+}
+
+.banner-cross {
+  position: absolute;
+  font-size: 16px;
+  font-weight: 300;
+}
+
+// 左侧文案
+.banner-text {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  padding-right: 10px;
+}
+
+.banner-title {
+  margin: 0 0 10px;
+  font-size: 24px;
   font-weight: 800;
+  color: #2d5a4e;
+  line-height: 1.2;
 }
 
-.hero-desc {
-  margin: 8px 0 0;
-  color: var(--text-regular);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.status-badge {
-  flex: 0 0 auto;
-  height: 34px;
-  border: 1px solid rgba(185, 225, 205, .56);
-  border-radius: 10px;
-  padding: 0 12px;
-  display: inline-flex;
+.banner-metrics {
+  display: flex;
   align-items: center;
-  gap: 7px;
-  background: rgba(255, 253, 248, .72);
-  color: #5f9e8c;
-  font-size: 12px;
-  font-weight: 700;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6);
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #82d7bf;
-  box-shadow: 0 0 0 6px rgba(130, 215, 191, .16);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.hero-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.metric-card {
-  min-height: 54px;
-  border-radius: 12px;
-  padding: 9px 10px;
-  background: rgba(255, 253, 248, .54);
-  border: 1px solid rgba(213, 237, 243, .64);
+.banner-metric {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 5px;
 }
 
-.metric-value {
-  color: var(--primary-color);
-  font-size: 19px;
+.bm-number {
+  font-size: 15px;
   font-weight: 800;
+  color: $mint-dark;
   line-height: 1;
 }
 
-.metric-label {
-  color: var(--text-light);
-  font-size: 10px;
-  font-weight: 700;
+.bm-label {
+  margin-top: 3px;
+  font-size: 11px;
+  color: rgba(45, 90, 78, .6);
+  font-weight: 600;
 }
 
-.hero-visual {
-  height: 82px;
-  margin-top: 4px;
-}
-
-.radar-ring {
-  position: absolute;
-  left: 50%;
-  top: 54%;
-  border: 1px solid rgba(26, 77, 69, .13);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.ring-one {
-  width: 188px;
-  height: 58px;
-  animation: radarBreath 4.4s ease-in-out infinite;
-}
-
-.ring-two {
-  width: 246px;
-  height: 76px;
-  animation: radarBreath 4.4s ease-in-out infinite reverse;
-}
-
-.core-card {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(220px, 72vw);
-  height: 58px;
-  transform: translate(-50%, -50%);
-  border-radius: 14px;
-  background: rgba(255, 253, 248, .78);
-  border: 1px solid rgba(213, 237, 243, .78);
-  box-shadow: 0 20px 50px rgba(102, 170, 189, .18);
-  display: grid;
-  grid-template-columns: 42px 1fr;
-  align-items: center;
-  padding: 10px;
-}
-
-.cross-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, rgba(185, 225, 205, .92), rgba(142, 214, 242, .52));
-  position: relative;
-  box-shadow: 0 12px 28px rgba(102, 170, 189, .18);
-
-  span {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 22px;
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(255, 253, 248, .96);
-    transform: translate(-50%, -50%);
-  }
-
-  span:last-child {
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-}
-
-.pulse-track {
-  svg {
-    width: 100%;
-    height: 32px;
-    overflow: visible;
-  }
-}
-
-.pulse-shadow,
-.pulse-line {
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 3;
-}
-
-.pulse-shadow {
-  stroke: rgba(142, 214, 242, .22);
-}
-
-.pulse-line {
-  stroke: #6fbacb;
-  stroke-dasharray: 260;
-  stroke-dashoffset: 260;
-  animation: pulseDraw 3.2s ease-in-out infinite;
-}
-
-.float-chip {
-  position: absolute;
+.banner-divider {
+  width: 1px;
   height: 24px;
-  border-radius: 9px;
-  padding: 0 10px;
+  background: rgba(45, 90, 78, .15);
+  border-radius: 1px;
+}
+
+.banner-cta {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 253, 248, .78);
-  border: 1px solid rgba(185, 225, 205, .42);
-  color: rgba(26, 77, 69, .72);
-  font-size: 11px;
+  gap: 5px;
+  padding: 9px 20px;
+  border: none;
+  border-radius: 0;
+  font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 12px 30px rgba(102, 170, 189, .12);
-  animation: floatSoft 5s ease-in-out infinite;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(95, 158, 140, .14);
+  transition: transform .2s ease, box-shadow .2s ease;
+
+  &:active {
+    transform: scale(.96);
+    box-shadow: 0 2px 8px rgba(95, 158, 140, .1);
+  }
 }
 
-.chip-a {
-  left: 10px;
-  top: 6px;
+// 右侧人物
+.banner-figure {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 40%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
-.chip-b {
-  right: 18px;
-  top: 0;
-  animation-delay: -1.6s;
+.banner-person {
+  width: 100%;
+  height: auto;
+  max-height: 160px;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 8px 24px rgba(80,120,100,.18));
 }
 
-.chip-c {
-  right: 54px;
-  bottom: 2px;
-  animation-delay: -2.7s;
+.figure-glow {
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 45px;
+  border-radius: 50%;
+  opacity: .5;
 }
 
-.quick-actions,
+// ========== 模块2：核心功能双卡片 ==========
+.dual-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px 16px 0;
+}
+
+.feature-card {
+  border-radius: 16px;
+  padding: 20px 16px;
+  min-height: 80px;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: transform .22s ease, box-shadow .22s ease;
+
+  &:active {
+    transform: scale(.97);
+    box-shadow: 0 2px 12px rgba(102, 170, 189, .08);
+  }
+}
+
+.card-register { border: 1px solid rgba(232, 152, 96, .18); }
+.card-consult  { border: 1px solid rgba(93, 184, 216, .18); }
+
+.fc-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fc-icon {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(248, 245, 240, .8);
+
+  svg {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+.fc-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  strong {
+    font-size: 16px;
+    font-weight: 800;
+    color: #2d5a4e;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+}
+
+.fc-desc {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(45, 90, 78, .5);
+  font-weight: 500;
+}
+
+.fc-tag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.tag-orange { background: rgba(232, 152, 96, .12); color: $orange-warm; }
+.tag-blue   { background: rgba(93, 184, 216, .12); color: $sky-blue; }
+
+.fc-arrow {
+  flex-shrink: 0;
+  padding-top: 10px;
+}
+
+// ========== 保留模块 ==========
+.content-wrapper {
+  padding: 0 16px;
+}
+
 .info-section,
 .more-section {
   margin-top: 12px;
@@ -593,80 +686,6 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.action-card {
-  min-width: 0;
-  min-height: 94px;
-  border: 1px solid rgba(213, 237, 243, .76);
-  border-radius: 14px;
-  padding: 12px 10px;
-  background: rgba(255, 253, 248, .72);
-  box-shadow: 0 14px 32px rgba(102, 170, 189, .12);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--text-primary);
-  transition: transform .22s ease, box-shadow .22s ease;
-
-  &:active {
-    transform: translateY(2px) scale(.98);
-  }
-
-  span:last-child {
-    width: 100%;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 750;
-    line-height: 1.25;
-  }
-}
-
-.action-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(145deg, rgba(185, 225, 205, .24), rgba(142, 214, 242, .12));
-  border: 1px solid rgba(185, 225, 205, .22);
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    border-radius: 13px;
-    border: 1px solid rgba(185, 225, 205, .16);
-    opacity: 0;
-    animation: iconHalo 3.6s ease-in-out infinite;
-  }
-
-  img {
-    width: 34px;
-    height: 34px;
-    object-fit: contain;
-  }
-
-  .van-icon {
-    color: #6fbacb;
-    font-size: 24px;
-  }
-}
-
-.icon-register::after { animation-delay: -.3s; }
-.icon-record::after { animation-delay: -.9s; }
-.icon-appointment::after { animation-delay: -1.8s; }
-.icon-report::after { animation-delay: -2.7s; }
-
 .section-heading {
   display: flex;
   justify-content: space-between;
@@ -675,9 +694,10 @@ button {
 
   h2 {
     margin: 2px 0 0;
-    color: var(--primary-color);
+    color: #2d5a4e;
     font-size: 17px;
     line-height: 1.2;
+    font-weight: 800;
   }
 
   button {
@@ -685,7 +705,7 @@ button {
     background: rgba(255, 253, 248, .54);
     border: 1px solid rgba(213, 237, 243, .64);
     border-radius: 8px;
-    color: rgba(26, 77, 69, .62);
+    color: rgba(45, 90, 78, .55);
     font-size: 13px;
     font-weight: 700;
     padding: 5px 9px;
@@ -696,7 +716,6 @@ button {
   color: var(--text-light);
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0;
 }
 
 .info-card {
@@ -707,7 +726,6 @@ button {
   background: rgba(255, 253, 248, .76);
   border: 1px solid rgba(213, 237, 243, .72);
   box-shadow: 0 18px 44px rgba(102, 170, 189, .13);
-  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
@@ -755,9 +773,10 @@ button {
   gap: 5px;
 
   strong {
-    color: var(--primary-color);
+    color: #2d5a4e;
     font-size: 15px;
     line-height: 1.2;
+    font-weight: 700;
   }
 
   span {
@@ -774,15 +793,13 @@ button {
   gap: 12px;
   align-items: center;
 
-  strong,
-  span {
-    display: block;
-  }
+  strong, span { display: block; }
 
   strong {
-    color: var(--primary-color);
+    color: #2d5a4e;
     font-size: 15px;
     margin-bottom: 5px;
+    font-weight: 700;
   }
 
   span {
@@ -846,122 +863,7 @@ button {
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes drift {
-  0%, 100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(12px, -16px, 0) scale(1.04);
-  }
-}
-
-@keyframes sheen {
-  0%, 52% {
-    transform: translateX(-115%);
-  }
-  76%, 100% {
-    transform: translateX(115%);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: .62;
-    transform: scale(1.22);
-  }
-}
-
-@keyframes radarBreath {
-  0%, 100% {
-    opacity: .42;
-    transform: translate(-50%, -50%) scale(.97);
-  }
-  50% {
-    opacity: .8;
-    transform: translate(-50%, -50%) scale(1.04);
-  }
-}
-
-@keyframes pulseDraw {
-  0% {
-    stroke-dashoffset: 260;
-    opacity: .25;
-  }
-  45%, 75% {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: -260;
-    opacity: .35;
-  }
-}
-
-@keyframes floatSoft {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes iconHalo {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(.92);
-  }
-  45% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-}
-
-@media (max-width: 360px) {
-  .content-wrapper {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .hero-section {
-    border-radius: 16px;
-    padding: 14px;
-  }
-
-  .hero-copy h1 {
-    font-size: 21px;
-  }
-
-  .quick-actions {
-    gap: 8px;
-  }
-
-  .action-card {
-    min-height: 88px;
-  }
-
-  .action-icon {
-    width: 42px;
-    height: 42px;
-
-    img {
-      width: 31px;
-      height: 31px;
-    }
-  }
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
