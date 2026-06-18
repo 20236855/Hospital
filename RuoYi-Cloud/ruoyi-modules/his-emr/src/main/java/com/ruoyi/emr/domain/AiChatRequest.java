@@ -11,6 +11,9 @@ public class AiChatRequest
 
     private Long patientId;
 
+    /** 模式：patient=患者端, doctor=医生端（默认） */
+    private String mode;
+
     public String getMessage()
     {
         return message;
@@ -39,5 +42,15 @@ public class AiChatRequest
     public void setPatientId(Long patientId)
     {
         this.patientId = patientId;
+    }
+
+    public String getMode()
+    {
+        return mode;
+    }
+
+    public void setMode(String mode)
+    {
+        this.mode = mode;
     }
 }

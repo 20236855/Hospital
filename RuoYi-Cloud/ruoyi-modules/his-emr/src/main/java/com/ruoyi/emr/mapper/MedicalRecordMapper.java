@@ -66,4 +66,20 @@ public interface MedicalRecordMapper
      * @return 医生ID
      */
     public Long selectDoctorIdByEncounterId(Long encounterId);
+
+    /**
+     * 根据接诊ID查询电子病历（用于判断是否已存在）
+     * 
+     * @param encounterId 接诊ID
+     * @return 电子病历
+     */
+    public MedicalRecord selectMedicalRecordByEncounterId(Long encounterId);
+
+    /**
+     * 根据接诊ID更新电子病历
+     * 
+     * @param medicalRecord 电子病历
+     * @return 结果
+     */
+    public int updateMedicalRecordByEncounterId(MedicalRecord medicalRecord);
 }

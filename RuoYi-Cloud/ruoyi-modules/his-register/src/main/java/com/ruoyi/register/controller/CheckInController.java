@@ -102,7 +102,7 @@ public class CheckInController extends BaseController
      * 获取签到详细信息
      */
     @RequiresPermissions("register:in:query")
-    @GetMapping(value = "/{checkInId}")
+    @GetMapping(value = "/{checkInId:\\d+}")
     public AjaxResult getInfo(@PathVariable("checkInId") Long checkInId)
     {
         CheckIn checkIn = checkInService.selectCheckInByCheckInId(checkInId);

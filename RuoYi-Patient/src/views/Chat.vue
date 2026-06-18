@@ -320,14 +320,18 @@ const handleKeydown = (e) => {
 const formatMessageContent = (content) => {
   if (!content) return ''
   
-  // 1. 清洗 markdown 加粗符号 **
-  let formatted = content.replace(/\*\*(.*?)\*\*/g, '$1')
-  
-  // 2. 把换行符转换为 <br> 标签
+  let formatted = content
+  // 清理 markdown 格式符号（###、---、**、*、`、代码块等）
+  formatted = formatted.replace(/###\s*/g, '')
+  formatted = formatted.replace(/##\s*/g, '')
+  formatted = formatted.replace(/---+/g, '')
+  formatted = formatted.replace(/\*\*(.+?)\*\*/g, '$1')
+  formatted = formatted.replace(/\*(.+?)\*/g, '$1')
+  formatted = formatted.replace(/`{3}[\s\S]*?`{3}/g, '')
+  formatted = formatted.replace(/`(.+?)`/g, '$1')
+  // 换行处理
+  formatted = formatted.replace(/\n\n/g, '<br><br>')
   formatted = formatted.replace(/\n/g, '<br>')
-  
-  // 3. 清洗其他可能不需要的符号
-  formatted = formatted.replace(/`/g, '')
   
   return formatted
 }

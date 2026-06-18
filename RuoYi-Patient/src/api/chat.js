@@ -4,7 +4,10 @@ export function consultAi(data) {
   return request({
     url: '/emr/chat/consult',
     method: 'post',
-    data
+    data: {
+      ...data,
+      mode: 'patient'
+    }
   })
 }
 

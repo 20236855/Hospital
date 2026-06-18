@@ -119,4 +119,28 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
     {
         return medicalRecordMapper.selectDoctorIdByEncounterId(encounterId);
     }
+
+    @Override
+    public int saveMedicalRecord(MedicalRecord medicalRecord)
+    {
+        if (medicalRecord.getEncounterId() == null)
+        {
+            return 0;
+        }
+        // 检查该接诊是否已有病历
+        MedicalRecord existing = medicalRecordMapper.selectMedicalRecordByEncounterId(medicalRecord.getEncounterId());
+        if (existing != null)
+        {
+            // 存在则更新
+            medicalRecord.setRecordId(existing.getRecordId());
+            medicalRecord.setUpdateTime(DateUtils.getNowDate());
+            return medicalRecordMapper.updateMedicalRecord(medicalRecord);
+        }
+        else
+        {
+            // 不存在则新增
+            medicalRecord.setCreateTime(DateUtils.getNowDate());
+            return medicalRecordMapper.insertMedicalRecord(medicalRecord);
+        }
+    }
 }

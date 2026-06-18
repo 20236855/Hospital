@@ -26,6 +26,15 @@ export function addRecord(data) {
   })
 }
 
+// 保存电子病历（存在则更新，不存在则新增）
+export function saveRecord(data) {
+  return request({
+    url: '/emr/record/save',
+    method: 'post',
+    data: data
+  })
+}
+
 // 修改电子病历
 export function updateRecord(data) {
   return request({

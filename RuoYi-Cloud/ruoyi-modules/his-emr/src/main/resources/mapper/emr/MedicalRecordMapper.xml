@@ -182,4 +182,46 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             #{recordId}
         </foreach>
     </delete>
+
+    <select id="selectMedicalRecordByEncounterId" parameterType="Long" resultMap="MedicalRecordResult">
+        select mr.record_id,
+               mr.encounter_id,
+               e.patient_id,
+               e.doctor_id,
+               mr.chief_complaint,
+               mr.present_illness,
+               mr.past_history,
+               mr.allergy_history,
+               mr.physical_exam,
+               mr.diagnosis_opinion,
+               mr.treatment_plan,
+               mr.doctor_advice,
+               mr.create_time,
+               mr.update_time,
+               d.doctor_name,
+               sd.dept_name,
+               e.encounter_type,
+               e.visit_time
+        from medical_record mr
+        left join encounter e on e.encounter_id = mr.encounter_id
+        left join doctor d on d.doctor_id = e.doctor_id
+        left join sys_dept sd on sd.dept_id = e.dept_id
+        where mr.encounter_id = #{encounterId}
+    </select>
+
+    <update id="updateMedicalRecordByEncounterId" parameterType="MedicalRecord">
+        update medical_record
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="chiefComplaint != null">chief_complaint = #{chiefComplaint},</if>
+            <if test="presentIllness != null">present_illness = #{presentIllness},</if>
+            <if test="pastHistory != null">past_history = #{pastHistory},</if>
+            <if test="allergyHistory != null">allergy_history = #{allergyHistory},</if>
+            <if test="physicalExam != null">physical_exam = #{physicalExam},</if>
+            <if test="diagnosisOpinion != null">diagnosis_opinion = #{diagnosisOpinion},</if>
+            <if test="treatmentPlan != null">treatment_plan = #{treatmentPlan},</if>
+            <if test="doctorAdvice != null">doctor_advice = #{doctorAdvice},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where encounter_id = #{encounterId}
+    </update>
 </mapper>

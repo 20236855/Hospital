@@ -39,14 +39,19 @@ import org.springframework.stereotype.Service;
 @Service
 public class AiChatServiceImpl implements IAiChatService
 {
-    private static final String SYSTEM_PROMPT = "你是专业医院线上智能问诊助手，仅为本平台实名就诊患者提供健康咨询服务，可调取当前登录患者在本院留存的个人电子病历、既往就诊记录、检查检验报告单、用药记录。沟通全程使用通俗温和的口语，避免晦涩专业术语；问诊优先结合患者既往病历信息，先询问不适症状、发病时长、体感细节，再依托病历历史病史综合分析。严禁开具处方、严禁确诊疾病、不替代执业医师临床诊断，所有医疗建议仅作健康参考，出现危重、急症、持续加重症状时，主动提示患者前往线下医院面诊就医。对话界面为左右分栏聊天样式，简洁应答，不冗余啰嗦。对话交互约束补充：患者描述身体不适后，优先核对电子病历里过往相关病史、过敏史、既往确诊病症，结合现有病情给出居家护理、日常注意事项；若病历无相关就诊数据，如实告知暂无既往记录，依据患者口述症状科普相关健康常识；涉及用药、手术、确诊类关键医疗内容，统一提醒：线上 AI 不能做诊疗定论，建议线下找主治医生面诊。";
+    /** 患者端Prompt：面向患者的在线健康咨询（随和亲切、纯文本、禁止markdown） */
+    /** 患者端Prompt：面向患者的在线健康咨询（随和亲切、纯文本、禁止markdown） */
+    private static final String PATIENT_SYSTEM_PROMPT = "你是本院的线上健康小助手，专门为实名就诊患者提供贴心、温暖的咨询服务。你能看到患者在本院的电子病历、检查报告和用药记录，请像一位耐心的家庭医生朋友一样和患者交流。\n\n交流守则：\n1. 用通俗易懂的口语，像朋友聊天一样，让患者感到亲切和被关心\n2. 先耐心倾听患者的不适，问清楚症状、持续多久、有没有加重，再结合病历给出建议\n3. 多说鼓励和安抚的话，让患者放心\n4. 严禁开具处方、严禁确诊疾病，你只提供健康参考和护理建议\n5. 遇到胸痛、卒中、严重创伤等急危症状，务必提醒患者立即去急诊就医\n6. 关于用药、手术等关键问题，统一提醒：线上建议仅供参考，建议找主治医生面诊\n\n输出规则（非常重要）：\n- 禁止使用任何Markdown格式符号，包括但不限于：###、**、--、##、*、`、\n- 不要使用标题、分隔线、加粗等格式\n- 使用纯文本，段落之间用空行分隔\n- 列举时用数字加句号，如：1. 2. 3.\n- 每次回复控制在3到5个自然段落，简洁不啰嗦\n- 语气温暖随和，偶尔可以用表情符号增加亲切感";
+
+    /** 医生端Prompt：面向执业医师的临床辅助决策（纯文本、禁止markdown） */
+    private static final String DOCTOR_SYSTEM_PROMPT = "你是专业临床诊疗辅助AI，面向执业医师提供辅助决策支持。医生在诊室接诊患者时，可通过你快速获取：鉴别诊断建议、辅助检查推荐、治疗方案参考、病历文书生成。\n\n工作原则：\n1. 循证医学：所有建议基于临床指南和循证依据，不凭空臆测\n2. 结构化输出：诊断建议按可能性从高到低排列，检查建议注明必要性等级（必查/建议/可选）\n3. 安全警示：识别急危重症红旗征象（胸痛、卒中、严重创伤、败血症等）时优先单独列出\n4. 辅助定位：你是辅助工具，最终诊断和治疗方案由执业医师确认并签字\n5. 信息利用：优先结合患者在院既往病历、检查报告、用药记录综合分析\n6. 简洁专业：使用医学专业术语，回答精炼直击要点\n\n输出规则（非常重要）：\n- 禁止使用任何Markdown格式符号：###、**、--、##、*、`、\n- 使用纯文本，段落之间用空行分隔，列举用数字序号\n- 日常对话回复控制在3到5个自然段落\n\n当医生要求生成病历时，输出纯JSON（不要markdown代码块包裹）：\n{\"chiefComplaint\":\"主诉\",\"presentIllness\":\"现病史\",\"pastHistory\":\"既往史\",\"allergyHistory\":\"过敏史\",\"physicalExam\":\"体格检查及阳性体征\",\"diagnosisOpinion\":\"鉴别诊断按可能性排序\",\"treatmentPlan\":\"推荐治疗方案\",\"doctorAdvice\":\"医嘱建议\",\"urgentFlags\":[\"紧急情况\"],\"needExam\":[\"建议检查项目\"]}";
 
     private static final int RECENT_CHAT_LIMIT = 20;
 
     private static final int LONG_MEMORY_LIMIT = 10;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
+            .connectTimeout(Duration.ofSeconds(30))
             .build();
 
     @Value("${ai.deepseek.api-key:${DEEPSEEK_API_KEY:}}")
@@ -151,7 +156,9 @@ public class AiChatServiceImpl implements IAiChatService
             System.out.println("未命中关键词，跳过病历查询");
         }
 
-        String reply = callDeepSeek(buildMessages(patient, medicalRecords, encounters, longMemories, recentRecords, request.getMessage()));
+        String mode = StringUtils.isBlank(request.getMode()) ? "patient" : request.getMode();
+        System.out.println("当前模式: " + mode);
+        String reply = callDeepSeek(buildMessages(patient, medicalRecords, encounters, longMemories, recentRecords, request.getMessage(), mode));
 
         // 保存聊天记录
         System.out.println("保存聊天记录");
@@ -203,10 +210,12 @@ public class AiChatServiceImpl implements IAiChatService
                                     List<EncounterVo> encounters,
                                     List<AiChatRecord> longMemories,
                                     List<AiChatRecord> recentRecords,
-                                    String message)
+                                    String message,
+                                    String mode)
     {
+        String systemPrompt = "doctor".equals(mode) ? DOCTOR_SYSTEM_PROMPT : PATIENT_SYSTEM_PROMPT;
         JSONArray messages = new JSONArray();
-        messages.add(chatMessage("system", SYSTEM_PROMPT + "\n\n" + buildPatientContext(patient, medicalRecords, encounters, longMemories)));
+        messages.add(chatMessage("system", systemPrompt + "\n\n" + buildPatientContext(patient, medicalRecords, encounters, longMemories)));
         for (AiChatRecord record : recentRecords)
         {
             if (StringUtils.isNotEmpty(record.getRole()) && StringUtils.isNotEmpty(record.getContent()))
@@ -319,12 +328,13 @@ public class AiChatServiceImpl implements IAiChatService
         body.put("messages", messages);
         body.put("stream", false);
         body.put("temperature", 0.7);
+        body.put("max_tokens", 8192);
 
         System.out.println("请求体: " + body.toJSONString());
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(apiUrl))
-                .timeout(Duration.ofSeconds(120))
+                .timeout(Duration.ofSeconds(300))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + apiKey)
                 .POST(HttpRequest.BodyPublishers.ofString(body.toJSONString()))

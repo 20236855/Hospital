@@ -108,6 +108,24 @@ public class MedicalRecordController extends BaseController
     }
 
     /**
+     * 保存电子病历（存在则更新，不存在则新增，适用于AI一键生成等场景）
+     */
+    @RequiresPermissions("emr:record:add")
+    @Log(title = "电子病历", businessType = BusinessType.INSERT)
+    @PostMapping("/save")
+    public AjaxResult save(@RequestBody MedicalRecord medicalRecord)
+    {
+        checkPatientReadonly();
+        if (medicalRecord.getEncounterId() == null)
+        {
+            return error("接诊ID不能为空");
+        }
+        // 先校验医生权限：通过 encounterId 查询关联的 doctorId
+        checkDoctorScopeOnCreate(medicalRecord);
+        return toAjax(medicalRecordService.saveMedicalRecord(medicalRecord));
+    }
+
+    /**
      * 修改电子病历
      */
     @RequiresPermissions("emr:record:edit")

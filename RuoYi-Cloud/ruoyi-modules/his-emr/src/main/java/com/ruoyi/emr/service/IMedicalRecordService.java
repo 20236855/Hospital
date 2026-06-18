@@ -66,4 +66,12 @@ public interface IMedicalRecordService
      * @return 医生ID
      */
     public Long selectDoctorIdByEncounterId(Long encounterId);
+
+    /**
+     * 保存或更新电子病历（按encounterId判断：存在则更新，不存在则新增）
+     * 
+     * @param medicalRecord 电子病历
+     * @return 结果
+     */
+    public int saveMedicalRecord(MedicalRecord medicalRecord);
 }

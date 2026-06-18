@@ -125,7 +125,7 @@ export const constantRoutes = [
         meta: { title: '颅内病变CT检查' }
       }
     ]
-  }
+  },
 ]
 
 // 动态路由，基于用户权限动态去加载
