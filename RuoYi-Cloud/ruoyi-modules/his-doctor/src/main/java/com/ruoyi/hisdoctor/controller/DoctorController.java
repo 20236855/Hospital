@@ -87,6 +87,25 @@ public class DoctorController extends BaseController
     }
 
     /**
+     * 获取当前登录用户自己的医生信息（无权限限制，放在/{doctorId}前防止路径冲突）
+     */
+    @GetMapping(value = "/current")
+    public AjaxResult current()
+    {
+        Long userId = SecurityUtils.getUserId();
+        Doctor doctor = doctorService.getDoctorByUserId(userId);
+        if (doctor == null) {
+            return success(null);
+        }
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("doctorId", doctor.getDoctorId());
+        map.put("doctorName", doctor.getDoctorName());
+        map.put("deptId", doctor.getDeptId());
+        map.put("userId", doctor.getUserId());
+        return success(map);
+    }
+
+    /**
      * 获取医生信息详细信息
      */
     @RequiresPermissions("hisdoctor:doctor:query")

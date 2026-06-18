@@ -122,6 +122,7 @@
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['hisprescription:prescription:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['hisprescription:prescription:remove']">删除</el-button>
+          <el-button link type="warning" icon="Tickets" @click="goToItems(scope.row.prescriptionId)">明细</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -139,33 +140,40 @@
       <el-form ref="prescriptionRef" :model="form" :rules="rules" label-width="100px">
         <el-row>
           <el-col :span="24">
+            <el-form-item label="接诊信息" prop="encounterId">
+              <el-select v-model="form.encounterId" placeholder="请选择接诊记录" filterable clearable @change="handleEncounterChange" style="width: 100%">
+                <el-option
+                  v-for="item in encounterOptions"
+                  :key="item.encounterId"
+                  :label="'接诊#' + item.encounterId + ' - ' + item.patientName + ' (' + item.encounterType + ')'"
+                  :value="item.encounterId"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="患者" prop="patientId">
+              <el-input v-model="form.patientId" placeholder="选择接诊自动填入" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
             <el-form-item label="挂号ID" prop="registerId">
-              <el-input v-model="form.registerId" placeholder="请输入挂号ID" />
+              <el-input v-model="form.registerId" placeholder="选择接诊自动填入" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="接诊ID" prop="encounterId">
-              <el-input v-model="form.encounterId" placeholder="请输入接诊ID" />
+            <el-form-item label="开方医生" prop="doctorId">
+              <el-input v-model="form.doctorId" :placeholder="isDoctorUser ? '医生登录自动填入' : '请输入开方医生ID'" :disabled="isDoctorUser" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="患者ID" prop="patientId">
-              <el-input v-model="form.patientId" placeholder="请输入患者ID" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="开方医生ID" prop="doctorId">
-              <el-input v-model="form.doctorId" placeholder="请输入开方医生ID" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="开方科室ID" prop="deptId">
-              <el-input v-model="form.deptId" placeholder="请输入开方科室ID" />
+            <el-form-item label="开方科室" prop="deptId">
+              <el-input v-model="form.deptId" :placeholder="isDoctorUser ? '医生登录自动填入' : '请输入开方科室ID'" :disabled="isDoctorUser" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="处方单号" prop="prescriptionNo">
-              <el-input v-model="form.prescriptionNo" placeholder="请输入处方单号" />
+              <el-input v-model="form.prescriptionNo" placeholder="系统自动生成" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -174,7 +182,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="整体用药嘱托" prop="drugTip">
+            <el-form-item label="用药嘱托" prop="drugTip">
               <el-input v-model="form.drugTip" type="textarea" placeholder="请输入内容" />
             </el-form-item>
           </el-col>
@@ -192,8 +200,13 @@
 
 <script setup name="Prescription">
 import { listPrescription, getPrescription, delPrescription, addPrescription, updatePrescription } from "@/api/hisprescription/prescription"
+import { listEncounter } from "@/api/emr/encounter"
+import { getMyDoctorInfo } from "@/api/hisdoctor/doctor"
+import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
+const router = useRouter()
 
 const prescriptionList = ref([])
 const open = ref(false)
@@ -204,6 +217,11 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
+const encounterOptions = ref([])
+
+const isDoctorUser = computed(() => {
+  return userStore.roles?.some(r => r === 'doctor' || r.roleKey === 'doctor' || r.roleId === 5) || false
+})
 
 const data = reactive({
   form: {},
@@ -223,22 +241,19 @@ const data = reactive({
   },
   rules: {
     registerId: [
-      { required: true, message: "挂号ID不能为空", trigger: "blur" }
+      { required: false, message: "", trigger: "change" }
     ],
     encounterId: [
-      { required: true, message: "接诊ID不能为空", trigger: "blur" }
+      { required: true, message: "接诊信息不能为空", trigger: "change" }
     ],
     patientId: [
-      { required: true, message: "患者ID不能为空", trigger: "blur" }
+      { required: true, message: "患者不能为空", trigger: "change" }
     ],
     doctorId: [
-      { required: true, message: "开方医生ID不能为空", trigger: "blur" }
+      { required: true, message: "开方医生不能为空", trigger: "blur" }
     ],
     deptId: [
-      { required: true, message: "开方科室ID不能为空", trigger: "blur" }
-    ],
-    prescriptionNo: [
-      { required: true, message: "处方单号不能为空", trigger: "blur" }
+      { required: true, message: "开方科室不能为空", trigger: "blur" }
     ],
   }
 })
@@ -300,11 +315,64 @@ function handleSelectionChange(selection) {
   multiple.value = !selection.length
 }
 
+/** 跳转到处方明细管理页面 */
+function goToItems(prescriptionId) {
+  router.push({ path: '/hisprescription/item', query: { prescriptionId } })
+}
+
 /** 新增按钮操作 */
-function handleAdd() {
+async function handleAdd() {
   reset()
+  encounterOptions.value = []
+  title.value = "添加处方"
+  if (isDoctorUser.value) {
+    if (userStore.deptId) {
+      form.value.deptId = userStore.deptId
+    }
+    try {
+      const res = await getMyDoctorInfo()
+      if (res.data && res.data.doctorId) {
+        form.value.doctorId = res.data.doctorId
+        if (!form.value.deptId) form.value.deptId = res.data.deptId
+        if (form.value.deptId) loadEncounterOptions(form.value.deptId, res.data.doctorId)
+      }
+    } catch (e) {
+      console.error('获取医生信息失败', e)
+    }
+  }
   open.value = true
-  title.value = "添加处方主"
+}
+
+/** 加载本科室接诊列表 */
+function loadEncounterOptions(deptId, doctorId) {
+  const params = { deptId, pageNum: 1, pageSize: 200 }
+  if (doctorId) params.doctorId = doctorId
+  listEncounter(params).then(res => {
+    encounterOptions.value = (res.rows || []).map(e => ({
+      encounterId: e.encounterId,
+      registerId: e.registerId,
+      patientId: e.patientId,
+      doctorId: e.doctorId,
+      deptId: e.deptId,
+      encounterType: e.encounterType || '普通门诊',
+      patientName: e.patientName || ('患者' + e.patientId),
+      doctorName: e.doctorName || ('医生' + e.doctorId)
+    }))
+  })
+}
+
+/** 选择接诊后自动填充患者ID和挂号ID */
+function handleEncounterChange(encounterId) {
+  if (!encounterId) {
+    form.value.patientId = null
+    form.value.registerId = null
+    return
+  }
+  const selected = encounterOptions.value.find(e => e.encounterId === encounterId)
+  if (selected) {
+    form.value.patientId = selected.patientId
+    form.value.registerId = selected.registerId
+  }
 }
 
 /** 修改按钮操作 */

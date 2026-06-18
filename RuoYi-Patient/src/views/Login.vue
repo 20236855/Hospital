@@ -427,7 +427,7 @@ onMounted(() => {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-rows: minmax(218px, 31vh) auto;
+  grid-template-rows: minmax(120px, 22vh) auto;
   width: 100%;
   max-width: 420px;
   min-height: calc(100vh - 24px);
@@ -543,7 +543,7 @@ onMounted(() => {
 .brand-lockup {
   position: relative;
   z-index: 1;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
   text-align: center;
 }
 

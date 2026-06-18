@@ -157,11 +157,12 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 
 const router = useRouter()
+const route = useRoute()
 const active = ref(0)
 const keyword = ref('')
 const activeCategory = ref('全部')
@@ -297,6 +298,15 @@ function openArticle(article, focusComments = false) {
   }
 }
 
+function openArticleFromRoute() {
+  const articleId = route.query.articleId
+  if (!articleId) return
+  const target = articles.find((article) => article.id === articleId)
+  if (target) {
+    openArticle(target)
+  }
+}
+
 function submitComment() {
   if (!currentArticle.value) return
   if (!commentText.value) {
@@ -334,6 +344,11 @@ onMounted(() => {
     favorites.value = []
     comments.value = {}
   }
+  openArticleFromRoute()
+})
+
+watch(() => route.query.articleId, () => {
+  openArticleFromRoute()
 })
 </script>
 

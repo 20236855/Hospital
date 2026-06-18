@@ -1,6 +1,9 @@
 package com.ruoyi.hisprescription.service.impl;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import com.ruoyi.common.core.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,6 +57,12 @@ public class PrescriptionServiceImpl implements IPrescriptionService
     public int insertPrescription(Prescription prescription)
     {
         prescription.setCreateTime(DateUtils.getNowDate());
+        // 自动生成处方单号：CF + yyyyMMdd + 4位随机数
+        if (prescription.getPrescriptionNo() == null || prescription.getPrescriptionNo().isEmpty()) {
+            String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
+            int randomNum = new Random().nextInt(9000) + 1000;
+            prescription.setPrescriptionNo("CF" + dateStr + randomNum);
+        }
         return prescriptionMapper.insertPrescription(prescription);
     }
 

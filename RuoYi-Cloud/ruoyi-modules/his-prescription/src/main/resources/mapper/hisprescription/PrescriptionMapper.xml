@@ -53,7 +53,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="patientId != null">patient_id,</if>
             <if test="doctorId != null">doctor_id,</if>
             <if test="deptId != null">dept_id,</if>
-            <if test="prescriptionNo != null and prescriptionNo != ''">prescription_no,</if>
+            prescription_no,
             <if test="totalAmount != null">total_amount,</if>
             <if test="prescriptionStatus != null">prescription_status,</if>
             <if test="payStatus != null">pay_status,</if>
@@ -67,7 +67,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="patientId != null">#{patientId},</if>
             <if test="doctorId != null">#{doctorId},</if>
             <if test="deptId != null">#{deptId},</if>
-            <if test="prescriptionNo != null and prescriptionNo != ''">#{prescriptionNo},</if>
+            #{prescriptionNo},
             <if test="totalAmount != null">#{totalAmount},</if>
             <if test="prescriptionStatus != null">#{prescriptionStatus},</if>
             <if test="payStatus != null">#{payStatus},</if>

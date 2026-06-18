@@ -829,7 +829,7 @@ onMounted(() => {
 .doctor-avatar {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, rgba(185, 225, 205, .86), rgba(142, 214, 242, .54));

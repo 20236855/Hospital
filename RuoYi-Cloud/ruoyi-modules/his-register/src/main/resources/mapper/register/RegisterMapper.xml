@@ -232,6 +232,21 @@
         order by r.create_time asc
     </select>
 
+    <!-- 查询指定科室下可开方的挂号记录（用于处方下拉框） -->
+    <select id="selectAvailableRegistersForPrescription" resultType="java.util.Map">
+        select r.register_id as registerId, r.register_no as registerNo,
+               r.patient_id as patientId, p.name as patientName,
+               r.doctor_id as doctorId, d.doctor_name as doctorName,
+               r.dept_id as deptId, dept.dept_name as deptName
+        from register r
+        left join patient p on p.patient_id = r.patient_id
+        left join doctor d on d.doctor_id = r.doctor_id
+        left join sys_dept dept on dept.dept_id = r.dept_id
+        where r.register_status = 'registered'
+          and r.dept_id = #{deptId}
+        order by r.register_time desc
+    </select>
+
     <!-- 查询已挂号但未签到的记录（用于签到下拉框） -->
     <select id="selectAvailableRegistersForCheckIn" resultType="java.util.Map">
         select r.register_id as registerId, r.register_no as registerNo,

@@ -155,6 +155,38 @@
         </div>
       </section>
 
+      <section class="expert-section slide-up-animation" style="animation-delay: 0.12s">
+        <div class="section-heading expert-heading">
+          <div>
+            <span class="section-kicker">EXPERTS</span>
+            <h2>严选专家</h2>
+          </div>
+          <button type="button" @click="goToDoctors">查看更多</button>
+        </div>
+
+        <div class="expert-scroll">
+          <button
+            v-for="doctor in homeExpertDoctors"
+            :key="doctor.doctorId"
+            class="expert-avatar-card"
+            type="button"
+            @click="goToDoctorDetail(doctor)"
+          >
+            <div class="expert-avatar">
+              <img v-if="doctor.avatar" :src="doctor.avatar" alt="" @error="hideBrokenAvatar" />
+              <span v-else>{{ getInitial(doctor.doctorName) }}</span>
+            </div>
+            <small>{{ getDeptName(doctor) }}</small>
+            <span>{{ getDoctorCaption(doctor.doctorName) }}</span>
+          </button>
+
+          <div v-if="!homeExpertDoctors.length" class="expert-empty">
+            <van-icon name="friends-o" />
+            <span>暂无匹配专家</span>
+          </div>
+        </div>
+      </section>
+
       <section class="more-section slide-up-animation" style="animation-delay: 0.18s">
         <div class="section-heading">
           <div>
@@ -181,6 +213,35 @@
           </button>
         </div>
       </section>
+
+      <section class="health-news-section slide-up-animation" style="animation-delay: 0.3s">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">INSIGHTS</span>
+            <h2>健康资讯</h2>
+          </div>
+          <button type="button" @click="goToHealthNews">查看更多</button>
+        </div>
+
+        <div class="home-news-list">
+          <article
+            v-for="article in homeHealthArticles"
+            :key="article.id"
+            class="home-news-item"
+            @click="openHealthArticle(article)"
+          >
+            <div class="home-news-copy">
+              <h3>{{ article.title }}</h3>
+              <p>{{ article.summary }}</p>
+              <div class="home-news-meta">
+                <span>{{ article.views }} 阅读</span>
+                <span>{{ article.date }}</span>
+              </div>
+            </div>
+            <img :src="article.image" :alt="article.title" />
+          </article>
+        </div>
+      </section>
     </div>
 
     <van-tabbar v-model="active" route>
@@ -197,7 +258,8 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { getPatientList } from '@/api/patient'
-import { getRegisterList } from '@/api/register'
+import { getRegisterList, getDeptList } from '@/api/register'
+import { listDoctor } from '@/api/doctor'
 import doctor1 from '@/assets/doctor1.png'
 import doctor2 from '@/assets/doctor2.png'
 import nurse1 from '@/assets/nurse1.png'
@@ -209,9 +271,41 @@ const username = ref('')
 const todayAppointments = ref(0)
 const appointmentList = ref([])
 const showAllServices = ref(false)
+const doctorList = ref([])
+const deptList = ref([])
 
 const displayName = computed(() => username.value || '患者')
 const visibleServiceItems = computed(() => (showAllServices.value ? serviceItems : serviceItems.slice(0, 4)))
+const homeExpertDoctors = computed(() => {
+  return doctorList.value.slice(0, 12)
+})
+
+const homeHealthArticles = [
+  {
+    id: 'diet-balance',
+    title: '均衡饮食：把控油盐糖放在每天餐桌上',
+    summary: '合理搭配主食、蔬果、蛋白质和健康脂肪，是慢病预防和体重管理的基础。',
+    views: '2.4万',
+    date: '2026-06-12',
+    image: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=360&q=80'
+  },
+  {
+    id: 'hand-hygiene',
+    title: '手卫生不是小事：就医前后这些时刻要洗手',
+    summary: '规范洗手能减少病原体传播，是门诊、家庭护理和呼吸道传染病预防的重要环节。',
+    views: '1.8万',
+    date: '2026-06-10',
+    image: 'https://images.unsplash.com/photo-1584483766114-2cea6facdf57?auto=format&fit=crop&w=360&q=80'
+  },
+  {
+    id: 'sleep-routine',
+    title: '睡眠管理：让身体恢复有一个固定节律',
+    summary: '规律作息、减少睡前刺激和建立放松流程，有助于改善睡眠质量。',
+    views: '1.5万',
+    date: '2026-06-08',
+    image: 'https://images.unsplash.com/photo-1511295742362-92c96b1cf484?auto=format&fit=crop&w=360&q=80'
+  }
+]
 
 // Banner 轮播数据
 const bannerSlides = [
@@ -294,6 +388,25 @@ const goToPayment = () => {
   router.push('/my-payment')
 }
 
+const goToHealthNews = () => {
+  router.push('/health-news')
+}
+
+const openHealthArticle = (article) => {
+  router.push({
+    path: '/health-news',
+    query: { articleId: article.id }
+  })
+}
+
+const goToDoctorDetail = (doctor) => {
+  if (!doctor?.doctorId) {
+    router.push('/doctors')
+    return
+  }
+  router.push(`/doctor/${doctor.doctorId}`)
+}
+
 const toggleServices = () => {
   showAllServices.value = !showAllServices.value
 }
@@ -343,6 +456,27 @@ const serviceItems = [
   { title: '个人中心', icon: 'user-circle-o', action: () => router.push('/profile') }
 ]
 
+function getDeptName(doctor) {
+  const dept = deptList.value.find((item) => String(item.deptId) === String(doctor?.deptId))
+  return doctor?.deptName || dept?.deptName || (doctor?.deptId ? `科室${doctor.deptId}` : '门诊科室')
+}
+
+function getInitial(name) {
+  return (name || '医').slice(0, 1)
+}
+
+function getDoctorCaption(name) {
+  if (!name) return '王医生'
+  const cleanName = String(name).trim()
+  if (!cleanName) return '王医生'
+  if (cleanName.endsWith('医生')) return cleanName
+  return `${cleanName.slice(0, 1)}医生`
+}
+
+function hideBrokenAvatar(event) {
+  event.target.style.display = 'none'
+}
+
 const formatRegisterTime = (value) => {
   if (!value) return '--:--'
   const date = new Date(value)
@@ -388,8 +522,25 @@ const loadUserData = async () => {
   }
 }
 
+const loadHomeDoctors = async () => {
+  try {
+    const [deptRes, doctorRes] = await Promise.all([
+      getDeptList({ pageNum: 1, pageSize: 500 }),
+      listDoctor({ pageNum: 1, pageSize: 50 })
+    ])
+
+    deptList.value = deptRes.rows || deptRes.data || []
+    doctorList.value = doctorRes.rows || doctorRes.data || []
+  } catch (error) {
+    console.error('加载首页医生资源失败', error)
+    doctorList.value = []
+    deptList.value = []
+  }
+}
+
 onMounted(() => {
   loadUserData()
+  loadHomeDoctors()
 })
 </script>
 
@@ -871,6 +1022,177 @@ button {
   color: #6fbacb;
   font-size: 22px;
   flex: 0 0 auto;
+}
+
+.expert-section,
+.health-news-section {
+  margin-top: 16px;
+}
+
+.expert-heading {
+  margin-bottom: 10px;
+}
+
+.expert-scroll {
+  display: flex;
+  gap: 12px;
+  margin: 0 -16px;
+  padding: 0 16px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.expert-avatar-card {
+  flex: 0 0 94px;
+  min-height: 130px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 6px 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  box-shadow: none;
+  color: #2d5a4e;
+  transition: transform .2s ease;
+
+  &:active {
+    transform: scale(.97);
+  }
+
+  small {
+    max-width: 100%;
+    margin-top: 2px;
+    color: var(--text-light);
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 800;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  > span {
+    max-width: 100%;
+    color: #2d5a4e;
+    font-size: 14px;
+    line-height: 1.2;
+    font-weight: 850;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.expert-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #dff4ef, #d5edf3);
+  color: #276b63;
+  font-size: 30px;
+  font-weight: 900;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.expert-empty {
+  min-height: 96px;
+  border: 1px solid rgba(93, 184, 216, .18);
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  background: #fff;
+  color: var(--text-regular);
+  font-size: 13px;
+
+  .van-icon {
+    color: #6fbacb;
+    font-size: 28px;
+  }
+}
+
+.home-news-list {
+  overflow: hidden;
+  border: 1px solid rgba(93, 184, 216, .18);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
+}
+
+.home-news-item {
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: 1fr 92px;
+  gap: 12px;
+  align-items: center;
+  padding: 13px;
+
+  + .home-news-item {
+    border-top: 1px solid rgba(216, 226, 230, .74);
+  }
+
+  img {
+    width: 92px;
+    height: 86px;
+    border-radius: 10px;
+    object-fit: cover;
+    display: block;
+    background: #e8f5f0;
+  }
+}
+
+.home-news-copy {
+  min-width: 0;
+
+  h3 {
+    margin: 0;
+    color: #2d5a4e;
+    font-size: 15px;
+    line-height: 1.35;
+    font-weight: 850;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: var(--text-light);
+    font-size: 12px;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+}
+
+.home-news-meta {
+  display: flex;
+  gap: 10px;
+  margin-top: 9px;
+  color: #9aaeb6;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .slide-up-animation {

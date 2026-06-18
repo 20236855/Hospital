@@ -241,7 +241,7 @@
 import { listEncounter, getEncounter, delEncounter, addEncounter, updateEncounter } from "@/api/emr/encounter"
 import { listPatient } from "@/api/patient/patient"
 import { listRegister } from "@/api/register/register"
-import { getDoctorByUserId } from "@/api/hisdoctor/doctor"
+import { getMyDoctorInfo } from "@/api/hisdoctor/doctor"
 import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
@@ -260,7 +260,7 @@ const patientOptions = ref([])
 const registerOptions = ref([])
 
 const isDoctorUser = computed(() => {
-  return userStore.roles?.some(r => r === 'doctor') || false
+  return userStore.roles?.some(r => r === 'doctor' || r.roleKey === 'doctor' || r.roleId === 5) || false
 })
 
 const data = reactive({
@@ -383,12 +383,17 @@ async function handleAdd() {
   getPatientOptions()
   getRegisterOptions()
   // 医生登录时自动填入自己的 doctorId 和 deptId
-  if (isDoctorUser.value && userStore.userId) {
+  if (isDoctorUser.value) {
+    if (userStore.deptId) {
+      form.value.deptId = userStore.deptId
+    }
     try {
-      const res = await getDoctorByUserId(userStore.userId)
+      const res = await getMyDoctorInfo()
       if (res.data && res.data.doctorId) {
         form.value.doctorId = res.data.doctorId
-        form.value.deptId = res.data.deptId || userStore.deptId
+        if (!form.value.deptId) {
+          form.value.deptId = res.data.deptId
+        }
       }
     } catch (e) {
       console.error('获取医生信息失败', e)
