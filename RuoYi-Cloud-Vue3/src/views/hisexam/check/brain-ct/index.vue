@@ -1,6 +1,6 @@
 <template>
   <div class="app-container brain-ct-page">
-    <!-- 页面头部 -->
+    <!-- ==================== 页面头部 ==================== -->
     <div class="page-header">
       <div class="header-left">
         <el-button link @click="goBack" class="back-btn">
@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <!-- 患者信息栏 -->
+    <!-- ==================== 患者信息栏 ==================== -->
     <div class="patient-bar" v-if="patientInfo">
       <div class="patient-item">
         <span class="label">患者姓名</span>
@@ -56,10 +56,10 @@
       </div>
     </div>
 
-    <!-- 主体内容区 -->
+    <!-- ==================== 主体内容区 ==================== -->
     <el-row :gutter="16" class="main-content">
-      <!-- 左侧：CT影像区 -->
-      <el-col :span="14">
+      <!-- 左侧：CT影像区 + 文件上传 -->
+      <el-col :xs="24" :sm="24" :md="24" :lg="15" :xl="15" class="viewer-col">
         <div class="panel ct-panel">
           <div class="panel-header">
             <span class="panel-title">
@@ -83,18 +83,33 @@
             </div>
           </div>
           <div class="panel-body ct-viewer">
+            <!-- CT影像显示区 -->
             <div class="ct-image-container" ref="ctContainer">
-              <!-- CT影像占位 - 后续接入真实影像 -->
-              <div class="ct-placeholder" v-if="!ctImageUrl">
-                <el-icon :size="64"><Picture /></el-icon>
-                <p>CT影像加载区域</p>
-                <p class="sub">请从PACS系统导入影像或上传DICOM文件</p>
-                <el-button type="primary" plain @click="importImage">
-                  <el-icon><Upload /></el-icon>
-                  导入影像
-                </el-button>
+              <div class="ct-placeholder" v-if="!ctImageUrl && !artifactLoading">
+                <el-upload
+                  class="ct-upload"
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  :on-change="handleFileSelect"
+                  accept=".zip,.mhd,.nii,.nii.gz,.dcm"
+                  drag
+                >
+                  <div class="upload-area">
+                    <el-icon :size="40"><Upload /></el-icon>
+                    <p>拖拽CT文件到此处 或 点击选择</p>
+                    <p class="sub">支持 DICOM(.zip)、MHD/RAW、NIfTI(.nii.gz)</p>
+                  </div>
+                </el-upload>
               </div>
-              <img v-else :src="ctImageUrl" class="ct-image" :style="imageStyle" />
+              <!-- 加载中 -->
+              <div class="ct-loading" v-if="artifactLoading">
+                <el-icon :size="48" class="is-loading"><Loading /></el-icon>
+                <p>正在分析CT影像...</p>
+                <el-progress :percentage="loadingProgress" :stroke-width="8" />
+                <p class="sub">{{ loadingText }}</p>
+              </div>
+              <!-- CT影像展示 -->
+              <img v-if="ctImageUrl && !artifactLoading" :src="ctImageUrl" class="ct-image" :style="imageStyle" />
               
               <!-- AI检测框覆盖层 -->
               <div class="ai-overlay" v-if="aiDetections.length > 0">
@@ -112,24 +127,36 @@
             </div>
             
             <!-- 序列导航 -->
-            <div class="series-nav">
-              <el-button link @click="prevSlice"><el-icon><ArrowLeft /></el-icon></el-button>
-              <span class="slice-info">层 {{ currentSlice }} / {{ totalSlices }}</span>
-              <el-slider v-model="currentSlice" :min="1" :max="totalSlices" :show-tooltip="false" class="slice-slider" />
-              <el-button link @click="nextSlice"><el-icon><ArrowRight /></el-icon></el-button>
+            <div class="series-nav" v-if="ctImageUrl || uploadedFileName">
+              <el-button text circle @click="prevSlice" :disabled="currentSlice <= 1">
+                <el-icon><ArrowLeft /></el-icon>
+              </el-button>
+              <div class="nav-center">
+                <span class="nav-slice-label">
+                  原始切片 <strong>{{ currentSlice }}</strong> / {{ totalSlices }}
+                </span>
+                <span class="nav-z-info" v-if="artifactResult">
+                  Z层 {{ currentSliceZIndex }} / {{ artifactResult.totalSlices }}
+                </span>
+                <el-slider v-model="currentSlice" :min="1" :max="totalSlices" :show-tooltip="false" class="nav-slider" />
+              </div>
+              <el-button text circle @click="nextSlice" :disabled="currentSlice >= totalSlices">
+                <el-icon><ArrowRight /></el-icon>
+              </el-button>
+              <span class="nav-filename" v-if="uploadedFileName">{{ uploadedFileName }}</span>
             </div>
           </div>
         </div>
       </el-col>
 
       <!-- 右侧：AI分析与诊断 -->
-      <el-col :span="10">
+      <el-col :xs="24" :sm="24" :md="24" :lg="9" :xl="9" class="side-col">
         <!-- AI分析结果 -->
         <div class="panel ai-panel" v-loading="analyzing">
           <div class="panel-header">
             <span class="panel-title">
               <el-icon><Cpu /></el-icon>
-              AI辅助诊断
+              检测结果
             </span>
             <el-tag :type="aiStatus.type" size="small">{{ aiStatus.text }}</el-tag>
           </div>
@@ -162,14 +189,12 @@
                   </div>
                 </div>
               </div>
-
               <div class="result-section">
                 <h4>AI诊断建议</h4>
                 <div class="suggestion-box">
                   <p>{{ aiResult.suggestion }}</p>
                 </div>
               </div>
-
               <div class="result-section">
                 <h4>影像特征</h4>
                 <el-descriptions :column="2" size="small" border>
@@ -194,23 +219,11 @@
           <div class="panel-body">
             <el-form :model="diagnosisForm" label-position="top">
               <el-form-item label="影像所见">
-                <el-input 
-                  v-model="diagnosisForm.findings" 
-                  type="textarea" 
-                  :rows="3"
-                  placeholder="描述CT影像所见..."
-                />
+                <el-input v-model="diagnosisForm.findings" type="textarea" :rows="3" placeholder="描述CT影像所见..." />
               </el-form-item>
-              
               <el-form-item label="诊断意见">
-                <el-input 
-                  v-model="diagnosisForm.impression" 
-                  type="textarea" 
-                  :rows="3"
-                  placeholder="给出诊断意见..."
-                />
+                <el-input v-model="diagnosisForm.impression" type="textarea" :rows="3" placeholder="给出诊断意见..." />
               </el-form-item>
-
               <el-form-item label="诊断结论">
                 <el-radio-group v-model="diagnosisForm.conclusion">
                   <el-radio label="normal">未见明显异常</el-radio>
@@ -219,16 +232,14 @@
                   <el-radio label="uncertain">性质待定，建议进一步检查</el-radio>
                 </el-radio-group>
               </el-form-item>
-
               <el-form-item label="建议">
                 <el-checkbox-group v-model="diagnosisForm.recommendations">
-                  <el-checkbox label="mri">建议MRI进一步检查</el-checkbox>
-                  <el-checkbox label="followup">建议随访复查</el-checkbox>
-                  <el-checkbox label="biopsy">建议活检</el-checkbox>
-                  <el-checkbox label="surgery">建议手术治疗</el-checkbox>
+                  <el-checkbox value="mri">建议MRI进一步检查</el-checkbox>
+                  <el-checkbox value="followup">建议随访复查</el-checkbox>
+                  <el-checkbox value="biopsy">建议活检</el-checkbox>
+                  <el-checkbox value="surgery">建议手术治疗</el-checkbox>
                 </el-checkbox-group>
               </el-form-item>
-
               <el-form-item label="备注">
                 <el-input v-model="diagnosisForm.remark" type="textarea" :rows="2" />
               </el-form-item>
@@ -237,17 +248,149 @@
         </div>
       </el-col>
     </el-row>
+
+    <!-- ==================== CT标注结果区（全宽，始终显示） ==================== -->
+    <div class="annotation-section">
+      <div class="annotation-header">
+        <div class="annotation-title">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>CT 影像智能标注结果</span>
+          <el-tag v-if="artifactResult" type="success" size="small" effect="dark" round>分析完成</el-tag>
+          <el-tag v-else type="info" size="small" effect="dark" round>等待上传</el-tag>
+        </div>
+        <div class="annotation-stats" v-if="artifactResult">
+          <div class="stat-badge hemorrhage">
+            <span class="badge-num">{{ artifactResult.stats.hemorrhageCount || 0 }}</span>
+            <span class="badge-txt">出血灶</span>
+          </div>
+          <div class="stat-badge artifact">
+            <span class="badge-num">{{ artifactResult.stats.slicesWithArtifact || 0 }}</span>
+            <span class="badge-txt">伪影层</span>
+          </div>
+          <div class="stat-badge metal">
+            <span class="badge-num">{{ artifactResult.stats.slicesWithMetal || 0 }}</span>
+            <span class="badge-txt">金属层</span>
+          </div>
+          <div class="stat-badge info">
+            <span class="badge-num">{{ artifactResult.totalSlices }}</span>
+            <span class="badge-txt">总切片</span>
+          </div>
+        </div>
+        <div class="annotation-stats" v-else>
+          <span class="stat-hint">上传CT文件后自动执行金属伪影 + 脑出血智能检测</span>
+        </div>
+      </div>
+
+      <el-row :gutter="12" class="annotation-grid">
+        <!-- 金属伪影标注 -->
+        <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
+          <div class="annotation-panel metal-panel">
+            <div class="annotation-panel-header">
+              <div class="panel-label-group">
+                <span class="color-dot" style="background:#EF4444; box-shadow:0 0 6px #EF4444;"></span>
+                <span>金属伪影标注</span>
+                <el-tag v-if="artifactResult" size="small" round :type="artifactResult.stats.slicesWithMetal > 0 ? 'warning' : 'info'">
+                  {{ artifactResult.stats.slicesWithMetal > 0 ? artifactResult.stats.slicesWithMetal + '层' : '未检出' }}
+                </el-tag>
+              </div>
+              <template v-if="artifactResult">
+                <div class="annotation-nav">
+                  <el-button text circle @click="artifactSliceIdx = Math.max(0, artifactSliceIdx - 1)">
+                    <el-icon><ArrowLeft /></el-icon>
+                  </el-button>
+                  <span class="nav-label">{{ artifactSliceIdx + 1 }} / {{ artifactResult.slices.length }}</span>
+                  <el-slider 
+                    v-model="artifactSliceIdx" 
+                    :min="0" :max="artifactResult.slices.length - 1" 
+                    :show-tooltip="false" class="nav-slider" 
+                  />
+                  <el-button text circle @click="artifactSliceIdx = Math.min(artifactResult.slices.length - 1, artifactSliceIdx + 1)">
+                    <el-icon><ArrowRight /></el-icon>
+                  </el-button>
+                </div>
+              </template>
+            </div>
+            <div class="annotation-image-area">
+              <template v-if="artifactResult && currentArtifactImage">
+                <div class="annotation-image-wrapper">
+                  <img :src="'data:image/png;base64,' + currentArtifactImage" class="annotation-image" />
+                  <div class="image-overlay-info">Z={{ artifactResult.sliceIndices[artifactSliceIdx] }}</div>
+                </div>
+              </template>
+              <div class="annotation-empty" v-else>
+                <el-icon :size="36"><Picture /></el-icon>
+                <p>{{ artifactResult ? '未检测到金属伪影' : '上传CT文件后自动分析' }}</p>
+              </div>
+            </div>
+            <div class="annotation-legend">
+              <span class="legend-dot" style="background:#EF4444;"></span> 伪影区域
+              <span class="legend-dot" style="background:#06B6D4;"></span> 金属植入物
+            </div>
+          </div>
+        </el-col>
+
+        <!-- 颅内出血标注 -->
+        <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
+          <div class="annotation-panel heme-panel">
+            <div class="annotation-panel-header">
+              <div class="panel-label-group">
+                <span class="color-dot" style="background:#22C55E; box-shadow:0 0 6px #22C55E;"></span>
+                <span>颅内出血标注</span>
+                <el-tag 
+                  v-if="artifactResult?.stats?.hemorrhageCount > 0" 
+                  type="danger" size="small" effect="dark" round
+                >{{ artifactResult.stats.hemorrhageCount }} 处</el-tag>
+                <el-tag v-else-if="artifactResult" type="info" size="small" round>未检出</el-tag>
+              </div>
+              <template v-if="artifactResult">
+                <div class="annotation-nav">
+                  <el-button text circle @click="hemeSliceIdx = Math.max(0, hemeSliceIdx - 1)">
+                    <el-icon><ArrowLeft /></el-icon>
+                  </el-button>
+                  <span class="nav-label">{{ hemeSliceIdx + 1 }} / {{ totalSlices }}</span>
+                  <el-slider v-model="hemeSliceIdx" :min="0" :max="Math.max(0, totalSlices - 1)" 
+                             :show-tooltip="false" class="nav-slider" />
+                  <el-button text circle @click="hemeSliceIdx = Math.min(totalSlices - 1, hemeSliceIdx + 1)">
+                    <el-icon><ArrowRight /></el-icon>
+                  </el-button>
+                </div>
+              </template>
+            </div>
+            <div class="annotation-image-area">
+              <template v-if="artifactResult && currentHemorrhageImage">
+                <div class="annotation-image-wrapper">
+                  <img :src="'data:image/png;base64,' + currentHemorrhageImage" class="annotation-image" />
+                  <div class="image-overlay-info">Z={{ artifactResult.sliceIndices?.[hemeSliceIdx] ?? hemeSliceIdx }}</div>
+                </div>
+              </template>
+              <div class="annotation-empty" v-else>
+                <el-icon :size="36"><FirstAidKit /></el-icon>
+                <p>{{ artifactResult ? '未检测到脑出血灶' : '上传CT文件后自动分析' }}</p>
+              </div>
+            </div>
+            <div class="annotation-legend">
+              <span class="legend-dot" style="background:#22C55E;"></span> 脑出血区域
+              <span class="legend-status" v-if="artifactResult?.stats?.hemorrhageCount > 0" style="color:#10B981">
+                ✓ {{ artifactResult.stats.hemorrhageTotalArea }}px · {{ artifactResult.stats.slicesWithHemorrhage }}层
+              </span>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
   </div>
 </template>
 
 <script setup name="BrainCTCheck">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { 
   ArrowLeft, Cpu, DocumentChecked, Picture, ZoomIn, ZoomOut, 
   RefreshRight, Sunny, Upload, ArrowRight, Warning, InfoFilled,
-  MagicStick, EditPen
+  MagicStick, EditPen, Loading, DataAnalysis, FirstAidKit
 } from '@element-plus/icons-vue'
+import { detectArtifact } from '@/api/hisexam/ctAnalysis'
 
 const route = useRoute()
 const router = useRouter()
@@ -263,15 +406,36 @@ const patientInfo = reactive({
   purpose: '头痛、头晕3天，怀疑颅内占位性病变'
 })
 
-// ============ CT影像 ============
-const ctImageUrl = ref('')
+// ============ CT文件上传与影像 ============
+const uploadedFileName = ref('')
 const ctContainer = ref(null)
 const currentSlice = ref(1)
 const totalSlices = ref(128)
 const zoom = ref(1)
+
 const imageStyle = computed(() => ({
   transform: `scale(${zoom.value})`
 }))
+
+// CT主视图：优先使用原始图像（rawSlices），无标注版本
+const ctImageUrl = computed(() => {
+  if (!artifactResult.value) return ''
+  // 优先使用原始无标注切片
+  const src = artifactResult.value.rawSlices || artifactResult.value.slices
+  if (!src || !src.length) return ''
+  const idx = currentSlice.value - 1
+  if (idx < 0 || idx >= src.length) return ''
+  return 'data:image/png;base64,' + src[idx]
+})
+
+// 当前显示的原始Z层索引（用于提示）
+const currentSliceZIndex = computed(() => {
+  if (!artifactResult.value || !artifactResult.value.sliceIndices) return currentSlice.value
+  const idx = currentSlice.value - 1
+  return idx >= 0 && idx < artifactResult.value.sliceIndices.length
+    ? artifactResult.value.sliceIndices[idx]
+    : currentSlice.value
+})
 
 const zoomIn = () => { zoom.value = Math.min(zoom.value + 0.2, 3) }
 const zoomOut = () => { zoom.value = Math.max(zoom.value - 0.2, 0.5) }
@@ -279,7 +443,121 @@ const resetZoom = () => { zoom.value = 1 }
 const prevSlice = () => { if (currentSlice.value > 1) currentSlice.value-- }
 const nextSlice = () => { if (currentSlice.value < totalSlices.value) currentSlice.value++ }
 
-// ============ AI诊断 ============
+// ============ CT金属伪影分析 ============
+const artifactLoading = ref(false)
+const loadingProgress = ref(0)
+const loadingText = ref('正在上传CT文件...')
+const artifactResult = ref(null)
+const artifactSliceIdx = ref(0)
+
+// 当前选中的伪影标注图像
+const currentArtifactImage = computed(() => {
+  if (!artifactResult.value || !artifactResult.value.slices) return null
+  const idx = artifactSliceIdx.value
+  return artifactResult.value.slices[idx] || null
+})
+
+// ============ 脑出血标注 ============
+const hemeSliceIdx = ref(0)
+
+const currentHemorrhageImage = computed(() => {
+  if (!artifactResult.value || !artifactResult.value.hemorrhageSlices) return null
+  const idx = hemeSliceIdx.value
+  return artifactResult.value.hemorrhageSlices[idx] || null
+})
+
+/**
+ * 处理文件选择 - 触发CT上传与分析
+ */
+const handleFileSelect = async (uploadFile) => {
+  const file = uploadFile.raw
+  if (!file) return
+
+  // 校验文件类型
+  const allowedExts = ['.zip', '.mhd', '.nii', '.nii.gz', '.dcm']
+  const fileName = file.name.toLowerCase()
+  const isValid = allowedExts.some(ext => fileName.endsWith(ext))
+  if (!isValid) {
+    ElMessage.warning('请上传CT影像文件（DICOM zip / MHD / NIfTI / DCM）')
+    return
+  }
+
+  const maxFileSize = 500 * 1024 * 1024
+  if (file.size > maxFileSize) {
+    ElMessage.warning('CT文件不能超过500MB')
+    return
+  }
+
+  // 开始分析
+  uploadedFileName.value = file.name
+  artifactLoading.value = true
+  loadingProgress.value = 0
+  loadingText.value = '正在上传CT文件...'
+  artifactResult.value = null
+
+  // 模拟进度（因为真实上传进度需要onUploadProgress回调）
+  const progressTimer = setInterval(() => {
+    if (loadingProgress.value < 90) {
+      loadingProgress.value += Math.random() * 10
+      if (loadingProgress.value > 30) loadingText.value = '正在分析CT体数据...'
+      if (loadingProgress.value > 60) loadingText.value = '正在执行金属伪影检测算法...'
+      if (loadingProgress.value > 80) loadingText.value = '正在生成标注图像...'
+    }
+  }, 500)
+
+  try {
+    const res = await detectArtifact(file, {
+      metal_hu: 2000,
+      art_high: 500,
+      art_low: -500,
+      dilate_r: 20,
+      enable_classify: true,
+      enable_3d: false,
+      return_all_slices: false,
+      max_slices: 80  // 80层采样，步长约4层，覆盖连续出血区域
+    })
+
+    clearInterval(progressTimer)
+    loadingProgress.value = 100
+    loadingText.value = '分析完成！'
+
+    // 解析结果
+    const data = res.data || res
+    if (data.success) {
+      artifactResult.value = data.data
+      // CT视图的 totalSlices 使用实际返回的切片数（采样后的）
+      totalSlices.value = data.data.rawSlices ? data.data.rawSlices.length : data.data.sliceCount
+      artifactSliceIdx.value = 0
+      currentSlice.value = 1
+      ElMessage.success(`CT分析完成！共返回 ${totalSlices.value} 层标注切片`)
+    } else {
+      ElMessage.error(data.error || 'CT分析失败')
+    }
+  } catch (error) {
+    clearInterval(progressTimer)
+    console.error('CT分析请求失败:', error)
+    // 注意：request.js 拦截器已对 500/NetworkError 等弹过消息，
+    // 这里仅处理未被拦截器覆盖的异常
+    const msg = (typeof error === 'string')
+      ? '请求处理异常，请重试'
+      : (error.response?.data?.msg || error.message || '')
+    if (msg && msg !== 'error' && !msg.includes('CT分析')) {
+      // 只对拦截器未弹出的错误补充提示
+      if (msg.includes('ResourceAccess') || msg.includes('Network Error') || msg.includes('timeout')) {
+        ElMessage.error('CT分析服务未启动，请先启动Python服务：python ct_artifact_service.py --port 5001')
+      } else if (msg.includes('MaxUploadSize')) {
+        ElMessage.error('CT文件超过上传限制，请减小文件大小')
+      } else {
+        ElMessage.error('CT分析失败: ' + msg)
+      }
+    }
+  } finally {
+    artifactLoading.value = false
+    loadingProgress.value = 0
+  }
+}
+
+// ============ AI诊断（保持原有模拟逻辑） ============
 const analyzing = ref(false)
 const aiResult = ref(null)
 const selectedFinding = ref(0)
@@ -291,7 +569,6 @@ const aiStatus = computed(() => {
   return { type: 'info', text: '未开始' }
 })
 
-// 模拟AI分析
 const startAIAnalysis = () => {
   analyzing.value = true
   aiResult.value = null
@@ -301,34 +578,15 @@ const startAIAnalysis = () => {
     analyzing.value = false
     aiResult.value = {
       findings: [
-        {
-          name: '右侧额叶低密度影',
-          description: '约2.3×1.8cm类圆形低密度影，边界尚清，周围可见轻度水肿带',
-          confidence: 94,
-          severity: 'high'
-        },
-        {
-          name: '中线结构偏移',
-          description: '脑室系统受压，中线结构向左偏移约3mm',
-          confidence: 88,
-          severity: 'medium'
-        }
+        { name: '右侧额叶低密度影', description: '约2.3×1.8cm类圆形低密度影，边界尚清，周围可见轻度水肿带', confidence: 94, severity: 'high' },
+        { name: '中线结构偏移', description: '脑室系统受压，中线结构向左偏移约3mm', confidence: 88, severity: 'medium' }
       ],
       suggestion: '考虑右侧额叶占位性病变，建议进一步完善增强MRI检查以明确病变性质。',
-      features: {
-        lesionCount: 1,
-        maxSize: '23×18',
-        location: '右侧额叶',
-        density: '低密度'
-      }
+      features: { lesionCount: 1, maxSize: '23×18', location: '右侧额叶', density: '低密度' }
     }
-    
-    // 模拟检测框位置
     aiDetections.value = [
       { label: '病灶1', confidence: 94, style: { left: '45%', top: '35%', width: '80px', height: '60px' } }
     ]
-    
-    // 自动填充影像所见
     diagnosisForm.findings = '右侧额叶见类圆形低密度影，约2.3×1.8cm，边界尚清，周围可见水肿带。脑室系统受压，中线结构向左偏移约3mm。'
   }, 3000)
 }
@@ -343,27 +601,19 @@ const diagnosisForm = reactive({
 })
 
 // ============ 操作 ============
-const goBack = () => {
-  router.back()
-}
-
-const importImage = () => {
-  // 模拟导入
-  ctImageUrl.value = '@/assets/exam/检查1.png'
-}
+const goBack = () => router.back()
 
 const saveDiagnosis = () => {
-  // 保存到病历表
   const diagnosisData = {
     registerId: patientInfo.registerId,
     applyId: patientInfo.applyId,
     checkType: 'BRAIN_CT',
     diagnosis: diagnosisForm,
     aiResult: aiResult.value,
-    doctorId: 'DOC007', // role_id=7的医生
+    artifactResult: artifactResult.value,
+    doctorId: 'DOC007',
     checkTime: new Date().toISOString()
   }
-  
   console.log('保存诊断结果:', diagnosisData)
   ElMessage.success('诊断结果已保存')
 }
@@ -372,193 +622,315 @@ const selectDetection = (det) => {
   console.log('选中检测:', det)
 }
 
+// ============ 生命周期 ============
 onMounted(() => {
-  // 从路由参数获取申请单信息
   const { applyId, registerId } = route.query
-  if (applyId) {
-    patientInfo.applyId = applyId
-  }
-  if (registerId) {
-    patientInfo.registerId = registerId
-  }
+  if (applyId) patientInfo.applyId = applyId
+  if (registerId) patientInfo.registerId = registerId
 })
 </script>
 
 <style scoped lang="scss">
 .brain-ct-page {
-  padding: 16px;
-  background: #F5F7FA;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  align-items: start;
+  gap: 14px;
   min-height: 100vh;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, #EAF0F4 0, #F6F8FA 260px, #F5F7FA 100%);
+  color: #1E293B;
 
-  /* ===== 页面头部 ===== */
   .page-header {
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    gap: 16px;
+    margin-bottom: 0;
+    padding: 16px 18px;
     background: #FFFFFF;
-    padding: 16px 20px;
-    border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
 
     .header-left {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 18px;
+      min-width: 0;
+    }
 
-      .back-btn {
-        color: #64748B;
-        font-size: 14px;
-        
-        &:hover { color: #1A6B54; }
+    .back-btn {
+      flex: 0 0 auto;
+      color: #64748B;
+      font-size: 14px;
+
+      &:hover {
+        color: #16614D;
+      }
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+
+      .title-badge {
+        flex: 0 0 auto;
+        padding: 4px 10px;
+        background: #16614D;
+        color: #FFFFFF;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 700;
       }
 
-      .header-title {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .title-badge {
-          padding: 4px 12px;
-          background: #1A6B54;
-          color: #FFFFFF;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        h1 {
-          font-size: 20px;
-          font-weight: 700;
-          color: #1E293B;
-          margin: 0;
-        }
+      h1 {
+        margin: 0;
+        overflow: hidden;
+        color: #0F172A;
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.3;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
 
     .header-actions {
       display: flex;
-      gap: 12px;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
     }
   }
 
-  /* ===== 患者信息栏 ===== */
   .patient-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(108px, 1fr));
+    gap: 10px;
+    margin-bottom: 0;
+    padding: 12px;
     background: #FFFFFF;
-    padding: 12px 20px;
+    border: 1px solid #E2E8F0;
     border-radius: 8px;
-    margin-bottom: 16px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .04);
 
     .patient-item {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      min-width: 0;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px 10px;
+      background: #F8FAFC;
+      border: 1px solid #EEF2F7;
+      border-radius: 6px;
 
       &.wide {
-        flex: 1;
-        min-width: 300px;
+        grid-column: span 2;
       }
 
       .label {
         color: #64748B;
-        font-size: 13px;
+        font-size: 12px;
+        line-height: 1.2;
       }
 
       .value {
-        color: #1E293B;
+        overflow: hidden;
+        color: #0F172A;
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
+        line-height: 1.35;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }
 
-  /* ===== 主体内容 ===== */
   .main-content {
+    display: contents;
+    align-items: stretch;
+
+    .viewer-col,
+    .side-col {
+      display: flex;
+      flex-direction: column;
+      width: auto !important;
+      max-width: none !important;
+      padding-right: 0 !important;
+      padding-left: 0 !important;
+      flex: none !important;
+      flex-basis: auto !important;
+    }
+
+    .viewer-col {
+      grid-row: 3;
+      grid-column: 1;
+    }
+
+    .side-col {
+      grid-row: 3 / span 2;
+      grid-column: 2;
+      gap: 14px;
+    }
+
     .panel {
+      display: flex;
+      overflow: hidden;
+      flex-direction: column;
+      min-width: 0;
+      margin-bottom: 0;
       background: #FFFFFF;
-      border-radius: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-      margin-bottom: 16px;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
 
       .panel-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 14px 16px;
-        border-bottom: 1px solid #F1F5F9;
+        gap: 12px;
+        min-height: 50px;
+        padding: 12px 14px;
+        background: #FFFFFF;
+        border-bottom: 1px solid #E2E8F0;
 
         .panel-title {
           display: flex;
           align-items: center;
           gap: 8px;
+          color: #0F172A;
           font-size: 15px;
-          font-weight: 600;
-          color: #1E293B;
+          font-weight: 700;
 
           .el-icon {
-            color: #1A6B54;
+            color: #16614D;
           }
         }
 
         .panel-tools {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 2px;
         }
       }
 
       .panel-body {
-        padding: 16px;
+        padding: 14px;
       }
     }
 
-    /* CT影像面板 */
     .ct-panel {
+      flex: 1;
+      height: 100%;
+
       .ct-viewer {
-        padding: 0;
         display: flex;
+        flex: 1;
         flex-direction: column;
+        padding: 0;
       }
 
       .ct-image-container {
         position: relative;
-        height: 420px;
-        background: #0A0A0A;
         display: flex;
         align-items: center;
         justify-content: center;
+        min-height: 470px;
+        aspect-ratio: 16 / 10;
         overflow: hidden;
+        background:
+          radial-gradient(circle at center, rgba(31, 41, 55, .9), rgba(3, 7, 18, 1) 68%),
+          #05070A;
 
         .ct-placeholder {
+          width: min(520px, calc(100% - 40px));
+          color: #94A3B8;
           text-align: center;
-          color: #64748B;
 
           .el-icon {
-            color: #94A3B8;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
+            color: #64748B;
           }
 
           p {
             margin: 0 0 4px;
-            color: #CBD5E1;
+            color: #E2E8F0;
             font-size: 14px;
 
             &.sub {
-              font-size: 12px;
-              color: #64748B;
               margin-bottom: 16px;
+              color: #94A3B8;
+              font-size: 12px;
             }
+          }
+
+          :deep(.el-upload-dragger) {
+            padding: 0;
+            background: transparent;
+            border: 0;
+          }
+
+          .upload-area {
+            padding: 24px 32px;
+            background: rgba(15, 23, 42, .72);
+            border: 1px dashed #64748B;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+
+            &:hover {
+              background: rgba(22, 97, 77, .18);
+              border-color: #34D399;
+            }
+
+            p {
+              margin: 8px 0 0;
+              color: #CBD5E1;
+              font-size: 13px;
+
+              &.sub {
+                margin-top: 4px;
+                color: #94A3B8;
+                font-size: 11px;
+              }
+            }
+          }
+        }
+
+        .ct-loading {
+          width: min(360px, calc(100% - 40px));
+          color: #CBD5E1;
+          text-align: center;
+
+          .is-loading {
+            margin-bottom: 16px;
+            color: #34D399;
+            animation: rotating 1.5s linear infinite;
+          }
+
+          p {
+            margin: 0 0 12px;
+            font-size: 14px;
+          }
+
+          .sub {
+            margin-top: 8px;
+            color: #94A3B8;
+            font-size: 12px;
           }
         }
 
         .ct-image {
           max-width: 100%;
           max-height: 100%;
-          transition: transform 0.2s ease;
+          transition: transform .2s ease;
         }
 
         .ai-overlay {
@@ -568,71 +940,102 @@ onMounted(() => {
 
           .detection-box {
             position: absolute;
-            border: 2px solid #F59E0B;
-            background: rgba(245, 158, 11, 0.15);
-            border-radius: 4px;
-            pointer-events: auto;
-            cursor: pointer;
             display: flex;
-            flex-direction: column;
             align-items: flex-start;
+            flex-direction: column;
             padding: 2px 4px;
+            background: rgba(245, 158, 11, .15);
+            border: 2px solid #F59E0B;
+            border-radius: 4px;
+            cursor: pointer;
+            pointer-events: auto;
 
-            .det-label {
-              background: #F59E0B;
+            .det-label,
+            .det-conf {
               color: #FFFFFF;
               font-size: 10px;
-              padding: 1px 4px;
               border-radius: 2px;
+            }
+
+            .det-label {
+              padding: 1px 4px;
+              background: #F59E0B;
             }
 
             .det-conf {
-              background: rgba(0,0,0,0.7);
-              color: #FFFFFF;
-              font-size: 10px;
-              padding: 1px 4px;
-              border-radius: 2px;
               margin-top: 2px;
+              padding: 1px 4px;
+              background: rgba(0, 0, 0, .72);
             }
 
             &:hover {
+              background: rgba(239, 68, 68, .2);
               border-color: #EF4444;
-              background: rgba(239, 68, 68, 0.2);
             }
           }
         }
       }
 
       .series-nav {
-        display: flex;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto minmax(110px, auto);
         align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
+        gap: 10px;
+        padding: 12px 14px;
         background: #F8FAFC;
-        border-top: 1px solid #F1F5F9;
+        border-top: 1px solid #E2E8F0;
 
-        .slice-info {
-          font-size: 13px;
-          color: #475569;
-          white-space: nowrap;
+        .nav-center {
+          display: flex;
+          min-width: 0;
+          flex-direction: column;
+          gap: 2px;
+
+          .nav-slice-label {
+            color: #475569;
+            font-size: 12px;
+
+            strong {
+              color: #0F172A;
+              font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            }
+          }
+
+          .nav-z-info {
+            color: #94A3B8;
+            font-size: 10px;
+          }
+
+          .nav-slider {
+            margin-top: 2px;
+          }
         }
 
-        .slice-slider {
-          flex: 1;
+        .nav-filename {
+          overflow: hidden;
+          max-width: 180px;
+          color: #64748B;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 11px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       }
     }
 
-    /* AI面板 */
     .ai-panel {
+      flex: 0 0 auto;
+      margin-bottom: 0;
+
       .ai-empty {
-        text-align: center;
-        padding: 40px 20px;
+        min-height: 150px;
+        padding: 34px 18px;
         color: #64748B;
+        text-align: center;
 
         .el-icon {
-          color: #94A3B8;
           margin-bottom: 12px;
+          color: #94A3B8;
         }
 
         p {
@@ -640,8 +1043,8 @@ onMounted(() => {
           font-size: 14px;
 
           &.sub {
-            font-size: 12px;
             color: #94A3B8;
+            font-size: 12px;
           }
         }
       }
@@ -650,13 +1053,17 @@ onMounted(() => {
         .result-section {
           margin-bottom: 16px;
 
+          &:last-child {
+            margin-bottom: 0;
+          }
+
           h4 {
-            font-size: 13px;
-            font-weight: 600;
-            color: #1E293B;
             margin: 0 0 10px;
             padding-left: 8px;
-            border-left: 3px solid #1A6B54;
+            color: #0F172A;
+            font-size: 13px;
+            font-weight: 700;
+            border-left: 3px solid #16614D;
           }
 
           .findings-list {
@@ -668,38 +1075,35 @@ onMounted(() => {
               display: flex;
               align-items: flex-start;
               gap: 10px;
-              padding: 10px 12px;
+              padding: 10px;
               background: #F8FAFC;
-              border-radius: 8px;
+              border: 1px solid #E2E8F0;
+              border-radius: 6px;
               cursor: pointer;
-              border: 2px solid transparent;
-              transition: all 0.2s;
+              transition: border-color .2s, background .2s;
 
-              &.active {
-                border-color: #1A6B54;
-                background: #E8F3EF;
-              }
-
+              &.active,
               &:hover {
-                background: #E8F3EF;
+                background: #EDF8F4;
+                border-color: #66BFA4;
               }
 
               .finding-icon {
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
 
                 &.high {
-                  background: #FEE2E2;
                   color: #DC2626;
+                  background: #FEE2E2;
                 }
 
                 &.medium {
-                  background: #FEF3C7;
                   color: #D97706;
+                  background: #FEF3C7;
                 }
 
                 .el-icon {
@@ -709,39 +1113,40 @@ onMounted(() => {
 
               .finding-content {
                 flex: 1;
+                min-width: 0;
 
                 .finding-title {
-                  font-size: 13px;
-                  font-weight: 600;
-                  color: #1E293B;
                   margin-bottom: 2px;
+                  color: #0F172A;
+                  font-size: 13px;
+                  font-weight: 700;
                 }
 
                 .finding-desc {
-                  font-size: 12px;
                   color: #64748B;
-                  line-height: 1.4;
+                  font-size: 12px;
+                  line-height: 1.45;
                 }
               }
 
               .finding-conf {
+                color: #16614D;
                 font-size: 12px;
-                font-weight: 600;
-                color: #1A6B54;
+                font-weight: 700;
               }
             }
           }
 
           .suggestion-box {
-            background: #E8F3EF;
-            border-left: 4px solid #1A6B54;
             padding: 12px;
-            border-radius: 0 8px 8px 0;
+            background: #EDF8F4;
+            border-left: 4px solid #16614D;
+            border-radius: 0 6px 6px 0;
 
             p {
               margin: 0;
-              font-size: 13px;
               color: #1E293B;
+              font-size: 13px;
               line-height: 1.6;
             }
           }
@@ -749,26 +1154,447 @@ onMounted(() => {
       }
     }
 
-    /* 诊断面板 */
     .diagnosis-panel {
+      flex: 1;
+      margin-bottom: 0;
+
+      .panel-body {
+        flex: 1;
+        overflow: auto;
+      }
+
+      :deep(.el-form-item) {
+        margin-bottom: 14px;
+      }
+
       :deep(.el-form-item__label) {
-        font-weight: 500;
-        color: #475569;
         padding-bottom: 4px;
+        color: #475569;
+        font-weight: 600;
+      }
+
+      :deep(.el-textarea__inner) {
+        resize: vertical;
       }
 
       :deep(.el-radio-group) {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 10px;
+      }
+
+      :deep(.el-radio) {
+        height: auto;
+        margin-right: 0;
+        line-height: 1.35;
+        white-space: normal;
       }
 
       :deep(.el-checkbox-group) {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 10px;
+      }
+
+      :deep(.el-checkbox) {
+        height: auto;
+        margin-right: 0;
+        line-height: 1.35;
+        white-space: normal;
       }
     }
   }
+
+  .annotation-section {
+    grid-row: 4;
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin-top: 0;
+    overflow: hidden;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+
+    .annotation-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #E8F3EF 0%, #F7FBF9 100%);
+      border-bottom: 1px solid #CFE5DC;
+
+      .annotation-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #145744;
+        font-size: 16px;
+        font-weight: 700;
+
+        .el-icon {
+          color: #16614D;
+        }
+      }
+
+      .annotation-stats {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .stat-badge {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 88px;
+          padding: 6px 10px;
+          background: rgba(255, 255, 255, .72);
+          border: 1px solid #CFE5DC;
+          border-radius: 6px;
+
+          .badge-num {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1;
+          }
+
+          .badge-txt {
+            color: #5B766E;
+            font-size: 11px;
+          }
+
+          &.hemorrhage {
+            color: #14804A;
+          }
+
+          &.artifact {
+            color: #C2410C;
+          }
+
+          &.metal {
+            color: #0F766E;
+          }
+
+          &.info {
+            color: #16614D;
+          }
+        }
+
+        .stat-hint {
+          color: #4F6F66;
+          font-size: 13px;
+        }
+      }
+    }
+
+    .annotation-grid {
+      flex: 1;
+      padding: 12px;
+
+      :deep(.el-col) {
+        display: flex;
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 12px;
+        flex: 0 0 100%;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+
+    .annotation-panel {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      min-height: 410px;
+      overflow: hidden;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+
+      .annotation-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 48px;
+        padding: 10px 12px;
+        background: #F8FAFC;
+        border-bottom: 1px solid #E2E8F0;
+
+        .panel-label-group {
+          display: flex;
+          align-items: center;
+          min-width: 0;
+          gap: 8px;
+          color: #0F172A;
+          font-size: 13px;
+          font-weight: 700;
+
+          .color-dot {
+            flex: 0 0 auto;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+          }
+        }
+
+        .annotation-nav {
+          display: flex;
+          align-items: center;
+          flex: 0 0 auto;
+          gap: 6px;
+
+          .nav-label {
+            min-width: 54px;
+            color: #64748B;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 11px;
+            text-align: center;
+            white-space: nowrap;
+          }
+
+          .nav-slider {
+            width: 92px;
+          }
+        }
+      }
+
+      .annotation-image-area {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        min-height: 320px;
+        background: #0A0F1A;
+
+        .annotation-image-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+
+          .annotation-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+          }
+
+          .image-overlay-info {
+            position: absolute;
+            right: 10px;
+            bottom: 8px;
+            padding: 3px 8px;
+            color: #38BDF8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 10px;
+            background: rgba(2, 6, 23, .78);
+            border: 1px solid rgba(56, 189, 248, .22);
+            border-radius: 999px;
+          }
+        }
+
+        .annotation-empty {
+          color: #64748B;
+          text-align: center;
+
+          .el-icon {
+            margin-bottom: 8px;
+            color: #475569;
+            opacity: .55;
+          }
+
+          p {
+            margin: 0;
+            color: #94A3B8;
+            font-size: 13px;
+          }
+        }
+      }
+
+      .annotation-legend {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        min-height: 38px;
+        padding: 8px 12px;
+        color: #64748B;
+        background: #F8FAFC;
+        border-top: 1px solid #E2E8F0;
+        font-size: 11px;
+
+        .legend-dot {
+          flex: 0 0 auto;
+          width: 9px;
+          height: 9px;
+          border-radius: 2px;
+        }
+
+        .legend-status {
+          margin-left: auto;
+          color: #64748B;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 10px;
+        }
+      }
+    }
+  }
+}
+
+@media (min-width: 1200px) {
+  .brain-ct-page {
+    .main-content {
+      .side-col {
+        position: sticky;
+        top: 12px;
+        max-height: calc(100vh - 24px);
+      }
+    }
+  }
+}
+
+@media (max-width: 1199px) {
+  .brain-ct-page {
+    display: block;
+
+    .page-header,
+    .patient-bar {
+      margin-bottom: 14px;
+    }
+
+    .main-content {
+      display: flex;
+
+      .viewer-col,
+      .side-col {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+      }
+
+      .side-col {
+        margin-top: 0;
+      }
+    }
+
+    .annotation-section {
+      margin-top: 14px;
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .brain-ct-page {
+    padding: 12px;
+
+    .page-header {
+      align-items: stretch;
+      flex-direction: column;
+
+      .header-left {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .header-title h1 {
+        white-space: normal;
+      }
+
+      .header-actions {
+        justify-content: flex-start;
+      }
+    }
+
+    .patient-bar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      .patient-item.wide {
+        grid-column: span 2;
+      }
+    }
+
+    .main-content {
+      .ct-panel {
+        .ct-image-container {
+          min-height: 360px;
+          aspect-ratio: 4 / 3;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .brain-ct-page {
+    .patient-bar {
+      grid-template-columns: 1fr;
+
+      .patient-item.wide {
+        grid-column: auto;
+      }
+    }
+
+    .main-content {
+      .ct-panel {
+        .series-nav {
+          grid-template-columns: auto minmax(0, 1fr) auto;
+
+          .nav-filename {
+            grid-column: 1 / -1;
+            max-width: 100%;
+          }
+        }
+      }
+
+      .diagnosis-panel {
+        :deep(.el-radio-group),
+        :deep(.el-checkbox-group) {
+          grid-template-columns: 1fr;
+        }
+      }
+    }
+
+    .annotation-section {
+      .annotation-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .annotation-panel {
+        .annotation-panel-header {
+          align-items: stretch;
+          flex-direction: column;
+
+          .annotation-nav {
+            width: 100%;
+
+            .nav-slider {
+              flex: 1;
+              width: auto;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes rotating {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

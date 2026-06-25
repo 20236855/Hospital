@@ -7,6 +7,11 @@ spring:
   application:
     # 应用名称
     name: his-exam
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 500MB
+      max-request-size: 520MB
   profiles:
     # 环境配置
     active: dev
