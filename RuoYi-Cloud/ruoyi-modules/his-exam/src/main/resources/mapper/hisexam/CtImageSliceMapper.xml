@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.hisexam.mapper.CtImageSliceMapper">
+
+    <resultMap type="CtImageSlice" id="CtImageSliceResult">
+        <result property="sliceId"        column="slice_id"        />
+        <result property="applyId"        column="apply_id"        />
+        <result property="checkType"      column="check_type"      />
+        <result property="patientId"      column="patient_id"      />
+        <result property="doctorId"       column="doctor_id"       />
+        <result property="sliceIndex"     column="slice_index"     />
+        <result property="sliceZ"         column="slice_z"         />
+        <result property="imagePath"      column="image_path"      />
+        <result property="rawImagePath"   column="raw_image_path"  />
+        <result property="huMin"          column="hu_min"          />
+        <result property="huMax"          column="hu_max"          />
+        <result property="huMean"         column="hu_mean"         />
+        <result property="sliceThickness" column="slice_thickness" />
+        <result property="pixelSpacingX"  column="pixel_spacing_x" />
+        <result property="pixelSpacingY"  column="pixel_spacing_y" />
+        <result property="segmentationData" column="segmentation_data" />
+        <result property="detectionResult"  column="detection_result"  />
+        <result property="fileName"       column="file_name"       />
+        <result property="remark"         column="remark"          />
+        <result property="createTime"     column="create_time"     />
+        <result property="updateTime"     column="update_time"     />
+    </resultMap>
+
+    <sql id="selectCtImageSliceVo">
+        select slice_id, apply_id, check_type, patient_id, doctor_id, slice_index, slice_z,
+               image_path, raw_image_path, hu_min, hu_max, hu_mean, slice_thickness,
+               pixel_spacing_x, pixel_spacing_y, segmentation_data, detection_result,
+               file_name, remark, create_time, update_time
+        from ct_image_slice
+    </sql>
+
+    <select id="selectCtImageSliceBySliceId" parameterType="Long" resultMap="CtImageSliceResult">
+        <include refid="selectCtImageSliceVo"/> where slice_id = #{sliceId}
+    </select>
+
+    <select id="selectCtImageSliceByApplyId" parameterType="Long" resultMap="CtImageSliceResult">
+        <include refid="selectCtImageSliceVo"/> where apply_id = #{applyId} order by slice_index asc
+    </select>
+
+    <select id="selectCtImageSliceList" parameterType="CtImageSlice" resultMap="CtImageSliceResult">
+        <include refid="selectCtImageSliceVo"/>
+        <where>
+            <if test="applyId != null"> and apply_id = #{applyId}</if>
+            <if test="checkType != null and checkType != ''"> and check_type = #{checkType}</if>
+            <if test="patientId != null"> and patient_id = #{patientId}</if>
+            <if test="doctorId != null"> and doctor_id = #{doctorId}</if>
+        </where>
+        order by slice_index asc
+    </select>
+
+    <insert id="insertCtImageSlice" parameterType="CtImageSlice" useGeneratedKeys="true" keyProperty="sliceId">
+        insert into ct_image_slice
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="applyId != null">apply_id,</if>
+            <if test="checkType != null and checkType != ''">check_type,</if>
+            <if test="patientId != null">patient_id,</if>
+            <if test="doctorId != null">doctor_id,</if>
+            <if test="sliceIndex != null">slice_index,</if>
+            <if test="sliceZ != null">slice_z,</if>
+            <if test="imagePath != null">image_path,</if>
+            <if test="rawImagePath != null">raw_image_path,</if>
+            <if test="huMin != null">hu_min,</if>
+            <if test="huMax != null">hu_max,</if>
+            <if test="huMean != null">hu_mean,</if>
+            <if test="sliceThickness != null">slice_thickness,</if>
+            <if test="pixelSpacingX != null">pixel_spacing_x,</if>
+            <if test="pixelSpacingY != null">pixel_spacing_y,</if>
+            <if test="segmentationData != null">segmentation_data,</if>
+            <if test="detectionResult != null">detection_result,</if>
+            <if test="fileName != null">file_name,</if>
+            <if test="remark != null">remark,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="applyId != null">#{applyId},</if>
+            <if test="checkType != null and checkType != ''">#{checkType},</if>
+            <if test="patientId != null">#{patientId},</if>
+            <if test="doctorId != null">#{doctorId},</if>
+            <if test="sliceIndex != null">#{sliceIndex},</if>
+            <if test="sliceZ != null">#{sliceZ},</if>
+            <if test="imagePath != null">#{imagePath},</if>
+            <if test="rawImagePath != null">#{rawImagePath},</if>
+            <if test="huMin != null">#{huMin},</if>
+            <if test="huMax != null">#{huMax},</if>
+            <if test="huMean != null">#{huMean},</if>
+            <if test="sliceThickness != null">#{sliceThickness},</if>
+            <if test="pixelSpacingX != null">#{pixelSpacingX},</if>
+            <if test="pixelSpacingY != null">#{pixelSpacingY},</if>
+            <if test="segmentationData != null">#{segmentationData},</if>
+            <if test="detectionResult != null">#{detectionResult},</if>
+            <if test="fileName != null">#{fileName},</if>
+            <if test="remark != null">#{remark},</if>
+        </trim>
+    </insert>
+
+    <insert id="batchInsertCtImageSlice" parameterType="list">
+        insert into ct_image_slice (apply_id, check_type, patient_id, doctor_id, slice_index, slice_z,
+            image_path, raw_image_path, hu_min, hu_max, hu_mean, slice_thickness,
+            pixel_spacing_x, pixel_spacing_y, segmentation_data, detection_result, file_name, remark)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.applyId}, #{item.checkType}, #{item.patientId}, #{item.doctorId},
+             #{item.sliceIndex}, #{item.sliceZ}, #{item.imagePath}, #{item.rawImagePath},
+             #{item.huMin}, #{item.huMax}, #{item.huMean}, #{item.sliceThickness},
+             #{item.pixelSpacingX}, #{item.pixelSpacingY}, #{item.segmentationData},
+             #{item.detectionResult}, #{item.fileName}, #{item.remark})
+        </foreach>
+    </insert>
+
+    <update id="updateCtImageSlice" parameterType="CtImageSlice">
+        update ct_image_slice
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="segmentationData != null">segmentation_data = #{segmentationData},</if>
+            <if test="detectionResult != null">detection_result = #{detectionResult},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where slice_id = #{sliceId}
+    </update>
+
+    <delete id="deleteCtImageSliceBySliceId" parameterType="Long">
+        delete from ct_image_slice where slice_id = #{sliceId}
+    </delete>
+
+    <delete id="deleteCtImageSliceByApplyId" parameterType="Long">
+        delete from ct_image_slice where apply_id = #{applyId}
+    </delete>
+
+    <delete id="deleteCtImageSliceBySliceIds" parameterType="String">
+        delete from ct_image_slice where slice_id in
+        <foreach item="sliceId" collection="array" open="(" separator="," close=")">
+            #{sliceId}
+        </foreach>
+    </delete>
+</mapper>

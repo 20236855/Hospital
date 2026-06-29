@@ -138,12 +138,13 @@
         <h3 class="content-title">已创建的{{ currentCategory.name }}申请单</h3>
       </div>
       <el-table v-loading="loading" :data="tableData" stripe style="width: 100%">
-        <el-table-column label="申请ID" align="center" prop="applyId" width="100" />
-        <el-table-column label="挂号ID" align="center" prop="registerId" width="100" />
-        <el-table-column label="患者ID" align="center" prop="patientId" width="100" />
-        <el-table-column label="开单医生ID" align="center" prop="doctorId" width="120" />
-        <el-table-column label="目的/要求" align="center" prop="applyInfo" min-width="150" show-overflow-tooltip />
-        <el-table-column label="检查/检验/处置部位" align="center" prop="applyPosition" min-width="160" show-overflow-tooltip />
+        <el-table-column label="申请ID" align="center" prop="applyId" width="80" />
+        <el-table-column label="挂号编号" align="center" prop="registerNo" width="110" show-overflow-tooltip />
+        <el-table-column label="患者" align="center" prop="patientName" min-width="80" show-overflow-tooltip />
+        <el-table-column label="开单医生" align="center" prop="doctorName" min-width="90" show-overflow-tooltip />
+        <el-table-column label="医技项目" align="center" prop="techName" min-width="120" show-overflow-tooltip />
+        <el-table-column label="部位" align="center" prop="applyPosition" min-width="140" show-overflow-tooltip />
+        <el-table-column label="目的" align="center" prop="applyInfo" min-width="140" show-overflow-tooltip />
         <el-table-column label="开立时间" align="center" prop="applyTime" width="120">
           <template #default="scope">
             <span>{{ parseTime(scope.row.applyTime, '{y}-{m}-{d}') }}</span>
@@ -181,37 +182,75 @@
     </div>
 
     <!-- 新建/编辑申请单对话框 -->
-    <el-dialog :title="dialogTitle" v-model="dialogOpen" width="520px" append-to-body destroy-on-close>
+    <el-dialog :title="dialogTitle" v-model="dialogOpen" width="560px" append-to-body destroy-on-close>
       <el-form ref="applyFormRef" :model="applyForm" :rules="formRules" label-width="100px">
         <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="挂号ID" prop="registerId">
-              <el-input v-model="applyForm.registerId" placeholder="请输入挂号ID" />
+          <!-- 挂号单下拉框 → 选择后自动填充以下只读字段 -->
+          <el-col :span="24">
+            <el-form-item label="挂号单" prop="registerId">
+              <el-select
+                v-model="applyForm.registerId"
+                filterable
+                remote
+                :remote-method="searchRegistersForDialog"
+                :loading="regLoading"
+                placeholder="搜索挂号编号 / 患者姓名"
+                clearable
+                style="width:100%"
+                @change="onDialogRegisterChange"
+              >
+                <el-option
+                  v-for="r in registerOptions"
+                  :key="r.registerId"
+                  :label="r.registerNo + ' - ' + r.patientName"
+                  :value="r.registerId"
+                >
+                  <span style="font-weight:600">{{ r.registerNo }}</span>
+                  <span style="margin-left:8px;color:#64748B">{{ r.patientName }}</span>
+                </el-option>
+              </el-select>
             </el-form-item>
           </el-col>
+          <!-- 接诊ID 自动填充 -->
           <el-col :span="12">
-            <el-form-item label="接诊ID" prop="encounterId">
-              <el-input v-model="applyForm.encounterId" placeholder="请输入接诊ID" />
+            <el-form-item label="接诊ID">
+              <el-input v-model="applyForm.encounterId" placeholder="选择挂号后自动填充" disabled />
             </el-form-item>
           </el-col>
+          <!-- 患者ID 自动填充 -->
           <el-col :span="12">
-            <el-form-item label="患者ID" prop="patientId">
-              <el-input v-model="applyForm.patientId" placeholder="请输入患者ID" />
+            <el-form-item label="患者ID">
+              <el-input v-model="applyForm.patientId" placeholder="选择挂号后自动填充" disabled />
             </el-form-item>
           </el-col>
+          <!-- 开单医生（自动填充 + 只读显示姓名） -->
           <el-col :span="12">
-            <el-form-item label="开单医生ID" prop="doctorId">
-              <el-input v-model="applyForm.doctorId" placeholder="请输入开单医生ID" />
+            <el-form-item label="开单医生">
+              <el-input :model-value="applyForm._doctorInfo || '选择挂号后自动填充'" disabled />
             </el-form-item>
           </el-col>
+          <!-- 开单科室（自动填充 + 只读显示名称） -->
           <el-col :span="12">
-            <el-form-item label="开单科室ID" prop="deptId">
-              <el-input v-model="applyForm.deptId" placeholder="请输入开单科室ID" />
+            <el-form-item label="开单科室">
+              <el-input :model-value="applyForm._deptInfo || '选择挂号后自动填充'" disabled />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="医技项目ID" prop="techId">
-              <el-input v-model="applyForm.techId" placeholder="请输入医技项目ID" />
+          <!-- 医技项目下拉框 -->
+          <el-col :span="24">
+            <el-form-item label="医技项目" prop="techId">
+              <el-select
+                v-model="applyForm.techId"
+                placeholder="选择医技项目"
+                style="width:100%"
+                filterable
+              >
+                <el-option
+                  v-for="t in dialogTechList"
+                  :key="t.id"
+                  :label="t.techName"
+                  :value="t.id"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -239,6 +278,9 @@ import { ref, reactive, computed, getCurrentInstance, onMounted, onUnmounted } f
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { listApply, getApply, addApply, updateApply } from "@/api/hisexam/apply"
+import { listRegister, getRegister } from '@/api/register/register'
+import { listTechnology } from '@/api/hisexam/technology'
+import { listEncounter } from '@/api/emr/encounter'
 import useUserStore from '@/store/modules/user'
 import { ArrowLeft, ArrowRight, Document, Clock, CircleCheckFilled, Timer, Plus, View, Edit } from '@element-plus/icons-vue'
 
@@ -403,7 +445,6 @@ const applyForm = reactive({
 
 const formRules = {
   registerId: [{ required: true, message: '挂号ID不能为空', trigger: 'blur' }],
-  encounterId: [{ required: true, message: '接诊ID不能为空', trigger: 'blur' }],
   patientId: [{ required: true, message: '患者ID不能为空', trigger: 'blur' }],
   doctorId: [{ required: true, message: '开单医生ID不能为空', trigger: 'blur' }],
   deptId: [{ required: true, message: '开单科室ID不能为空', trigger: 'blur' }],
@@ -412,7 +453,60 @@ const formRules = {
 
 function resetApplyForm() {
   Object.keys(applyForm).forEach(k => applyForm[k] = null)
+  applyForm._doctorInfo = ''
+  applyForm._deptInfo = ''
   proxy.resetForm && proxy.resetForm("applyFormRef")
+}
+
+// ============ 对话框：挂号下拉框 ============
+const registerOptions = ref([])
+const regLoading = ref(false)
+
+const searchRegistersForDialog = (keyword) => {
+  regLoading.value = true
+  listRegister({ registerNo: keyword || undefined, pageNum: 1, pageSize: 30 })
+    .then(res => { registerOptions.value = res.rows || res.data?.rows || [] })
+    .finally(() => { regLoading.value = false })
+}
+
+const onDialogRegisterChange = async (registerId) => {
+  if (!registerId) return
+  try {
+    const res = await getRegister(registerId)
+    const data = res.data || res
+    if (data) {
+      applyForm.patientId = data.patientId || ''
+      applyForm.doctorId = data.doctorId || ''
+      applyForm.deptId = data.deptId || ''
+      // 执行人员默认使用挂号的开单医生
+      applyForm.operatorId = data.doctorId || ''
+      // 录入人员默认使用挂号的开单医生
+      applyForm.inputerId = data.doctorId || ''
+      // 执行时间默认当前时间
+      applyForm.examTime = new Date().toISOString()
+      // 尝试通过挂号查找接诊ID
+      applyForm.encounterId = data.encounterId || ''
+      if (!applyForm.encounterId) {
+        try {
+          const encRes = await listEncounter({ registerId, pageNum: 1, pageSize: 1 })
+          const encList = encRes.rows || encRes.data?.rows || []
+          if (encList.length > 0) applyForm.encounterId = encList[0].encounterId
+        } catch (e) {}
+      }
+      applyForm._doctorInfo = (data.doctorName || '') + ' (ID:' + (data.doctorId || '') + ')'
+      applyForm._deptInfo = (data.deptName || '') + ' (ID:' + (data.deptId || '') + ')'
+    }
+  } catch (e) { console.error('获取挂号详情失败:', e) }
+}
+
+// ============ 对话框：医技项目下拉框 ============
+const dialogTechList = ref([])
+
+const loadDialogTechList = () => {
+  // 根据当前分类加载对应类型的医技项目
+  const techType = applyType.value // CHECK / INSPEC / DISPOSAL
+  listTechnology({ techType, status: '0', pageNum: 1, pageSize: 100 })
+    .then(res => { dialogTechList.value = res.rows || res.data?.rows || [] })
 }
 
 function handleCreate() {
@@ -420,13 +514,21 @@ function handleCreate() {
   resetApplyForm()
   applyForm.applyType = applyType.value
   dialogTitle.value = `新建${currentCategory.value?.name}申请单`
+  loadDialogTechList()
   dialogOpen.value = true
 }
 
 function createApplyForItem(item) {
   // 仅 role_id=7(roleKey='lab') 的检查检验医生可跳转检查页面
   if (isExamDoctor.value && item.route) {
-    router.push({ path: item.route, query: { applyType: applyType.value } })
+    router.push({
+      path: item.route,
+      query: {
+        applyType: applyType.value,
+        techName: item.name,         // 医技项目名称，目标页自动匹配下拉框
+        itemName: item.name
+      }
+    })
     return
   }
   // 其他角色弹出对话框创建申请单
@@ -436,21 +538,31 @@ function createApplyForItem(item) {
   applyForm.applyPosition = item.name
   applyForm.applyInfo = item.description
   dialogTitle.value = `申请：${item.name}`
+  loadDialogTechList()  // 加载对应类型的医技项目
+  // 自动匹配医技项目名称
+  setTimeout(() => {
+    const matched = dialogTechList.value.find(t => item.name.includes(t.techName) || t.techName.includes(item.name))
+    if (matched) applyForm.techId = matched.id
+  }, 300)
   dialogOpen.value = true
 }
 
 function handleView(row) {
   getApply(row.applyId).then(res => {
+    const d = res.data
     proxy.$modal.alert(
       `<div style="line-height:2">
-        <p><b>申请ID：</b>${res.data.applyId}</p>
-        <p><b>类型：</b>${res.data.applyType}</p>
-        <p><b>患者ID：</b>${res.data.patientId}</p>
-        <p><b>医生ID：</b>${res.data.doctorId}</p>
-        <p><b>部位：</b>${res.data.applyPosition || '-'}</p>
-        <p><b>目的：</b>${res.data.applyInfo || '-'}</p>
-        <p><b>状态：</b>${res.data.applyStatus || '-'}</p>
-        <p><b>结果：</b>${res.data.examResult || '-'}</p>
+        <p><b>申请ID：</b>${d.applyId}</p>
+        <p><b>类型：</b>${d.applyType}</p>
+        <p><b>挂号编号：</b>${d.registerNo || d.registerId || '-'}</p>
+        <p><b>患者：</b>${d.patientName || d.patientId || '-'}</p>
+        <p><b>开单医生：</b>${d.doctorName || d.doctorId || '-'}</p>
+        <p><b>开单科室：</b>${d.deptName || d.deptId || '-'}</p>
+        <p><b>医技项目：</b>${d.techName || d.techId || '-'}</p>
+        <p><b>部位：</b>${d.applyPosition || '-'}</p>
+        <p><b>目的：</b>${d.applyInfo || '-'}</p>
+        <p><b>状态：</b>${d.applyStatus || '-'}</p>
+        <p><b>结果：</b>${d.examResult || '-'}</p>
       </div>`,
       '申请单详情',
       { dangerouslyUseHTMLString: true }

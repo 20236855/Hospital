@@ -275,12 +275,17 @@ public class ExamApply extends BaseEntity
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("applyId", getApplyId())
             .append("registerId", getRegisterId())
+            .append("registerNo", getRegisterNo())
             .append("encounterId", getEncounterId())
             .append("patientId", getPatientId())
+            .append("patientName", getPatientName())
             .append("doctorId", getDoctorId())
+            .append("doctorName", getDoctorName())
             .append("deptId", getDeptId())
-            .append("applyType", getApplyType())
+            .append("deptName", getDeptName())
             .append("techId", getTechId())
+            .append("techName", getTechName())
+            .append("applyType", getApplyType())
             .append("applyInfo", getApplyInfo())
             .append("applyPosition", getApplyPosition())
             .append("operatorId", getOperatorId())
@@ -296,4 +301,22 @@ public class ExamApply extends BaseEntity
             .append("updateTime", getUpdateTime())
             .toString();
     }
+
+    // ============ 展示用扩展字段（不入库） ============
+    private String registerNo;
+    private String patientName;
+    private String doctorName;
+    private String deptName;
+    private String techName;
+
+    public String getRegisterNo() { return registerNo; }
+    public void setRegisterNo(String registerNo) { this.registerNo = registerNo; }
+    public String getPatientName() { return patientName; }
+    public void setPatientName(String patientName) { this.patientName = patientName; }
+    public String getDoctorName() { return doctorName; }
+    public void setDoctorName(String doctorName) { this.doctorName = doctorName; }
+    public String getDeptName() { return deptName; }
+    public void setDeptName(String deptName) { this.deptName = deptName; }
+    public String getTechName() { return techName; }
+    public void setTechName(String techName) { this.techName = techName; }
 }

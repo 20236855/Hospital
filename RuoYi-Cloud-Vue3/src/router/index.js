@@ -126,6 +126,19 @@ export const constantRoutes = [
       }
     ]
   },
+  {
+    path: '/hisexam/check/lung-ct',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/hisexam/check/lung-ct/index'),
+        name: 'LungCTCheck',
+        meta: { title: '肺部病变AI智能分析' }
+      }
+    ]
+  },
 ]
 
 // 动态路由，基于用户权限动态去加载
