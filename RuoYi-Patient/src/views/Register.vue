@@ -40,7 +40,7 @@
             <span v-if="step > 3" class="step-check">✓</span>
             <span v-else class="step-num">3</span>
           </div>
-          <span class="step-label">选择排班</span>
+          <span class="step-label">选择时间</span>
         </div>
         <div class="step-line"></div>
         <div class="step-item" :class="{ active: step >= 4 }">
@@ -84,36 +84,59 @@
       <div v-if="step === 2" class="step-content slide-up-animation" style="animation-delay: 0.1s">
         <div class="form-card">
           <div class="card-header">
-            <div class="header-icon">👨‍⚕️</div>
+            <div class="header-icon">📅</div>
             <div class="header-text">
-              <h3>选择就诊医生</h3>
-              <p>{{ form.department }}的医生列表</p>
+              <h3>选择就诊号源</h3>
+              <p>{{ form.department }}未来一周可预约医生</p>
             </div>
           </div>
-          <div class="doctor-list">
-            <div 
-              v-for="(doctor, index) in doctorList" 
-              :key="doctor.doctorId || doctor.id"
-              class="doctor-card"
-              :class="{ selected: form.doctorId === (doctor.doctorId || doctor.id) }"
-              @click="selectDoctor(doctor)"
+          <div class="schedule-week">
+            <section
+              v-for="day in scheduleDateGroups"
+              :key="day.date"
+              class="schedule-day"
             >
-              <div class="doctor-avatar float-animation" :style="{ animationDelay: `${index * 0.1}s` }">
-                <span class="avatar-text">{{ (doctor.doctorName || doctor.name)?.charAt(0) || '医' }}</span>
-              </div>
-              <div class="doctor-info">
-                <div class="doctor-name">
-                  {{ doctor.doctorName || doctor.name || '医生' }}
-                  <span class="doctor-title">{{ doctor.title || '主治医师' }}</span>
+              <div class="schedule-day-header">
+                <div>
+                  <strong>{{ day.monthDay }}</strong>
+                  <span>{{ day.weekDay }}</span>
                 </div>
-                <div class="doctor-desc">
-                  <span class="specialty">{{ doctor.specialty || '常见病诊疗' }}</span>
+                <em>{{ day.schedules.length ? `${day.schedules.length}位医生` : '暂无医生' }}</em>
+              </div>
+              <div v-if="day.schedules.length" class="schedule-list">
+                <div
+                  v-for="schedule in day.schedules"
+                  :key="`${day.date}-${schedule.doctorId}`"
+                  class="schedule-card"
+                  :class="{
+                    selected: form.doctorId === schedule.doctorId && form.selectedDate === day.date,
+                    disabled: !isScheduleSelectable(schedule),
+                    full: isScheduleFull(schedule),
+                    past: isSchedulePast(schedule)
+                  }"
+                  @click="selectDoctorSchedule(day.date, schedule)"
+                >
+                  <div class="schedule-main">
+                    <div class="schedule-doctor">
+                      <span class="doctor-avatar-mini">{{ getDoctorInitial(schedule) }}</span>
+                      <div>
+                        <strong>{{ schedule.doctorName || '医生' }}</strong>
+                        <span>{{ schedule.levelName || '普通号' }}</span>
+                      </div>
+                    </div>
+                    <div class="schedule-time">{{ schedule.startTime }}-{{ schedule.endTime }} 可约</div>
+                  </div>
+                  <div class="schedule-meta">
+                    <strong>{{ formatMoney(schedule.fee) }}</strong>
+                    <span>{{ getScheduleAvailableText(schedule) }}</span>
+                  </div>
+                  <div v-if="form.doctorId === schedule.doctorId && form.selectedDate === day.date" class="select-mark">
+                    <div class="mark-circle">✓</div>
+                  </div>
                 </div>
               </div>
-              <div v-if="form.doctorId === (doctor.doctorId || doctor.id)" class="select-mark">
-                <div class="mark-circle">✓</div>
-              </div>
-            </div>
+              <div v-else class="empty-day">当天暂无可预约医生</div>
+            </section>
           </div>
         </div>
         <div class="btn-group">
@@ -121,7 +144,7 @@
             <van-icon name="arrow-left" />
             上一步
           </van-button>
-          <van-button class="next-btn" @click="nextStep" :disabled="!form.doctorId">
+          <van-button class="next-btn" @click="nextStep" :disabled="!form.doctorId || !form.selectedDate">
             下一步
             <van-icon name="arrow" />
           </van-button>
@@ -131,45 +154,40 @@
       <div v-if="step === 3" class="step-content slide-up-animation" style="animation-delay: 0.1s">
         <div class="form-card">
           <div class="card-header">
-            <div class="header-icon">📅</div>
+            <div class="header-icon">⏱</div>
             <div class="header-text">
-              <h3>选择排班时间</h3>
-              <p>{{ form.doctorName }}医生的可预约排班</p>
+              <h3>选择就诊时间</h3>
+              <p>{{ form.doctorName }} · {{ formatScheduleDate(form.selectedDate) }}</p>
             </div>
           </div>
-          <div class="schedule-list">
-            <div 
-              v-for="schedule in scheduleList" 
-              :key="schedule.scheduleId"
-              class="schedule-card"
-              :class="{ 
-                selected: form.scheduleId === schedule.scheduleId, 
-                disabled: !isScheduleSelectable(schedule),
-                full: isScheduleFull(schedule),
-                past: isSchedulePast(schedule)
+          <div class="slot-list">
+            <div
+              v-for="slot in slotList"
+              :key="slot.slotId"
+              class="slot-card"
+              :class="{
+                selected: form.slotId === slot.slotId,
+                disabled: !isScheduleSelectable(slot),
+                full: isScheduleFull(slot),
+                past: isSchedulePast(slot)
               }"
-              @click="selectSchedule(schedule)"
+              @click="selectTimeSlot(slot)"
             >
-              <div class="schedule-date">
-                {{ formatScheduleDate(schedule.scheduleDate) }}
+              <div>
+                <strong>{{ slot.startTime }}-{{ slot.endTime }}</strong>
+                <span>{{ slot.levelName || '普通号' }} · {{ getScheduleAvailableText(slot) }}</span>
               </div>
-              <div class="schedule-time">
-                {{ getTimeSlotText(schedule.timeSlot) }}
-              </div>
-              <div class="schedule-status">
-                <span v-if="isScheduleFull(schedule)" class="status-full">已满</span>
-                <span v-else-if="isSchedulePast(schedule)" class="status-past">已过期</span>
-                <span v-else class="status-available">{{ getScheduleAvailableText(schedule) }}</span>
-              </div>
+              <em>{{ formatMoney(slot.fee) }}</em>
             </div>
           </div>
+          <div v-if="!slotList.length" class="empty-day">该医生当天暂无可预约时间片</div>
         </div>
         <div class="btn-group">
           <van-button class="back-btn" @click="prevStep">
             <van-icon name="arrow-left" />
             上一步
           </van-button>
-          <van-button class="next-btn" @click="nextStep" :disabled="!form.scheduleId">
+          <van-button class="next-btn" @click="nextStep" :disabled="!form.slotId">
             下一步
             <van-icon name="arrow" />
           </van-button>
@@ -196,11 +214,11 @@
             </div>
             <div class="info-item">
               <span class="info-label">就诊日期</span>
-              <span class="info-value">{{ formatScheduleDate(selectedSchedule?.scheduleDate) }}</span>
+              <span class="info-value">{{ formatScheduleDate(selectedSlot?.scheduleDate || form.selectedDate) }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">就诊时段</span>
-              <span class="info-value">{{ getTimeSlotText(selectedSchedule?.timeSlot) }}</span>
+              <span class="info-value">{{ selectedSlot ? `${selectedSlot.startTime}-${selectedSlot.endTime}` : '-' }}</span>
             </div>
           </div>
         </div>
@@ -252,7 +270,7 @@
         </div>
         <div class="dialog-item">
           <span class="dialog-label">就诊时间：</span>
-          <span class="dialog-value">{{ formatScheduleDate(selectedSchedule?.scheduleDate) }} {{ getTimeSlotText(selectedSchedule?.timeSlot) }}</span>
+          <span class="dialog-value">{{ formatScheduleDate(selectedSlot?.scheduleDate || form.selectedDate) }} {{ selectedSlot ? `${selectedSlot.startTime}-${selectedSlot.endTime}` : '' }}</span>
         </div>
         <div class="dialog-item">
           <span class="dialog-label">挂号类型：</span>
@@ -278,7 +296,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showDialog } from 'vant'
-import { createRegister, getDoctorList, getDeptList, getScheduleList } from '@/api/register'
+import { createRegister, getDeptList, getOpenDoctorSlots, getOpenScheduleSlots } from '@/api/register'
 import { getPatientByUserId } from '@/api/patient'
 import { getInfo } from '@/api/user'
 import { payRegister } from '@/api/payment'
@@ -297,15 +315,17 @@ const form = ref({
     deptId: null,
     doctorId: null,
     doctorName: '',
-    scheduleId: null
+    selectedDate: '',
+    scheduleId: null,
+    slotId: null
 })
 
 const departmentList = ref([])
-const doctorList = ref([])
-const scheduleList = ref([])
+const doctorSlotList = ref([])
+const slotList = ref([])
 
-const selectedSchedule = computed(() => {
-    return scheduleList.value.find(s => s.scheduleId === form.value.scheduleId)
+const selectedSlot = computed(() => {
+    return slotList.value.find(s => s.slotId === form.value.slotId)
 })
 
 const getDeptEmoji = (dept) => {
@@ -325,7 +345,8 @@ const getDeptEmoji = (dept) => {
 
 const formatScheduleDate = (dateStr) => {
     if (!dateStr) return ''
-    const date = new Date(dateStr)
+    const date = parseBusinessDate(dateStr)
+    if (!date) return ''
     const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
     const month = date.getMonth() + 1
     const day = date.getDate()
@@ -343,6 +364,102 @@ const formatMoney = (amount) => {
   const value = Number(amount || 0)
   return `￥${value.toFixed(2)}`
 }
+
+const padDatePart = (value) => String(value).padStart(2, '0')
+const dateOnlyPattern = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/
+const datePartPattern = /(\d{4})[-/](\d{1,2})[-/](\d{1,2})/
+
+const formatDateParts = (year, month, day) => `${year}-${padDatePart(month)}-${padDatePart(day)}`
+
+const toDateKey = (value) => {
+  if (!value) return ''
+  if (value instanceof Date) {
+    return formatDateParts(value.getFullYear(), value.getMonth() + 1, value.getDate())
+  }
+  const raw = String(value).trim()
+  const dateOnlyMatch = raw.match(dateOnlyPattern)
+  if (dateOnlyMatch) {
+    return formatDateParts(dateOnlyMatch[1], dateOnlyMatch[2], dateOnlyMatch[3])
+  }
+  if (raw.includes('T') || /\d{1,2}:\d{2}/.test(raw)) {
+    const parsed = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T'))
+    if (!Number.isNaN(parsed.getTime())) {
+      return formatDateParts(parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate())
+    }
+  }
+  const datePartMatch = raw.match(datePartPattern)
+  if (datePartMatch) {
+    return formatDateParts(datePartMatch[1], datePartMatch[2], datePartMatch[3])
+  }
+  return ''
+}
+
+const getLocalDate = (dateKey) => {
+  return parseBusinessDate(dateKey)
+}
+
+const parseBusinessDate = (value) => {
+  const dateKey = toDateKey(value)
+  if (!dateKey) return null
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const getCurrentWeekDates = () => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today)
+    date.setDate(today.getDate() + index)
+    return date
+  })
+}
+
+const getDateRange = () => {
+  const dates = getCurrentWeekDates()
+  return {
+    beginDate: toDateKey(dates[0]),
+    endDate: toDateKey(dates[dates.length - 1])
+  }
+}
+
+const getTimeSlotOrder = (timeSlot) => {
+  if (!timeSlot) return 9
+  const orderMap = { morning: 1, afternoon: 2, evening: 3 }
+  return orderMap[timeSlot] || 9
+}
+
+const getDoctorInitial = (schedule) => {
+  return (schedule?.doctorName || '医').charAt(0)
+}
+
+const scheduleDateGroups = computed(() => {
+  const grouped = new Map()
+  doctorSlotList.value.forEach((schedule) => {
+    const dateKey = toDateKey(schedule.scheduleDate)
+    if (!grouped.has(dateKey)) grouped.set(dateKey, [])
+    grouped.get(dateKey).push(schedule)
+  })
+
+  return getCurrentWeekDates().map((date) => {
+    const dateKey = toDateKey(date)
+    const schedules = (grouped.get(dateKey) || []).sort((a, b) => {
+      const slotDiff = getTimeSlotOrder(a.timeSlot) - getTimeSlotOrder(b.timeSlot)
+      if (slotDiff !== 0) return slotDiff
+      const levelDiff = Number(b.levelId || 0) - Number(a.levelId || 0)
+      if (levelDiff !== 0) return levelDiff
+      return Number(a.doctorId || 0) - Number(b.doctorId || 0)
+    })
+
+    return {
+      date: dateKey,
+      monthDay: `${date.getMonth() + 1}月${date.getDate()}日`,
+      weekDay: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()],
+      schedules
+    }
+  })
+})
 
 const getScheduleReservedNumber = (schedule) => {
   const reserved = schedule?.reservedNumber ?? schedule?.reserved_number
@@ -375,14 +492,15 @@ const isScheduleFull = (schedule) => {
   const reserved = getScheduleReservedNumber(schedule)
   const max = getScheduleMaxNumber(schedule)
   const status = schedule.status
-  if (status === '1' || status === 1 || String(status).toLowerCase() === '已满' || String(status).toLowerCase() === 'full') return true
+  if (status != null && status !== '0' && status !== 0) return true
+  if (String(status).toLowerCase() === '已满' || String(status).toLowerCase() === 'full') return true
   return max > 0 && reserved >= max
 }
 
 const isSchedulePast = (schedule) => {
   if (!schedule?.scheduleDate) return true
-  const target = new Date(schedule.scheduleDate)
-  if (Number.isNaN(target.getTime())) return true
+  const target = parseBusinessDate(schedule.scheduleDate)
+  if (!target) return true
   
   const today = new Date()
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -399,17 +517,10 @@ const isSchedulePast = (schedule) => {
   }
   
   // 如果是今天，需要检查时间段
-  const currentHour = today.getHours()
-  const timeSlot = schedule?.timeSlot
-  
-  // 上午时段：08:00-12:00，如果当前时间超过12点，则上午已过去
-  if (timeSlot === 'morning' && currentHour >= 12) {
-    return true
-  }
-  
-  // 下午时段：14:00-17:30，如果当前时间超过17:30，则下午已过去
-  if (timeSlot === 'afternoon' && currentHour >= 18) {
-    return true
+  const nowMinutes = today.getHours() * 60 + today.getMinutes()
+  if (schedule?.startTime) {
+    const [hour, minute] = String(schedule.startTime).split(':').map(Number)
+    return nowMinutes >= hour * 60 + minute
   }
   
   return false
@@ -421,34 +532,10 @@ const getScheduleAvailableText = (schedule) => {
   const max = getScheduleMaxNumber(schedule)
   const reserved = getScheduleReservedNumber(schedule)
   const available = Number(schedule?.availableNumber ?? schedule?.available_number ?? Math.max(max - reserved, 0))
-  console.log('[Register] getScheduleAvailableText', {
-    scheduleId: schedule?.scheduleId ?? schedule?.schedule_id,
-    max,
-    reserved,
-    available,
-    status: schedule?.status
-  })
   if (max <= 0) {
-    return '已预约 0/0'
+    return '余号 0'
   }
-  return `已预约 ${reserved}/${max}`
-}
-
-const logScheduleDebug = (schedule) => {
-  const max = getScheduleMaxNumber(schedule)
-  const reserved = getScheduleReservedNumber(schedule)
-  const available = Number(schedule?.availableNumber ?? schedule?.available_number ?? Math.max(max - reserved, 0))
-  console.log('[Register] schedule debug', {
-    scheduleId: schedule?.scheduleId ?? schedule?.schedule_id,
-    scheduleDate: schedule?.scheduleDate ?? schedule?.schedule_date,
-    timeSlot: schedule?.timeSlot ?? schedule?.time_slot,
-    max,
-    reserved,
-    available,
-    status: schedule?.status,
-    raw: schedule
-  })
-  return schedule
+  return `余号 ${available} · 已约 ${reserved}/${max}`
 }
 
 const normalizeSchedule = (schedule) => {
@@ -460,8 +547,17 @@ const normalizeSchedule = (schedule) => {
     maxNumber: max,
     reservedNumber: reserved,
     availableNumber: available,
+    slotId: schedule.slotId ?? schedule.slot_id,
     scheduleId: schedule.scheduleId ?? schedule.schedule_id,
-    scheduleDate: schedule.scheduleDate ?? schedule.schedule_date,
+    doctorId: schedule.doctorId ?? schedule.doctor_id,
+    deptId: schedule.deptId ?? schedule.dept_id,
+    doctorName: schedule.doctorName ?? schedule.doctor_name,
+    levelId: schedule.levelId ?? schedule.level_id,
+    levelName: schedule.levelName ?? schedule.level_name,
+    fee: schedule.fee ?? schedule.registerFee ?? schedule.register_fee,
+    scheduleDate: toDateKey(schedule.scheduleDate ?? schedule.schedule_date),
+    startTime: schedule.startTime ?? schedule.start_time,
+    endTime: schedule.endTime ?? schedule.end_time,
     timeSlot: schedule.timeSlot ?? schedule.time_slot,
     status: schedule.status
   }
@@ -501,39 +597,54 @@ const loadDepartments = async () => {
     }
 }
 
-const loadDoctors = async (deptId) => {
+const loadDoctorSlots = async () => {
+    if (!form.value.deptId) {
+        doctorSlotList.value = []
+        return
+    }
     try {
-        const params = { pageNum: 1, pageSize: 50 }
-        if (deptId) {
-            params.deptId = deptId
-        }
-        const res = await getDoctorList(params)
-        doctorList.value = res.rows || []
+        const dateRange = getDateRange()
+        const res = await getOpenDoctorSlots({
+            pageNum: 1,
+            pageSize: 200,
+            deptId: form.value.deptId,
+            beginDate: dateRange.beginDate,
+            endDate: dateRange.endDate
+        })
+        const rows = res.rows || []
+        doctorSlotList.value = rows
+            .map(normalizeSchedule)
+            .filter(item => !isSchedulePast(item))
+            .sort((a, b) => {
+                const dateDiff = getLocalDate(a.scheduleDate) - getLocalDate(b.scheduleDate)
+                if (dateDiff !== 0) return dateDiff
+                return Number(b.levelId || 0) - Number(a.levelId || 0)
+            })
     } catch (error) {
-        console.error('加载医生失败', error)
-        doctorList.value = []
+        console.error('加载可预约医生失败', error)
+        doctorSlotList.value = []
     }
 }
 
-const loadSchedules = async () => {
-    if (!form.value.doctorId) {
-        console.log('[Register] loadSchedules skipped, no doctorId')
+const loadTimeSlots = async () => {
+    if (!form.value.doctorId || !form.value.selectedDate) {
+        slotList.value = []
         return
     }
-    console.log('[Register] loadSchedules start', { doctorId: form.value.doctorId })
     try {
-        const res = await getScheduleList({ doctorId: form.value.doctorId })
-        const rows = res.rows || []
-        console.log('[Register] loadSchedules raw rows', rows)
-        scheduleList.value = rows
+        const res = await getOpenScheduleSlots({
+            pageNum: 1,
+            pageSize: 100,
+            doctorId: form.value.doctorId,
+            scheduleDate: form.value.selectedDate
+        })
+        slotList.value = (res.rows || [])
             .map(normalizeSchedule)
-            .map(logScheduleDebug)
             .filter(item => !isSchedulePast(item))
-            .sort((a, b) => new Date(a.scheduleDate) - new Date(b.scheduleDate))
-        console.log('[Register] loadSchedules final scheduleList', scheduleList.value)
+            .sort((a, b) => String(a.startTime || '').localeCompare(String(b.startTime || '')))
     } catch (error) {
-        console.error('加载排班失败', error)
-        scheduleList.value = []
+        console.error('加载时间片失败', error)
+        slotList.value = []
     }
 }
 
@@ -542,18 +653,14 @@ const selectDepartment = async (dept) => {
     form.value.deptId = dept.deptId
     form.value.doctorId = null
     form.value.doctorName = ''
+    form.value.selectedDate = ''
     form.value.scheduleId = null
-    await loadDoctors(dept.deptId)
+    form.value.slotId = null
+    slotList.value = []
+    await loadDoctorSlots()
 }
 
-const selectDoctor = (doctor) => {
-    form.value.doctorId = doctor.doctorId || doctor.id
-    form.value.doctorName = doctor.doctorName || doctor.name
-    form.value.scheduleId = null
-    console.log('[Register] selectDoctor', { doctorId: form.value.doctorId, doctorName: form.value.doctorName })
-}
-
-const selectSchedule = (schedule) => {
+const selectDoctorSchedule = (date, schedule) => {
     if (!isScheduleSelectable(schedule)) {
       if (isSchedulePast(schedule)) {
         showToast('只能选择今天及以后的排班时间')
@@ -562,22 +669,47 @@ const selectSchedule = (schedule) => {
       showToast('该排班已约满或已关闭，请选择其他时间')
       return
     }
-    form.value.scheduleId = schedule.scheduleId
+    form.value.doctorId = schedule.doctorId
+    form.value.doctorName = schedule.doctorName
+    form.value.selectedDate = date
+    form.value.scheduleId = null
+    form.value.slotId = null
+    slotList.value = []
+}
+
+const selectTimeSlot = (slot) => {
+    if (!isScheduleSelectable(slot)) {
+      showToast('该时间片已约满或已关闭，请选择其他时间')
+      return
+    }
+    form.value.scheduleId = slot.scheduleId
+    form.value.slotId = slot.slotId
 }
 
 const nextStep = async () => {
-    console.log('[Register] nextStep', { step: step.value, department: form.value.department, doctorId: form.value.doctorId, scheduleId: form.value.scheduleId })
-    if (step.value === 3 && !form.value.scheduleId) {
+    if (step.value === 1) {
+        if (!form.value.deptId) {
+            showToast('请选择就诊科室')
+            return
+        }
+        await loadDoctorSlots()
+        step.value = 2
+        return
+    }
+    if (step.value === 2) {
+        if (!form.value.doctorId || !form.value.selectedDate) {
+            showToast('请选择就诊医生')
+            return
+        }
+        await loadTimeSlots()
+        step.value = 3
+        return
+    }
+    if (step.value === 3 && !form.value.slotId) {
         showToast('请选择排班时间')
         return
     }
     step.value++
-    if (step.value === 2 && !doctorList.value.length && form.value.deptId) {
-        await loadDoctors(form.value.deptId)
-    }
-    if (step.value === 3) {
-        await loadSchedules()
-    }
 }
 
 const prevStep = () => {
@@ -594,7 +726,8 @@ const submitRegister = async () => {
             doctorId: form.value.doctorId,
             deptId: form.value.deptId,
             scheduleId: form.value.scheduleId,
-            registerTime: selectedSchedule.value?.scheduleDate,
+            slotId: form.value.slotId,
+            registerTime: toDateKey(form.value.selectedDate || selectedSlot.value?.scheduleDate),
             registerType: 'online'
         }
         console.log('提交的预约数据:', registerData)
@@ -1100,6 +1233,45 @@ onMounted(() => {
   font-weight: 700;
 }
 
+.schedule-week {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.schedule-day {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.schedule-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+
+  div {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  strong {
+    font-size: 16px;
+    font-weight: 700;
+    color: #4f7380;
+  }
+
+  span,
+  em {
+    font-size: 13px;
+    color: #8e9fa8;
+    font-style: normal;
+  }
+}
+
 .schedule-list {
   display: flex;
   flex-direction: column;
@@ -1108,8 +1280,8 @@ onMounted(() => {
 
 .schedule-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 16px;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 16px;
@@ -1147,6 +1319,137 @@ onMounted(() => {
     opacity: 0.45;
     cursor: not-allowed;
     background: rgba(150, 160, 170, 0.08);
+  }
+}
+
+.schedule-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-doctor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+
+  div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  strong {
+    font-size: 16px;
+    color: #4f7380;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  span:last-child {
+    font-size: 12px;
+    color: #68c7a9;
+  }
+}
+
+.doctor-avatar-mini {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.schedule-meta {
+  min-width: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+
+  strong {
+    font-size: 16px;
+    color: #f05391;
+  }
+
+  span {
+    font-size: 12px;
+    line-height: 1.35;
+    color: #68c7a9;
+  }
+}
+
+.empty-day {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.45);
+  color: #8e9fa8;
+  font-size: 13px;
+  text-align: center;
+}
+
+.slot-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.slot-card {
+  min-height: 86px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  strong {
+    display: block;
+    font-size: 15px;
+    color: #4f7380;
+    margin-bottom: 4px;
+  }
+
+  span {
+    display: block;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #8e9fa8;
+  }
+
+  em {
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 700;
+    color: #f05391;
+  }
+
+  &.selected {
+    border-color: #68c7a9;
+    background: linear-gradient(135deg, rgba(104, 199, 169, 0.1), rgba(142, 214, 242, 0.1));
+  }
+
+  &.disabled,
+  &.full,
+  &.past {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 

@@ -46,11 +46,17 @@ public interface RegisterMapper
 
     public Map<String, Object> selectScheduleById(@Param("scheduleId") Long scheduleId);
 
+    public Map<String, Object> selectScheduleSlotById(@Param("slotId") Long slotId);
+
     public int incrementScheduleReservedNumber(@Param("scheduleId") Long scheduleId);
 
     public int decrementScheduleReservedNumber(@Param("scheduleId") Long scheduleId);
 
     public int updateScheduleStatus(@Param("scheduleId") Long scheduleId, @Param("status") String status);
+
+    public int incrementScheduleSlotReservedNumber(@Param("slotId") Long slotId);
+
+    public int decrementScheduleSlotReservedNumber(@Param("slotId") Long slotId);
 
     public int updateRegisterPayStatus(@Param("registerId") Long registerId, @Param("payStatus") String payStatus, @Param("updateTime") Date updateTime);
 

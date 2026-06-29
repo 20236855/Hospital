@@ -7,6 +7,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="Schedule" id="ScheduleResult">
         <result property="scheduleId"    column="schedule_id"    />
         <result property="doctorId"    column="doctor_id"    />
+        <result property="deptId"    column="dept_id"    />
+        <result property="doctorName"    column="doctor_name"    />
+        <result property="levelId"    column="level_id"    />
+        <result property="levelName"    column="level_name"    />
+        <result property="fee"    column="fee"    />
         <result property="scheduleDate"    column="schedule_date"    />
         <result property="timeSlot"    column="time_slot"    />
         <result property="maxNumber"    column="max_number"    />
@@ -17,31 +22,57 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectScheduleVo">
-        select schedule_id, doctor_id, schedule_date, time_slot, max_number, reserved_number, status, create_time, update_time from schedule
+        select
+            s.schedule_id,
+            s.doctor_id,
+            d.dept_id,
+            d.doctor_name,
+            d.level_id,
+            rl.level_name,
+            rl.fee,
+            s.schedule_date,
+            s.time_slot,
+            s.max_number,
+            s.reserved_number,
+            greatest(ifnull(s.max_number, 0) - ifnull(s.reserved_number, 0), 0) as available_number,
+            s.status,
+            s.create_time,
+            s.update_time
+        from schedule s
+            left join doctor d on d.doctor_id = s.doctor_id
+            left join regist_level rl on rl.level_id = d.level_id
     </sql>
 
     <select id="selectScheduleList" parameterType="Schedule" resultMap="ScheduleResult">
         <include refid="selectScheduleVo"/>
         <where>  
-            <if test="doctorId != null "> and doctor_id = #{doctorId}</if>
-            <if test="scheduleDate != null "> and schedule_date = #{scheduleDate}</if>
-            <if test="timeSlot != null  and timeSlot != ''"> and time_slot = #{timeSlot}</if>
-            <if test="maxNumber != null "> and max_number = #{maxNumber}</if>
-            <if test="reservedNumber != null "> and reserved_number = #{reservedNumber}</if>
-            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="doctorId != null "> and s.doctor_id = #{doctorId}</if>
+            <if test="deptId != null "> and d.dept_id = #{deptId}</if>
+            <if test="roleId != null "> and exists (select 1 from sys_user_role ur where ur.user_id = d.user_id and ur.role_id = #{roleId})</if>
+            <if test="scheduleDate != null "> and s.schedule_date = #{scheduleDate}</if>
+            <if test="beginDate != null and beginDate != ''"> and s.schedule_date &gt;= #{beginDate}</if>
+            <if test="endDate != null and endDate != ''"> and s.schedule_date &lt;= #{endDate}</if>
+            <if test="timeSlot != null  and timeSlot != ''"> and s.time_slot = #{timeSlot}</if>
+            <if test="maxNumber != null "> and s.max_number = #{maxNumber}</if>
+            <if test="reservedNumber != null "> and s.reserved_number = #{reservedNumber}</if>
+            <if test="status != null  and status != ''"> and s.status = #{status}</if>
         </where>
+        order by s.schedule_date,
+            case s.time_slot when 'morning' then 1 when 'afternoon' then 2 when 'evening' then 3 else 9 end,
+            d.level_id desc,
+            d.doctor_id
     </select>
     
     <select id="selectScheduleByScheduleId" parameterType="Long" resultMap="ScheduleResult">
         <include refid="selectScheduleVo"/>
-        where schedule_id = #{scheduleId}
+        where s.schedule_id = #{scheduleId}
     </select>
 
     <select id="selectScheduleByDoctorDateSlot" resultMap="ScheduleResult">
         <include refid="selectScheduleVo"/>
-        where doctor_id = #{doctorId}
-          and schedule_date = #{scheduleDate}
-          and time_slot = #{timeSlot}
+        where s.doctor_id = #{doctorId}
+          and s.schedule_date = #{scheduleDate}
+          and s.time_slot = #{timeSlot}
         limit 1
     </select>
 

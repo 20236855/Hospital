@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.hisdoctor.mapper.ScheduleMapper;
 import com.ruoyi.hisdoctor.domain.Schedule;
 import com.ruoyi.hisdoctor.service.IScheduleService;
+import com.ruoyi.hisdoctor.service.IScheduleSlotService;
 
 /**
  * 医生排班Service业务层处理
@@ -29,6 +30,9 @@ public class ScheduleServiceImpl implements IScheduleService
     
     @Autowired
     private ScheduleMapper scheduleMapper;
+
+    @Autowired
+    private IScheduleSlotService scheduleSlotService;
 
     /**
      * 查询医生排班
@@ -64,7 +68,12 @@ public class ScheduleServiceImpl implements IScheduleService
     public int insertSchedule(Schedule schedule)
     {
         schedule.setCreateTime(DateUtils.getNowDate());
-        return scheduleMapper.insertSchedule(schedule);
+        int rows = scheduleMapper.insertSchedule(schedule);
+        if (rows > 0)
+        {
+            scheduleSlotService.generateSlotsForSchedule(schedule);
+        }
+        return rows;
     }
 
     /**

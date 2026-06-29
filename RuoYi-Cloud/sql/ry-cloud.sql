@@ -851,6 +851,7 @@ CREATE TABLE `register`  (
   `register_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '挂号单号',
   `patient_id` bigint NOT NULL COMMENT '患者ID',
   `schedule_id` bigint NOT NULL COMMENT '排班ID',
+  `slot_id` bigint NULL DEFAULT NULL COMMENT '预约时间片ID',
   `doctor_id` bigint NOT NULL COMMENT '医生ID',
   `dept_id` bigint NOT NULL COMMENT '科室ID',
   `level_id` bigint NULL DEFAULT NULL COMMENT '挂号级别ID',
@@ -866,6 +867,7 @@ CREATE TABLE `register`  (
   UNIQUE INDEX `register_no`(`register_no` ASC) USING BTREE,
   INDEX `fk_register_patient`(`patient_id` ASC) USING BTREE,
   INDEX `fk_register_schedule`(`schedule_id` ASC) USING BTREE,
+  INDEX `idx_register_slot`(`slot_id` ASC) USING BTREE,
   INDEX `fk_register_doctor`(`doctor_id` ASC) USING BTREE,
   INDEX `fk_register_dept`(`dept_id` ASC) USING BTREE,
   CONSTRAINT `fk_register_dept` FOREIGN KEY (`dept_id`) REFERENCES `sys_dept` (`dept_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
@@ -900,6 +902,34 @@ CREATE TABLE `schedule`  (
 
 -- ----------------------------
 -- Records of schedule
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for schedule_slot
+-- ----------------------------
+DROP TABLE IF EXISTS `schedule_slot`;
+CREATE TABLE `schedule_slot`  (
+  `slot_id` bigint NOT NULL AUTO_INCREMENT COMMENT '时间片ID',
+  `schedule_id` bigint NOT NULL COMMENT '排班ID',
+  `doctor_id` bigint NOT NULL COMMENT '医生ID',
+  `schedule_date` date NOT NULL COMMENT '排班日期',
+  `start_time` time NOT NULL COMMENT '开始时间',
+  `end_time` time NOT NULL COMMENT '结束时间',
+  `max_number` int NULL DEFAULT 1 COMMENT '最大挂号数',
+  `reserved_number` int NULL DEFAULT 0 COMMENT '已预约人数',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '0' COMMENT '状态 0可约 1满号 2停诊/关闭',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`slot_id`) USING BTREE,
+  INDEX `idx_schedule_slot_schedule`(`schedule_id` ASC) USING BTREE,
+  INDEX `idx_schedule_slot_doctor_date`(`doctor_id` ASC, `schedule_date` ASC) USING BTREE,
+  INDEX `idx_schedule_slot_date`(`schedule_date` ASC) USING BTREE,
+  CONSTRAINT `fk_schedule_slot_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`doctor_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `fk_schedule_slot_schedule` FOREIGN KEY (`schedule_id`) REFERENCES `schedule` (`schedule_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '医生排班时间片表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of schedule_slot
 -- ----------------------------
 
 -- ----------------------------

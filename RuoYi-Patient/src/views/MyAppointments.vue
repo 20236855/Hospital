@@ -24,7 +24,7 @@
         <div class="overview-copy">
           <p>智慧就诊队列</p>
           <h2>{{ nextAppointment ? '下一次就诊已同步' : '暂无待办就诊' }}</h2>
-          <span>{{ nextAppointment ? formatFullDate(nextAppointment.registerTime) : '可以快速发起新的预约挂号' }}</span>
+          <span>{{ nextAppointment ? formatAppointmentTime(nextAppointment) : '可以快速发起新的预约挂号' }}</span>
         </div>
         <div class="overview-orbit" aria-hidden="true">
           <span class="orbit-ring ring-a"></span>
@@ -140,7 +140,7 @@
               <div class="card-footer">
                 <span class="time-line">
                   <van-icon name="clock-o" />
-                  {{ formatFullDate(item.registerTime) }}
+                  {{ formatAppointmentTime(item) }}
                 </span>
                 <button type="button" @click.stop="viewDetail(item)">
                   详情
@@ -166,7 +166,7 @@
           <div>
             <span>预约详情</span>
             <h2>{{ currentAppointment.doctorName || '接诊医生' }}</h2>
-            <p>{{ currentAppointment.deptName || '门诊科室' }} · {{ formatFullDate(currentAppointment.registerTime) }}</p>
+            <p>{{ currentAppointment.deptName || '门诊科室' }} · {{ formatAppointmentTime(currentAppointment) }}</p>
           </div>
           <span class="detail-status" :class="getStatusClass(currentAppointment.registerStatus)">
             {{ getStatusText(currentAppointment.registerStatus) }}
@@ -184,8 +184,8 @@
               <strong>{{ currentAppointment.registerNo || '-' }}</strong>
             </div>
             <div class="info-row">
-              <span>挂号时间</span>
-              <strong>{{ formatFullDate(currentAppointment.registerTime) }}</strong>
+              <span>预约时间</span>
+              <strong>{{ formatAppointmentTime(currentAppointment) }}</strong>
             </div>
             <div class="info-row">
               <span>挂号类型</span>
@@ -217,6 +217,21 @@
               <strong>{{ currentAppointment.createTime || '-' }}</strong>
             </div>
           </section>
+
+          <section class="detail-actions">
+            <button
+              type="button"
+              class="cancel-register-btn"
+              :disabled="cancelLoading || !canCancel(currentAppointment)"
+              @click="handleCancelRegister"
+            >
+              <van-icon name="cross" />
+              {{ canCancel(currentAppointment) ? (cancelLoading ? '退号中...' : '退号') : '不可退号' }}
+            </button>
+            <p v-if="!canCancel(currentAppointment)" class="cancel-tip">
+              {{ getCancelDisabledText(currentAppointment) }}
+            </p>
+          </section>
         </div>
       </div>
     </van-popup>
@@ -226,7 +241,8 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getRegisterList } from '@/api/register'
+import { showConfirmDialog, showToast } from 'vant'
+import { cancelPatientRegister, getRegisterList } from '@/api/register'
 
 const router = useRouter()
 const active = ref(3)
@@ -238,6 +254,7 @@ const pageNum = ref(1)
 const activeFilter = ref('all')
 const showDetailPopup = ref(false)
 const currentAppointment = ref(null)
+const cancelLoading = ref(false)
 
 const filterTabs = [
   { label: '全部', value: 'all' },
@@ -256,28 +273,43 @@ const isToday = (dateStr) => {
 }
 
 const filteredAppointments = computed(() => {
-  const list = appointmentList.value
-  if (activeFilter.value === 'today') return list.filter((item) => isToday(item.registerTime))
+  const list = sortAppointments(appointmentList.value)
+  if (activeFilter.value === 'today') return list.filter((item) => isAppointmentToday(item))
   if (activeFilter.value === 'unpaid') return list.filter((item) => !isPaid(item))
   if (activeFilter.value === 'paid') return list.filter((item) => isPaid(item))
   return list
 })
 
 const unpaidCount = computed(() => appointmentList.value.filter((item) => !isPaid(item)).length)
-const todayCount = computed(() => appointmentList.value.filter((item) => isToday(item.registerTime)).length)
+const todayCount = computed(() => appointmentList.value.filter((item) => isAppointmentToday(item)).length)
 const nextAppointment = computed(() => {
   const now = Date.now()
   return [...appointmentList.value]
     .filter((item) => {
-      const date = parseDate(item.registerTime)
+      const date = getAppointmentDateTime(item)
       return date && date.getTime() >= now
     })
-    .sort((a, b) => parseDate(a.registerTime).getTime() - parseDate(b.registerTime).getTime())[0]
+    .sort((a, b) => getAppointmentDateTime(a).getTime() - getAppointmentDateTime(b).getTime())[0]
 })
+
+const dateOnlyPattern = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/
 
 const parseDate = (dateStr) => {
   if (!dateStr) return null
-  const date = new Date(String(dateStr).replace(/-/g, '/'))
+  if (dateStr instanceof Date) {
+    return Number.isNaN(dateStr.getTime()) ? null : new Date(dateStr)
+  }
+
+  const raw = String(dateStr).trim()
+  const dateOnlyMatch = raw.match(dateOnlyPattern)
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch
+    const date = new Date(Number(year), Number(month) - 1, Number(day))
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T')
+  const date = new Date(normalized)
   return Number.isNaN(date.getTime()) ? null : date
 }
 
@@ -299,6 +331,63 @@ const formatFullDate = (dateStr) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+const getAppointmentDateTime = (item) => {
+  const date = parseDate(item?.registerTime)
+  if (!date) return null
+  const timeText = item?.startTime || item?.start_time
+  if (timeText) {
+    const [hour, minute] = String(timeText).split(':').map(Number)
+    if (!Number.isNaN(hour) && !Number.isNaN(minute)) {
+      date.setHours(hour, minute, 0, 0)
+      return date
+    }
+  }
+  date.setHours(23, 59, 59, 999)
+  return date
+}
+
+const isAppointmentToday = (item) => {
+  const date = getAppointmentDateTime(item)
+  if (!date) return false
+  return date.toDateString() === new Date().toDateString()
+}
+
+const formatAppointmentTime = (item) => {
+  const base = formatFullDate(item?.registerTime)
+  const start = item?.startTime || item?.start_time
+  const end = item?.endTime || item?.end_time
+  if (start && end) {
+    const date = parseDate(item?.registerTime)
+    if (!date) return `${start}-${end}`
+    return `${date.getMonth() + 1}月${date.getDate()}日 ${start}-${end}`
+  }
+  return base
+}
+
+const sortAppointments = (list) => {
+  return [...list].sort((a, b) => {
+    const aTime = getAppointmentDateTime(a)?.getTime() || 0
+    const bTime = getAppointmentDateTime(b)?.getTime() || 0
+    if (aTime !== bTime) return bTime - aTime
+    return (parseDate(b.createTime)?.getTime() || 0) - (parseDate(a.createTime)?.getTime() || 0)
+  })
+}
+
+const canCancel = (item) => {
+  if (!item || item.registerStatus === 'cancel' || item.registerStatus === 'completed') return false
+  const appointmentTime = getAppointmentDateTime(item)
+  return appointmentTime && Date.now() < appointmentTime.getTime()
+}
+
+const getCancelDisabledText = (item) => {
+  if (!item) return ''
+  if (item.registerStatus === 'cancel') return '该预约已取消'
+  if (item.registerStatus === 'completed') return '该预约已完成，不能退号'
+  const appointmentTime = getAppointmentDateTime(item)
+  if (appointmentTime && Date.now() >= appointmentTime.getTime()) return '已超过预约时间，不能退号'
+  return '当前预约不能退号'
 }
 
 const getAvatarText = (name) => (name || '医').slice(0, 1)
@@ -328,9 +417,9 @@ const onLoad = async () => {
     })
 
     if (pageNum.value === 1) {
-      appointmentList.value = res.rows || []
+      appointmentList.value = sortAppointments(res.rows || [])
     } else {
-      appointmentList.value = [...appointmentList.value, ...(res.rows || [])]
+      appointmentList.value = sortAppointments([...appointmentList.value, ...(res.rows || [])])
     }
 
     loading.value = false
@@ -357,6 +446,38 @@ const onRefresh = async () => {
 const viewDetail = (item) => {
   currentAppointment.value = item
   showDetailPopup.value = true
+}
+
+const handleCancelRegister = async () => {
+  const item = currentAppointment.value
+  if (!item?.registerId) {
+    showToast('未获取到挂号单号')
+    return
+  }
+  if (!canCancel(item)) {
+    showToast(getCancelDisabledText(item))
+    return
+  }
+  try {
+    await showConfirmDialog({
+      title: '确认退号',
+      message: `确认取消 ${formatAppointmentTime(item)} 的预约？取消后医生号源将释放。`,
+      confirmButtonText: '确认退号',
+      cancelButtonText: '再想想'
+    })
+    cancelLoading.value = true
+    await cancelPatientRegister(item.registerId)
+    showToast('退号成功')
+    showDetailPopup.value = false
+    currentAppointment.value = null
+    await onRefresh()
+  } catch (error) {
+    if (error && error !== 'cancel' && error !== 'close') {
+      showToast(error?.message || '退号失败，请稍后重试')
+    }
+  } finally {
+    cancelLoading.value = false
+  }
 }
 
 const goBack = () => {
@@ -1022,6 +1143,41 @@ onMounted(() => {
   background: rgba(255, 253, 248, .78);
   border: 1px solid rgba(213, 237, 243, .72);
   box-shadow: 0 14px 34px rgba(102, 170, 189, .1);
+}
+
+.detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cancel-register-btn {
+  width: 100%;
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(239, 143, 169, .92), rgba(240, 83, 145, .78));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 14px 30px rgba(239, 143, 169, .22);
+
+  &:disabled {
+    opacity: .58;
+    box-shadow: none;
+  }
+}
+
+.cancel-tip {
+  margin: 0;
+  color: var(--text-light);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .section-title {

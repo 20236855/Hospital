@@ -74,8 +74,8 @@ public class RegisterServiceImpl implements IRegisterService
         register.setPayStatus("unpaid");
         register.setRemark("online register");
         setPatientByIdCard(register);
+        reserveRegisterSource(register);
         setRegisterFeeByLevel(register);
-        reserveSchedule(register.getScheduleId());
         register.setCreateTime(DateUtils.getNowDate());
         return registerMapper.insertRegister(register);
     }
@@ -121,7 +121,7 @@ public class RegisterServiceImpl implements IRegisterService
         {
             throw new ServiceException("Only registered records can be cancelled");
         }
-        releaseSchedule(register.getScheduleId());
+        releaseRegisterSource(register);
         register.setRegisterStatus("cancel");
         register.setUpdateTime(DateUtils.getNowDate());
         return registerMapper.updateRegister(register);
@@ -160,7 +160,7 @@ public class RegisterServiceImpl implements IRegisterService
             {
                 continue;
             }
-            releaseSchedule(register.getScheduleId());
+            releaseRegisterSource(register);
             cleaned += registerMapper.deleteRegisterByRegisterId(register.getRegisterId());
         }
         return cleaned;
@@ -238,6 +238,62 @@ public class RegisterServiceImpl implements IRegisterService
         register.setRegisterFee(registerMapper.selectRegisterFeeByLevelId(register.getLevelId()));
     }
 
+    private void reserveRegisterSource(Register register)
+    {
+        if (register.getSlotId() != null)
+        {
+            reserveScheduleSlot(register);
+            return;
+        }
+        reserveSchedule(register.getScheduleId());
+    }
+
+    private void reserveScheduleSlot(Register register)
+    {
+        Map<String, Object> slot = registerMapper.selectScheduleSlotById(register.getSlotId());
+        if (slot == null)
+        {
+            throw new ServiceException("预约时间片不存在");
+        }
+        String status = String.valueOf(slot.get("status"));
+        Long reservedNumber = toLong(slot.get("reservedNumber"));
+        Long maxNumber = toLong(slot.get("maxNumber"));
+        if (!"0".equals(status) || maxNumber == null || reservedNumber == null || reservedNumber >= maxNumber)
+        {
+            throw new ServiceException("该时间片已约满或已关闭");
+        }
+
+        Long scheduleId = toLong(slot.get("scheduleId"));
+        Long doctorId = toLong(slot.get("doctorId"));
+        Long deptId = toLong(slot.get("deptId"));
+        if (register.getScheduleId() != null && !register.getScheduleId().equals(scheduleId))
+        {
+            throw new ServiceException("预约时间片与排班不匹配");
+        }
+        if (register.getDoctorId() != null && !register.getDoctorId().equals(doctorId))
+        {
+            throw new ServiceException("预约时间片与医生不匹配");
+        }
+        if (register.getDeptId() != null && !register.getDeptId().equals(deptId))
+        {
+            throw new ServiceException("预约时间片与科室不匹配");
+        }
+        register.setScheduleId(scheduleId);
+        register.setDoctorId(doctorId);
+        register.setDeptId(deptId);
+        Object scheduleDate = slot.get("scheduleDate");
+        if (scheduleDate instanceof Date)
+        {
+            register.setRegisterTime((Date) scheduleDate);
+        }
+
+        if (registerMapper.incrementScheduleSlotReservedNumber(register.getSlotId()) == 0)
+        {
+            throw new ServiceException("预约失败，该时间片可能已被其他用户预约");
+        }
+        reserveSchedule(scheduleId);
+    }
+
     private void reserveSchedule(Long scheduleId)
     {
         if (scheduleId == null)
@@ -250,9 +306,9 @@ public class RegisterServiceImpl implements IRegisterService
             throw new ServiceException("Schedule does not exist");
         }
         String status = String.valueOf(schedule.get("status"));
-        Long reservedNumber = ((Number) schedule.get("reservedNumber")).longValue();
-        Long maxNumber = ((Number) schedule.get("maxNumber")).longValue();
-        if ("1".equals(status) || reservedNumber >= maxNumber)
+        Long reservedNumber = toLong(schedule.get("reservedNumber"));
+        Long maxNumber = toLong(schedule.get("maxNumber"));
+        if ("1".equals(status) || maxNumber == null || reservedNumber == null || reservedNumber >= maxNumber)
         {
             throw new ServiceException("Schedule is full");
         }
@@ -261,6 +317,19 @@ public class RegisterServiceImpl implements IRegisterService
         {
             registerMapper.updateScheduleStatus(scheduleId, "1");
         }
+    }
+
+    private void releaseRegisterSource(Register register)
+    {
+        if (register == null)
+        {
+            return;
+        }
+        if (register.getSlotId() != null)
+        {
+            registerMapper.decrementScheduleSlotReservedNumber(register.getSlotId());
+        }
+        releaseSchedule(register.getScheduleId());
     }
 
     private void releaseSchedule(Long scheduleId)
@@ -274,7 +343,7 @@ public class RegisterServiceImpl implements IRegisterService
         {
             return;
         }
-        Long reservedNumber = ((Number) schedule.get("reservedNumber")).longValue();
+        Long reservedNumber = toLong(schedule.get("reservedNumber"));
         if (reservedNumber > 0)
         {
             registerMapper.decrementScheduleReservedNumber(scheduleId);
@@ -283,5 +352,14 @@ public class RegisterServiceImpl implements IRegisterService
         {
             registerMapper.updateScheduleStatus(scheduleId, "0");
         }
+    }
+
+    private Long toLong(Object value)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+        return value instanceof Number ? ((Number) value).longValue() : Long.valueOf(value.toString());
     }
 }
