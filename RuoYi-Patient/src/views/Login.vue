@@ -393,7 +393,7 @@ onMounted(() => {
   max-height: 260px;
   opacity: .76;
   filter: drop-shadow(0 22px 38px rgba(4, 40, 50, .18));
-  transform: translateX(-50%);
+  transform: translateX(-30%);
 }
 
 .auth-back {
@@ -448,6 +448,7 @@ onMounted(() => {
   display: flex;
   margin: -10px -2px 0;
   padding: 26px 8px 22px;
+  transform: translateX(-3px);
   min-height: 0;
   background: rgba(247, 252, 251, .96);
   border: 1px solid rgba(226, 244, 240, .92);
@@ -850,42 +851,79 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 420px) {
   .auth-page {
-    padding: 8px 10px 12px;
+    padding: 4px 8px 8px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .auth-shell {
-    grid-template-rows: minmax(194px, 29vh) auto;
-    min-height: calc(100vh - 20px);
+    grid-template-rows: minmax(170px, 28vh) auto;
+    min-height: calc(100vh - 12px);
   }
 
   .medical-art {
-    top: 10px;
-    width: 108vw;
-    min-height: 190px;
-    max-height: 226px;
+    top: 0;
+    left: 50%;
+    width: 105vw;
+    min-height: 180px;
+    max-height: 220px;
+    opacity: .72;
+    transform: translateX(-50%);
   }
 
   .auth-hero {
     min-height: 100%;
   }
 
-  .auth-form {
-    padding: 14px 16px 16px;
+  .auth-panel {
+    margin-top: -10px;
+    padding: 16px 6px 10px;
   }
 
-  .auth-panel {
-    margin-top: -8px;
-    padding: 22px 8px 18px;
+  .auth-form {
+    padding: 8px 14px 10px;
   }
 
   .brand-lockup {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .form-badge {
+    font-size: 10px;
+  }
+
+  .form-item {
+    margin-bottom: 10px;
+  }
+
+  .input-wrapper {
+    min-height: 42px;
+    padding: 0 12px;
+  }
+
+  .input-wrapper input {
+    font-size: 14px;
+  }
+
+  .auth-submit {
+    height: 42px;
+    font-size: 15px;
   }
 
   .captcha-wrapper .captcha-img {
-    width: 88px;
+    width: 80px;
+    height: 32px;
+  }
+
+  .register-link {
+    margin-top: 12px;
+    font-size: 13px;
   }
 }
 </style>

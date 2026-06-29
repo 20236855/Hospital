@@ -1,0 +1,3 @@
+display_name: Medical Vision AI Workflow
+short_description: Build upload, annotation, and Doubao multimodal diagnosis flows for hospital image checks.
+default_prompt: Use the medical vision AI workflow to implement or repair this recognition page end to end.

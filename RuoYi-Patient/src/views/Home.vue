@@ -738,16 +738,17 @@ $orange-warm: #e89860;
 .dual-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 16px 16px 0;
+  gap: 10px;
+  padding: 12px 12px 0;
+  transform: translateX(-4px);
 }
 
 .feature-card {
-  border-radius: 16px;
-  padding: 20px 16px;
-  min-height: 80px;
+  border-radius: 12px;
+  padding: 12px 12px;
+  min-height: 0;
   background: #fff;
-  box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
+  box-shadow: 0 4px 16px rgba(102, 170, 189, .08);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -765,21 +766,21 @@ $orange-warm: #e89860;
 .fc-body {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .fc-icon {
   flex-shrink: 0;
-  width: 46px;
-  height: 46px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   background: rgba(248, 245, 240, .8);
 
   svg {
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
   }
 }
 
@@ -791,10 +792,10 @@ $orange-warm: #e89860;
 .fc-title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 
   strong {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 800;
     color: #2d5a4e;
     line-height: 1.2;
@@ -804,17 +805,17 @@ $orange-warm: #e89860;
 
 .fc-desc {
   display: block;
-  margin-top: 8px;
-  font-size: 12px;
+  margin-top: 4px;
+  font-size: 11px;
   color: rgba(45, 90, 78, .5);
   font-weight: 500;
 }
 
 .fc-tag {
   flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: 8px;
-  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 8px;
   font-weight: 700;
   line-height: 1.5;
 }
@@ -834,7 +835,7 @@ $orange-warm: #e89860;
 
 .info-section,
 .more-section {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 button {
@@ -847,12 +848,12 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 
   h2 {
-    margin: 2px 0 0;
+    margin: 1px 0 0;
     color: #2d5a4e;
-    font-size: 17px;
+    font-size: 15px;
     line-height: 1.2;
     font-weight: 800;
   }
@@ -861,25 +862,25 @@ button {
     border: 0;
     background: rgba(255, 253, 248, .54);
     border: 1px solid rgba(213, 237, 243, .64);
-    border-radius: 8px;
+    border-radius: 6px;
     color: rgba(45, 90, 78, .55);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
-    padding: 5px 9px;
+    padding: 3px 7px;
   }
 }
 
 .section-kicker {
   color: var(--text-light);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
 }
 
 .info-card {
   position: relative;
   overflow: hidden;
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 10px;
+  padding: 12px;
   background: #fff;
   border: 1px solid rgba(93, 184, 216, .18);
   box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
@@ -898,10 +899,10 @@ button {
 .detail-item {
   position: relative;
   display: grid;
-  grid-template-columns: 70px 1fr;
-  gap: 12px;
+  grid-template-columns: 58px 1fr;
+  gap: 10px;
   align-items: center;
-  min-height: 64px;
+  min-height: 48px;
 
   + .detail-item {
     border-top: 1px solid rgba(213, 237, 243, .45);
@@ -910,15 +911,15 @@ button {
 
 .time-pill {
   justify-self: start;
-  min-width: 58px;
-  height: 30px;
-  border-radius: 8px;
+  min-width: 50px;
+  height: 26px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: rgba(185, 225, 205, .18);
   color: #5f9e8c;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -926,54 +927,54 @@ button {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 
   strong {
     color: #2d5a4e;
-    font-size: 15px;
+    font-size: 13px;
     line-height: 1.2;
     font-weight: 700;
   }
 
   span {
     color: var(--text-regular);
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.35;
   }
 }
 
 .empty-state {
-  min-height: 76px;
+  min-height: 60px;
   display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: 12px;
+  grid-template-columns: 40px 1fr;
+  gap: 10px;
   align-items: center;
 
   strong, span { display: block; }
 
   strong {
     color: #2d5a4e;
-    font-size: 15px;
-    margin-bottom: 5px;
+    font-size: 13px;
+    margin-bottom: 4px;
     font-weight: 700;
   }
 
   span {
     color: var(--text-regular);
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.45;
   }
 }
 
 .empty-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   background: rgba(185, 225, 205, .16);
   color: #6fbacb;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .service-list {
@@ -984,17 +985,17 @@ button {
 
 .service-item {
   min-width: 0;
-  min-height: 72px;
+  min-height: 56px;
   border: 1px solid rgba(93, 184, 216, .18);
-  border-radius: 12px;
-  padding: 13px;
+  border-radius: 10px;
+  padding: 10px;
   background: #fff;
   box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 9px;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   transition: transform .2s ease;
 
@@ -1013,20 +1014,20 @@ button {
 }
 
 .service-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   background: rgba(185, 225, 205, .16);
   color: #6fbacb;
-  font-size: 22px;
+  font-size: 18px;
   flex: 0 0 auto;
 }
 
 .expert-section,
 .health-news-section {
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 .expert-heading {
@@ -1047,16 +1048,16 @@ button {
 }
 
 .expert-avatar-card {
-  flex: 0 0 94px;
-  min-height: 130px;
+  flex: 0 0 78px;
+  min-height: 110px;
   border: none;
   border-radius: 0;
   background: transparent;
-  padding: 6px 6px 4px;
+  padding: 4px 4px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   box-shadow: none;
   color: #2d5a4e;
   transition: transform .2s ease;
@@ -1069,7 +1070,7 @@ button {
     max-width: 100%;
     margin-top: 2px;
     color: var(--text-light);
-    font-size: 11px;
+    font-size: 10px;
     line-height: 1.2;
     font-weight: 800;
     text-align: center;

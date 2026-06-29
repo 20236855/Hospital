@@ -126,6 +126,19 @@ export const constantRoutes = [
       }
     ]
   },
+  {
+    path: '/hisexam/check/skin',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/hisexam/check/skin/index'),
+        name: 'SkinCheck',
+        meta: { title: '皮肤病变检查' }
+      }
+    ]
+  },
 ]
 
 // 动态路由，基于用户权限动态去加载
