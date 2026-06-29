@@ -13,9 +13,9 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-button type="primary" :loading="analyzing" @click="startAIAnalysis">
+        <el-button type="primary" :loading="analyzing" @click="openAiDialog">
           <el-icon><Cpu /></el-icon>
-          {{ analyzing ? 'AI分析中...' : '启动AI辅助诊断' }}
+          {{ analyzing ? 'AI分析中...' : 'AI辅助诊断' }}
         </el-button>
         <el-button type="success" @click="saveDiagnosis">
           <el-icon><DocumentChecked /></el-icon>
@@ -163,8 +163,8 @@
           <div class="panel-body">
             <div class="ai-empty" v-if="!aiResult && !analyzing">
               <el-icon :size="48"><MagicStick /></el-icon>
-              <p>点击"启动AI辅助诊断"开始分析</p>
-              <p class="sub">AI将自动识别病灶区域并生成初步诊断建议</p>
+              <p>打开"AI辅助诊断"选择切片并提问</p>
+              <p class="sub">AI将结合当前切片和本地算法统计生成返回结果</p>
             </div>
             
             <div class="ai-result" v-if="aiResult">
@@ -184,8 +184,13 @@
                     <div class="finding-content">
                       <div class="finding-title">{{ finding.name }}</div>
                       <div class="finding-desc">{{ finding.description }}</div>
+                      <div class="finding-meta">
+                        <el-tag size="small" round :type="severityTagType(finding.severity)">
+                          {{ severityLabel(finding.severity) }}
+                        </el-tag>
+                      </div>
                     </div>
-                    <div class="finding-conf">{{ finding.confidence }}%</div>
+                    <div class="finding-conf">{{ formatConfidence(finding.confidence) }}</div>
                   </div>
                 </div>
               </div>
@@ -294,6 +299,11 @@
                 </el-tag>
               </div>
               <template v-if="artifactResult">
+                <div class="annotation-panel-tools">
+                  <el-button size="small" type="primary" plain :disabled="!currentArtifactImage" @click="openSliceAiDialog('metal')">
+                    <el-icon><Cpu /></el-icon>
+                    选择当前切片
+                  </el-button>
                 <div class="annotation-nav">
                   <el-button text circle @click="artifactSliceIdx = Math.max(0, artifactSliceIdx - 1)">
                     <el-icon><ArrowLeft /></el-icon>
@@ -307,6 +317,7 @@
                   <el-button text circle @click="artifactSliceIdx = Math.min(artifactResult.slices.length - 1, artifactSliceIdx + 1)">
                     <el-icon><ArrowRight /></el-icon>
                   </el-button>
+                </div>
                 </div>
               </template>
             </div>
@@ -343,6 +354,11 @@
                 <el-tag v-else-if="artifactResult" type="info" size="small" round>未检出</el-tag>
               </div>
               <template v-if="artifactResult">
+                <div class="annotation-panel-tools">
+                  <el-button size="small" type="primary" plain :disabled="!currentHemorrhageImage" @click="openSliceAiDialog('hemorrhage')">
+                    <el-icon><Cpu /></el-icon>
+                    选择当前切片
+                  </el-button>
                 <div class="annotation-nav">
                   <el-button text circle @click="hemeSliceIdx = Math.max(0, hemeSliceIdx - 1)">
                     <el-icon><ArrowLeft /></el-icon>
@@ -353,6 +369,7 @@
                   <el-button text circle @click="hemeSliceIdx = Math.min(totalSlices - 1, hemeSliceIdx + 1)">
                     <el-icon><ArrowRight /></el-icon>
                   </el-button>
+                </div>
                 </div>
               </template>
             </div>
@@ -378,6 +395,98 @@
         </el-col>
       </el-row>
     </div>
+
+    <el-dialog
+      v-model="aiDialogVisible"
+      title="AI辅助诊断"
+      width="720px"
+      class="ai-dialog"
+      append-to-body
+      destroy-on-close
+    >
+      <div class="ai-dialog-layout">
+        <div class="ai-slice-preview">
+          <div class="ai-slice-image">
+            <img v-if="selectedAiSlice.imageUrl" :src="selectedAiSlice.imageUrl" alt="selected CT slice" />
+            <div v-else class="annotation-empty">
+              <el-icon :size="34"><Picture /></el-icon>
+              <p>请选择切片</p>
+            </div>
+          </div>
+          <div class="ai-slice-meta">
+            <el-tag size="small" type="info" round>{{ selectedAiSlice.title || '未选择切片' }}</el-tag>
+            <el-tag v-if="selectedAiSlice.sliceNo" size="small" round>切片 {{ selectedAiSlice.sliceNo }}</el-tag>
+            <el-tag v-if="selectedAiSlice.zIndex !== null && selectedAiSlice.zIndex !== undefined" size="small" round>
+              Z={{ selectedAiSlice.zIndex }}
+            </el-tag>
+          </div>
+        </div>
+
+        <el-form label-position="top" class="ai-question-form">
+          <el-form-item label="想询问AI的问题">
+            <el-input
+              v-model="aiQuestion"
+              type="textarea"
+              :rows="4"
+              maxlength="500"
+              show-word-limit
+              placeholder="例如：请判断当前切片是否存在金属伪影或颅内出血，并说明依据。"
+            />
+          </el-form-item>
+        </el-form>
+
+        <div class="ai-dialog-messages" v-if="aiDialogMessages.length">
+          <div
+            v-for="(message, index) in aiDialogMessages"
+            :key="index"
+            class="ai-dialog-message"
+            :class="message.role"
+          >
+            <div class="message-head">{{ message.role === 'user' ? '医生提问' : 'AI返回结果' }}</div>
+            <template v-if="message.role === 'assistant' && message.result">
+              <div class="ai-answer-card" v-if="message.result.answer || message.result.suggestion">
+                <div class="answer-label">直接回答</div>
+                <div class="answer-text">{{ message.result.answer || message.result.suggestion }}</div>
+              </div>
+              <div class="dialog-findings" v-if="message.result.findings?.length">
+                <div
+                  v-for="(finding, findingIndex) in message.result.findings"
+                  :key="findingIndex"
+                  class="dialog-finding-card"
+                >
+                  <div class="dialog-finding-head">
+                    <div class="dialog-finding-title">{{ finding.name || '异常发现' }}</div>
+                    <div class="dialog-finding-badges">
+                      <el-tag size="small" round :type="severityTagType(finding.severity)">
+                        {{ severityLabel(finding.severity) }}
+                      </el-tag>
+                      <el-tag size="small" round type="success">{{ formatConfidence(finding.confidence) }}</el-tag>
+                    </div>
+                  </div>
+                  <div class="dialog-finding-desc">{{ finding.description }}</div>
+                </div>
+              </div>
+              <div class="ai-report-brief" v-if="message.result.report?.impression || message.result.report?.findings">
+                <div v-if="message.result.report.findings">
+                  <span>影像所见</span>{{ message.result.report.findings }}
+                </div>
+                <div v-if="message.result.report.impression">
+                  <span>诊断意见</span>{{ message.result.report.impression }}
+                </div>
+              </div>
+            </template>
+            <div v-else class="message-body">{{ message.content }}</div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="aiDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="analyzing" @click="sendAiQuestion">
+          {{ analyzing ? 'AI分析中...' : '发送给AI' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -390,7 +499,7 @@ import {
   RefreshRight, Sunny, Upload, ArrowRight, Warning, InfoFilled,
   MagicStick, EditPen, Loading, DataAnalysis, FirstAidKit
 } from '@element-plus/icons-vue'
-import { detectArtifact } from '@/api/hisexam/ctAnalysis'
+import { detectArtifact, aiDiagnosis } from '@/api/hisexam/ctAnalysis'
 
 const route = useRoute()
 const router = useRouter()
@@ -557,11 +666,21 @@ const handleFileSelect = async (uploadFile) => {
   }
 }
 
-// ============ AI诊断（保持原有模拟逻辑） ============
+// ============ AI诊断 ============
 const analyzing = ref(false)
 const aiResult = ref(null)
 const selectedFinding = ref(0)
 const aiDetections = ref([])
+const aiDialogVisible = ref(false)
+const aiQuestion = ref('')
+const aiDialogMessages = ref([])
+const selectedAiSlice = ref({
+  source: '',
+  title: '',
+  sliceNo: null,
+  zIndex: null,
+  imageUrl: ''
+})
 
 const aiStatus = computed(() => {
   if (analyzing.value) return { type: 'warning', text: '分析中' }
@@ -569,7 +688,180 @@ const aiStatus = computed(() => {
   return { type: 'info', text: '未开始' }
 })
 
-const startAIAnalysis = () => {
+const normalizeSliceImage = (image) => {
+  if (!image) return ''
+  return image.startsWith('data:image') ? image : 'data:image/png;base64,' + image
+}
+
+const getDefaultQuestion = (source) => {
+  if (source === 'metal') return '请分析当前金属伪影标注切片，判断伪影和金属植入物对诊断的影响，并给出阅片建议。'
+  if (source === 'hemorrhage') return '请分析当前颅内出血标注切片，判断是否存在出血征象、疑似部位和紧急程度。'
+  return '请结合当前CT切片、患者信息和本地算法统计，给出颅内病变辅助诊断建议。'
+}
+
+const selectAiSlice = (source = 'main') => {
+  if (!artifactResult.value) {
+    ElMessage.warning('请先上传CT文件并完成影像分析')
+    return false
+  }
+
+  let slice = null
+  if (source === 'metal') {
+    slice = {
+      source,
+      title: '金属伪影标注切片',
+      sliceNo: artifactSliceIdx.value + 1,
+      zIndex: artifactResult.value?.sliceIndices?.[artifactSliceIdx.value] ?? artifactSliceIdx.value,
+      imageUrl: normalizeSliceImage(currentArtifactImage.value)
+    }
+  } else if (source === 'hemorrhage') {
+    slice = {
+      source,
+      title: '颅内出血标注切片',
+      sliceNo: hemeSliceIdx.value + 1,
+      zIndex: artifactResult.value?.sliceIndices?.[hemeSliceIdx.value] ?? hemeSliceIdx.value,
+      imageUrl: normalizeSliceImage(currentHemorrhageImage.value)
+    }
+  } else {
+    slice = {
+      source,
+      title: '主视图原始切片',
+      sliceNo: currentSlice.value,
+      zIndex: currentSliceZIndex.value,
+      imageUrl: ctImageUrl.value
+    }
+  }
+
+  if (!slice.imageUrl) {
+    ElMessage.warning('当前切片暂无可发送的图像')
+    return false
+  }
+
+  selectedAiSlice.value = slice
+  if (!aiQuestion.value) aiQuestion.value = getDefaultQuestion(source)
+  return true
+}
+
+const openAiDialog = () => {
+  if (selectAiSlice('main')) aiDialogVisible.value = true
+}
+
+const openSliceAiDialog = (source) => {
+  if (selectAiSlice(source)) aiDialogVisible.value = true
+}
+
+const buildAiAnswerText = (result) => {
+  if (result.answer) return result.answer
+  if (result.suggestion) return result.suggestion
+  if (result.rawText) return result.rawText
+  return JSON.stringify(result)
+}
+
+const formatConfidence = (confidence) => {
+  const value = Number(confidence)
+  if (!Number.isFinite(value)) return '-'
+  return `${Math.round((value <= 1 ? value * 100 : value))}%`
+}
+
+const severityLabel = (severity) => {
+  const map = {
+    high: '高风险',
+    medium: '中风险',
+    low: '低风险'
+  }
+  return map[severity] || '待判断'
+}
+
+const severityTagType = (severity) => {
+  const map = {
+    high: 'danger',
+    medium: 'warning',
+    low: 'info'
+  }
+  return map[severity] || 'info'
+}
+
+const applyAiResult = (result) => {
+  aiResult.value = {
+    findings: Array.isArray(result.findings) ? result.findings : [],
+    suggestion: result.answer || result.suggestion || result.rawText || '',
+    features: {
+      lesionCount: result.features?.lesionCount || '-',
+      maxSize: result.features?.maxSize || '-',
+      location: result.features?.location || '-',
+      density: result.features?.density || '-'
+    },
+    rawText: result.rawText,
+    model: result.model
+  }
+
+  const report = result.report || {}
+  diagnosisForm.findings = report.findings || diagnosisForm.findings
+  diagnosisForm.impression = report.impression || aiResult.value.suggestion || diagnosisForm.impression
+  diagnosisForm.conclusion = report.conclusion || diagnosisForm.conclusion
+  diagnosisForm.recommendations = Array.isArray(report.recommendations) ? report.recommendations : diagnosisForm.recommendations
+  diagnosisForm.remark = report.remark || diagnosisForm.remark
+}
+
+const sendAiQuestion = async () => {
+  if (!artifactResult.value) {
+    ElMessage.warning('请先上传CT文件并完成影像分析')
+    return
+  }
+  if (!selectedAiSlice.value.imageUrl && !selectAiSlice('main')) return
+  if (!aiQuestion.value.trim()) {
+    ElMessage.warning('请输入想要询问AI的问题')
+    return
+  }
+
+  analyzing.value = true
+  aiResult.value = null
+  aiDetections.value = []
+
+  try {
+    const question = aiQuestion.value.trim()
+    aiDialogMessages.value.push({
+      role: 'user',
+      content: `${selectedAiSlice.value.title}（切片 ${selectedAiSlice.value.sliceNo}，Z=${selectedAiSlice.value.zIndex}）：${question}`
+    })
+
+    const res = await aiDiagnosis({
+      patientInfo,
+      uploadedFileName: uploadedFileName.value,
+      currentSlice: selectedAiSlice.value.sliceNo,
+      currentSliceZIndex: selectedAiSlice.value.zIndex,
+      sliceSource: selectedAiSlice.value.title,
+      analysisScene: selectedAiSlice.value.source,
+      question,
+      sliceImageBase64: selectedAiSlice.value.imageUrl,
+      artifactStats: artifactResult.value?.stats || {}
+    })
+
+    const response = res.data || res
+    if (response.code && response.code !== 200) {
+      ElMessage.error(response.msg || '豆包AI辅助诊断失败')
+      return
+    }
+
+    const result = response.data || response
+    applyAiResult(result)
+    aiDialogMessages.value.push({
+      role: 'assistant',
+      content: buildAiAnswerText(result),
+      result
+    })
+
+    ElMessage.success('豆包AI辅助诊断已完成')
+  } catch (error) {
+    console.error('豆包AI辅助诊断失败:', error)
+    const msg = error.response?.data?.msg || error.message || '豆包AI辅助诊断失败'
+    ElMessage.error(msg)
+  } finally {
+    analyzing.value = false
+  }
+}
+
+const startAIAnalysisMock = () => {
   analyzing.value = true
   aiResult.value = null
   aiDetections.value = []
@@ -778,6 +1070,7 @@ onMounted(() => {
       grid-row: 3 / span 2;
       grid-column: 2;
       gap: 14px;
+      min-height: 0;
     }
 
     .panel {
@@ -1025,6 +1318,7 @@ onMounted(() => {
 
     .ai-panel {
       flex: 0 0 auto;
+      min-height: 0;
       margin-bottom: 0;
 
       .ai-empty {
@@ -1127,12 +1421,22 @@ onMounted(() => {
                   font-size: 12px;
                   line-height: 1.45;
                 }
+
+                .finding-meta {
+                  margin-top: 8px;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  flex-wrap: wrap;
+                }
               }
 
               .finding-conf {
                 color: #16614D;
                 font-size: 12px;
                 font-weight: 700;
+                min-width: 40px;
+                text-align: right;
               }
             }
           }
@@ -1156,6 +1460,7 @@ onMounted(() => {
 
     .diagnosis-panel {
       flex: 1;
+      min-height: 0;
       margin-bottom: 0;
 
       .panel-body {
@@ -1461,6 +1766,10 @@ onMounted(() => {
         position: sticky;
         top: 12px;
         max-height: calc(100vh - 24px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        padding-right: 4px !important;
       }
     }
   }
@@ -1590,6 +1899,183 @@ onMounted(() => {
         }
       }
     }
+  }
+}
+
+.annotation-panel-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ai-dialog-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.ai-slice-preview {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.ai-slice-image {
+  height: 160px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.ai-slice-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-question-form {
+  :deep(.el-form-item) {
+    margin-bottom: 0;
+  }
+}
+
+.ai-dialog-messages {
+  display: grid;
+  gap: 10px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.ai-dialog-message {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: #fff;
+
+  &.user {
+    background: #eff6ff;
+    border-color: rgba(59, 130, 246, 0.24);
+  }
+
+  &.assistant {
+    background: #f8fafc;
+  }
+}
+
+.message-head {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.message-body {
+  white-space: pre-wrap;
+  line-height: 1.65;
+  color: #1e293b;
+}
+
+.ai-answer-card {
+  padding: 12px;
+  border-radius: 8px;
+  background: #ecfdf5;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.answer-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #047857;
+  margin-bottom: 6px;
+}
+
+.answer-text {
+  color: #0f172a;
+  line-height: 1.7;
+}
+
+.dialog-findings {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dialog-finding-card {
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.dialog-finding-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.dialog-finding-title {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.dialog-finding-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.dialog-finding-desc {
+  color: #475569;
+  line-height: 1.65;
+}
+
+.ai-report-brief {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  color: #334155;
+  line-height: 1.6;
+
+  span {
+    display: inline-block;
+    margin-right: 8px;
+    font-weight: 700;
+    color: #0f766e;
+  }
+}
+
+@media (max-width: 768px) {
+  .annotation-panel-tools {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .ai-slice-preview {
+    grid-template-columns: 1fr;
   }
 }
 

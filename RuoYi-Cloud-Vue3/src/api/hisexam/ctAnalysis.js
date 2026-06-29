@@ -32,3 +32,12 @@ export function checkCtServiceHealth() {
     return { data: { available: false } }
   })
 }
+
+export function aiDiagnosis(data) {
+  return request({
+    url: '/hisexam/ct-analysis/ai-diagnosis',
+    method: 'post',
+    data,
+    timeout: 180000
+  })
+}

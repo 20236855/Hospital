@@ -273,7 +273,7 @@
       <el-table-column label="婚姻状态" align="center" prop="maritalStatus" width="100" />
       <el-table-column label="家庭住址" align="center" prop="address" width="200" show-overflow-tooltip />
       <el-table-column label="紧急联系人" align="center" prop="emergencyContact" width="120" />
-      <el-table-column label="紧急联系电话" align="center" prop="emergencyPhone" width="140" />
+      <el-table-column label="紧急联系电话" align="center" prop="emergencyPhone" width="160" />
       <el-table-column label="状态" align="center" prop="status" width="80" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="150">
         <template #default="scope">
