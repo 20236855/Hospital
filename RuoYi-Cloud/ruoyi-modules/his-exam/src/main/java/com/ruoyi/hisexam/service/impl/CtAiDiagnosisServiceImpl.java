@@ -4,9 +4,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.alibaba.fastjson2.JSON;
@@ -40,7 +43,7 @@ public class CtAiDiagnosisServiceImpl implements ICtAiDiagnosisService
     @Value("${doubao.ark.api-key-env:ARK_API_KEY}")
     private String apiKeyEnv;
 
-    @Value("${doubao.ark.api-key-file:D:/RuoYi-Code/Hospital/ApiKey.txt}")
+    @Value("${doubao.ark.api-key-file:ApiKey.txt}")
     private String apiKeyFile;
 
     @Value("${doubao.ark.connect-timeout-ms:10000}")
@@ -243,17 +246,24 @@ public class CtAiDiagnosisServiceImpl implements ICtAiDiagnosisService
     {
         if (StringUtils.hasText(apiKeyFile))
         {
-            try
+            for (Path path : resolveApiKeyCandidates(apiKeyFile))
             {
-                String apiKey = Files.readString(Path.of(apiKeyFile), StandardCharsets.UTF_8);
-                if (StringUtils.hasText(apiKey))
+                try
                 {
-                    return apiKey.trim();
+                    if (!Files.isRegularFile(path))
+                    {
+                        continue;
+                    }
+                    String apiKey = Files.readString(path, StandardCharsets.UTF_8);
+                    if (StringUtils.hasText(apiKey))
+                    {
+                        return apiKey.trim();
+                    }
                 }
-            }
-            catch (IOException ignored)
-            {
-                // Fall through to the explicit configuration error below.
+                catch (IOException ignored)
+                {
+                    // Try the next candidate.
+                }
             }
         }
 
@@ -264,6 +274,27 @@ public class CtAiDiagnosisServiceImpl implements ICtAiDiagnosisService
         }
 
         throw new ServiceException("未配置豆包API Key，请设置环境变量 " + apiKeyEnv + " 或配置 doubao.ark.api-key-file");
+    }
+
+    private List<Path> resolveApiKeyCandidates(String configuredPath)
+    {
+        List<Path> candidates = new ArrayList<>();
+        Path configured = Paths.get(configuredPath);
+        if (configured.isAbsolute())
+        {
+            candidates.add(configured);
+            return candidates;
+        }
+
+        Path current = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+        Path cursor = current;
+        while (cursor != null)
+        {
+            candidates.add(cursor.resolve(configured).normalize());
+            cursor = cursor.getParent();
+        }
+
+        return candidates;
     }
 
     private RestTemplate buildRestTemplate()

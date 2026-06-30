@@ -27,8 +27,9 @@
       <span class="sep">|</span>
       <span>年龄：{{ patientInfo.age || '-' }}</span>
       <span class="sep">|</span>
-      <span v-if="route.query.registerNo">挂号：{{ route.query.registerNo }}</span>
-      <span v-if="route.query.applyNo">申请单号：{{ route.query.applyNo }}</span>
+      <span>挂号：{{ patientInfo.registerNo || patientInfo.registerId || '-' }}</span>
+      <span class="sep">|</span>
+      <span>申请单号：{{ patientInfo.applyId || '-' }}</span>
     </div>
 
     <!-- 主体：左右两栏 -->
@@ -170,8 +171,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { analyzeSkin, skinAiDiagnosis } from '@/api/hisexam/skinAnalysis'
-import { getPatient } from '@/api/patient/patient'
-import { listApply } from '@/api/hisexam/apply'
+import { getApply, updateApply } from '@/api/hisexam/apply'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ChatDotRound, Check, Search, Upload, Promotion } from '@element-plus/icons-vue'
 
@@ -189,6 +189,7 @@ const aiQuestion = ref('')
 const aiReply = ref('')
 const aiLoading = ref(false)
 const chatMessages = ref([])
+const currentApplyId = ref(null)
 
 const diagnosisForm = ref({
   imageFindings: '',
@@ -233,7 +234,7 @@ async function analyzeImage() {
   try {
     const formData = new FormData()
     formData.append('file', imageFile.value)
-    if (route.query.patientId) formData.append('patientId', route.query.patientId)
+    if (patientInfo.value?.patientId) formData.append('patientId', patientInfo.value.patientId)
     const res = await analyzeSkin(formData)
     if (res.data) {
       result.value = res.data
@@ -265,7 +266,7 @@ async function sendAiQuestion() {
   try {
     const res = await skinAiDiagnosis({
       question: aiQuestion.value,
-      patientId: route.query.patientId,
+      patientId: patientInfo.value?.patientId,
       result: result.value
     })
     const reply = res.data?.reply || 'AI 未返回有效回复'
@@ -278,15 +279,34 @@ async function sendAiQuestion() {
   }
 }
 
-function saveDiagnosis() {
+function formatDateTime(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+async function saveDiagnosis() {
+  if (!currentApplyId.value) {
+    ElMessage.warning('缺少申请单ID，不能保存检查结果')
+    return
+  }
   const report = {
     ...diagnosisForm.value,
-    patientId: route.query.patientId,
-    applyNo: route.query.applyNo,
+    patientId: patientInfo.value?.patientId,
+    applyId: currentApplyId.value,
     resultSummary: result.value
   }
-  console.log('保存诊断报告:', report)
-  ElMessage.success('诊断报告已保存')
+  try {
+    await updateApply({
+      applyId: currentApplyId.value,
+      examResult: JSON.stringify(report),
+      imageUrl: imageUrl.value || null,
+      examTime: formatDateTime(),
+      applyStatus: '已完成'
+    })
+    ElMessage.success('诊断报告已保存到申请单')
+  } catch (e) {
+    ElMessage.error('保存失败：' + (e.response?.data?.msg || e.message || '未知错误'))
+  }
 }
 
 function goBack() {
@@ -294,12 +314,39 @@ function goBack() {
 }
 
 onMounted(async () => {
-  const pid = route.query.patientId
-  if (pid) {
-    try {
-      const res = await getPatient(pid)
-      patientInfo.value = res.data
-    } catch (e) { /* 忽略 */ }
+  const applyId = route.query.applyId
+  if (!applyId) {
+    ElMessage.warning('请先从申请单列表选择对应申请单再执行检查')
+    router.back()
+    return
+  }
+  currentApplyId.value = applyId
+  try {
+    const res = await getApply(applyId)
+    const data = res.data || {}
+    patientInfo.value = {
+      ...data,
+      name: data.patientName,
+      gender: data.gender || '-',
+      age: data.age || '-'
+    }
+    if (data.examResult) {
+      try {
+        const parsed = JSON.parse(data.examResult)
+        diagnosisForm.value = {
+          imageFindings: parsed.imageFindings || '',
+          opinion: parsed.opinion || '',
+          conclusion: parsed.conclusion || '',
+          suggestions: parsed.suggestions || []
+        }
+        result.value = parsed.resultSummary || null
+      } catch (e) {
+        diagnosisForm.value.imageFindings = data.examResult
+      }
+    }
+  } catch (e) {
+    ElMessage.error('申请单加载失败，无法执行检查')
+    router.back()
   }
 })
 </script>

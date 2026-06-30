@@ -23,17 +23,149 @@ import cv2
 import numpy as np
 from flask import Flask, jsonify, request, send_file
 
-# 将脚本所在目录加入 sys.path，以便直接 import 核心算法文件
+# 将脚本所在目录加入 sys.path，以便用相对路径 import 核心算法文件
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-TOOL_DIR = r"D:\大三下课程\实训\CQ500数据处理\VTK"
+TOOL_DIR = os.path.join(SCRIPT_DIR)
+sys.path.insert(0, SCRIPT_DIR)
 sys.path.insert(0, TOOL_DIR)
 
-from SkinMoleDetectionTool002 import (
-    segment_skin_moles,
-    estimate_skin_mask,
-    build_lesion_score,
-    remove_hair_and_specular_noise,
-)
+try:
+    from SkinMoleDetectionTool002 import (
+        segment_skin_moles,
+        estimate_skin_mask,
+        build_lesion_score,
+        remove_hair_and_specular_noise,
+    )
+    DETECTOR_BACKEND = "SkinMoleDetectionTool002"
+except ModuleNotFoundError:
+    DETECTOR_BACKEND = "builtin-opencv"
+
+    def estimate_skin_mask(image_bgr):
+        """估计皮肤区域，返回 bool mask。"""
+        hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+        ycrcb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2YCrCb)
+
+        h, s, v = cv2.split(hsv)
+        y, cr, cb = cv2.split(ycrcb)
+
+        hsv_mask = (h < 30) & (s > 20) & (v > 60)
+        ycrcb_mask = (cr > 130) & (cr < 180) & (cb > 75) & (cb < 145) & (y > 40)
+        mask = (hsv_mask | ycrcb_mask).astype(np.uint8)
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+        return mask.astype(bool)
+
+    def remove_hair_and_specular_noise(image_bgr):
+        """简单去除黑色毛发和高光噪声。"""
+        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+        hair_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (17, 17))
+        blackhat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, hair_kernel)
+        hair_mask = blackhat > 18
+
+        hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+        highlight_mask = (hsv[:, :, 2] > 245) & (hsv[:, :, 1] < 45)
+        noise_mask = (hair_mask | highlight_mask).astype(np.uint8) * 255
+        if noise_mask.any():
+            return cv2.inpaint(image_bgr, noise_mask, 3, cv2.INPAINT_TELEA)
+        return image_bgr
+
+    def build_lesion_score(image_bgr, skin_mask=None, local_radius=41):
+        """生成疑似皮损评分图，暗色、边界清晰区域得分更高。"""
+        if skin_mask is None:
+            skin_mask = estimate_skin_mask(image_bgr)
+
+        lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
+        l_channel = lab[:, :, 0]
+        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+
+        radius = max(15, int(local_radius))
+        if radius % 2 == 0:
+            radius += 1
+        local_bg = cv2.GaussianBlur(l_channel, (radius, radius), 0)
+        dark_score = cv2.subtract(local_bg, l_channel)
+
+        edges = cv2.Laplacian(gray, cv2.CV_16S, ksize=3)
+        edge_score = cv2.convertScaleAbs(edges)
+
+        score = cv2.normalize(dark_score, None, 0, 255, cv2.NORM_MINMAX)
+        edge_score = cv2.normalize(edge_score, None, 0, 80, cv2.NORM_MINMAX)
+        score = cv2.addWeighted(score.astype(np.uint8), 0.85, edge_score.astype(np.uint8), 0.15, 0)
+        score[~skin_mask] = 0
+        return score
+
+    def segment_skin_moles(
+        image_bgr,
+        local_radius=41,
+        threshold_bias=0,
+        min_area=200,
+        enable_hair_removal=True,
+        force_largest_only=True,
+    ):
+        """内置皮肤痣分割算法，兼容外部工具函数返回格式。"""
+        work_img = remove_hair_and_specular_noise(image_bgr) if enable_hair_removal else image_bgr
+        skin_mask = estimate_skin_mask(work_img)
+        score_map = build_lesion_score(work_img, skin_mask, local_radius=local_radius)
+
+        skin_scores = score_map[skin_mask]
+        if skin_scores.size == 0:
+            empty = np.zeros(score_map.shape, dtype=bool)
+            return empty, score_map, skin_mask, [], {
+                "threshold": 0,
+                "kept_moles": 0,
+                "removed_small": 0,
+                "removed_shape": 0,
+            }
+
+        threshold = int(max(35, np.percentile(skin_scores, 92) + threshold_bias))
+        raw_mask = (score_map >= threshold) & skin_mask
+        raw_mask = raw_mask.astype(np.uint8)
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        raw_mask = cv2.morphologyEx(raw_mask, cv2.MORPH_OPEN, kernel, iterations=1)
+        raw_mask = cv2.morphologyEx(raw_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+        contours, _ = cv2.findContours(raw_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        candidates = []
+        removed_small = 0
+        removed_shape = 0
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area < min_area:
+                removed_small += 1
+                continue
+            perimeter = cv2.arcLength(cnt, True)
+            if perimeter <= 0:
+                removed_shape += 1
+                continue
+            circularity = 4 * np.pi * area / (perimeter * perimeter)
+            x, y, w, h = cv2.boundingRect(cnt)
+            aspect = w / max(h, 1)
+            if circularity < 0.18 or aspect > 5 or aspect < 0.2:
+                removed_shape += 1
+                continue
+            candidates.append({
+                "contour": cnt,
+                "area": area,
+                "circularity": circularity,
+                "bbox": (x, y, w, h),
+            })
+
+        if force_largest_only and candidates:
+            candidates = [max(candidates, key=lambda item: item["area"])]
+
+        mask = np.zeros(score_map.shape, dtype=np.uint8)
+        for item in candidates:
+            cv2.drawContours(mask, [item["contour"]], -1, 1, thickness=-1)
+
+        return mask.astype(bool), score_map, skin_mask, candidates, {
+            "threshold": threshold,
+            "kept_moles": len(candidates),
+            "removed_small": removed_small,
+            "removed_shape": removed_shape,
+        }
 
 
 app = Flask(__name__)

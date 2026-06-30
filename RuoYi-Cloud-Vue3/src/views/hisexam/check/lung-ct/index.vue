@@ -35,6 +35,7 @@
           remote
           :remote-method="searchRegisters"
           :loading="registerLoading"
+          :disabled="!!currentApplyId"
           placeholder="搜索挂号编号/患者姓名"
           clearable
           class="full-select"
@@ -353,11 +354,12 @@ import {
   CircleCheckFilled, SuccessFilled
 } from '@element-plus/icons-vue'
 import { analyzeLungCt, saveCtSlices, getSlicesByApplyId } from '@/api/hisexam/lungCtAnalysis'
-import { listRegister, getRegister } from '@/api/register/register'
 import { listTechnology } from '@/api/hisexam/technology'
+import { getApply, updateApply, listApplyRegisterOptions } from '@/api/hisexam/apply'
 
 const route = useRoute()
 const router = useRouter()
+const currentApplyId = ref(null)
 
 // ============ 挂号下拉框 ============
 const selectedRegisterId = ref(null)
@@ -366,39 +368,49 @@ const registerLoading = ref(false)
 
 const searchRegisters = (keyword) => {
   registerLoading.value = true
-  listRegister({ registerNo: keyword || undefined, pageNum: 1, pageSize: 30 })
+  listApplyRegisterOptions({ keyword })
     .then(res => {
-      const data = res.rows || (res.data && res.data.rows) || res.data || []
+      const data = res.data || []
       registerList.value = data
     })
     .catch(err => { console.error('搜索挂号单失败:', err) })
     .finally(() => { registerLoading.value = false })
 }
 
-const onRegisterChange = async (registerId) => {
+const fillPatientFromApply = (data) => {
+  selectedRegisterId.value = data.registerId || null
+  selectedTechId.value = data.techId || null
+  Object.assign(patientInfo, {
+    registerId: data.registerId || '',
+    registerNo: data.registerNo || '',
+    patientId: data.patientId || '',
+    patientName: data.patientName || '--',
+    gender: data.gender || '--',
+    age: data.age || 0,
+    doctorId: data.doctorId || '',
+    doctorName: data.doctorName || '--',
+    deptId: data.deptId || '',
+    deptName: data.deptName || '--',
+    encounterId: data.encounterId || ''
+  })
+  if (data.registerId && !registerList.value.some(item => item.registerId === data.registerId)) {
+    registerList.value.unshift({
+      registerId: data.registerId,
+      registerNo: data.registerNo,
+      patientName: data.patientName,
+      gender: data.gender,
+      age: data.age
+    })
+  }
+}
+
+const onRegisterChange = (registerId) => {
   if (!registerId) {
     resetPatientInfo()
     return
   }
-  try {
-    const res = await getRegister(registerId)
-    const data = res.data || res
-    if (data) {
-      patientInfo.registerId = data.registerId
-      patientInfo.registerNo = data.registerNo || ''
-      patientInfo.patientId = data.patientId || ''
-      patientInfo.patientName = data.patientName || '--'
-      patientInfo.gender = data.gender || '--'
-      patientInfo.age = data.age || 0
-      patientInfo.doctorId = data.doctorId || ''
-      patientInfo.doctorName = data.doctorName || '--'
-      patientInfo.deptId = data.deptId || ''
-      patientInfo.deptName = data.deptName || '--'
-      patientInfo.encounterId = '' // 接诊ID由门诊流程产生，此处暂空
-    }
-  } catch (e) {
-    console.error('获取挂号详情失败:', e)
-  }
+  const data = registerList.value.find(item => item.registerId === registerId)
+  if (data) fillPatientFromApply(data)
 }
 
 const resetPatientInfo = () => {
@@ -677,8 +689,8 @@ const diagnosisForm = reactive({
 
 // ============ 保存切片到数据库（检验医生：存影像，不存诊断结论） ============
 const saveToDatabase = async () => {
-  if (!selectedRegisterId.value) {
-    ElMessage.warning('请先选择挂号单')
+  if (!currentApplyId.value) {
+    ElMessage.warning('缺少申请单ID，不能保存检查结果')
     return
   }
   if (!selectedTechId.value) {
@@ -716,7 +728,7 @@ const saveToDatabase = async () => {
       : null
 
     const saveData = {
-      applyId: selectedRegisterId.value,  // 用挂号ID作为applyId关联
+      applyId: currentApplyId.value,
       checkType: 'LUNG_CT',
       patientId: patientInfo.patientId,
       doctorId: patientInfo.doctorId,
@@ -730,6 +742,18 @@ const saveToDatabase = async () => {
     }
 
     await saveCtSlices(saveData)
+    await updateApply({
+      applyId: currentApplyId.value,
+      examResult: JSON.stringify({
+        checkType: 'LUNG_CT',
+        findings: diagnosisForm.findings,
+        remark: diagnosisForm.remark,
+        detectionResult: detectionResult
+      }),
+      imageUrl: uploadedFileName.value || null,
+      examTime: formatDateTime(),
+      applyStatus: '已完成'
+    })
     ElMessage.success(`CT影像已保存！共 ${slices.length} 层切片写入数据库，诊断结论请由门诊医生出具`)
   } catch (error) {
     console.error('保存失败:', error)
@@ -750,6 +774,7 @@ const loadSavedSlices = async (applyId) => {
       savedSlicesLoaded.value = data.length > 0
       totalSlices.value = data.length
       currentSlice.value = 1
+      analysisResult.value = { sliceIndices: data.map(item => item.sliceZ) }
       analysisDone.value = true
     }
   } catch (e) {
@@ -760,11 +785,35 @@ const loadSavedSlices = async (applyId) => {
 // ============ 导航与生命周期 ============
 const goBack = () => router.back()
 
+function formatDateTime(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+async function loadApplyDetail() {
+  const applyId = route.query.applyId
+  if (!applyId) {
+    ElMessage.warning('请先从申请单列表选择对应申请单再执行检查')
+    router.back()
+    return
+  }
+  currentApplyId.value = applyId
+  try {
+    const res = await getApply(applyId)
+    fillPatientFromApply(res.data || {})
+    await loadSavedSlices(applyId)
+  } catch (e) {
+    ElMessage.error('申请单加载失败，无法执行检查')
+    router.back()
+  }
+}
+
 onMounted(() => {
   // 预加载挂号列表
   searchRegisters('')
   // 加载医技项目列表
   loadTechList()
+  loadApplyDetail()
 
   // 从URL参数自动填充：如果是卡片进入，自动匹配医技项目
   const { techName, registerId } = route.query

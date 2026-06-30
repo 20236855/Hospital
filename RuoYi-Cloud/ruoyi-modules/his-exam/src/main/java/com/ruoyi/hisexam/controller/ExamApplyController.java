@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.core.constant.SecurityConstants;
 import com.ruoyi.common.core.domain.R;
@@ -66,6 +67,17 @@ public class ExamApplyController extends BaseController
     }
 
     /**
+     * 查询可开检查/检验/处置申请单的挂号记录。
+     */
+    @RequiresPermissions("hisexam:apply:list")
+    @GetMapping("/register/options")
+    public AjaxResult registerOptions(@RequestParam(required = false) String keyword)
+    {
+        Long doctorId = isOutpatientDoctorRole() ? getCurrentDoctorId() : null;
+        return success(examApplyService.selectExamRegisterOptions(keyword, doctorId));
+    }
+
+    /**
      * 导出检查/检验/处置申请单列表
      */
     @RequiresPermissions("hisexam:apply:export")
@@ -102,6 +114,7 @@ public class ExamApplyController extends BaseController
     public AjaxResult add(@RequestBody ExamApply examApply)
     {
         applyPatientScope(examApply);
+        applyCurrentDept(examApply);
         return toAjax(examApplyService.insertExamApply(examApply));
     }
 
@@ -117,6 +130,10 @@ public class ExamApplyController extends BaseController
         checkPatientScope(oldApply);
         checkDoctorScope(oldApply);
         applyPatientScope(examApply);
+        if (examApply.getRegisterId() != null)
+        {
+            applyCurrentDept(examApply);
+        }
         return toAjax(examApplyService.updateExamApply(examApply));
     }
 
@@ -227,5 +244,23 @@ public class ExamApplyController extends BaseController
                 && loginUser.getSysUser().getRoles().stream()
                     .map(SysRole::getRoleId)
                     .anyMatch(roleId -> Objects.equals(roleId, OUTPATIENT_DOCTOR_ROLE_ID));
+    }
+
+    private void applyCurrentDept(ExamApply examApply)
+    {
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        if (loginUser == null)
+        {
+            return;
+        }
+        Long deptId = loginUser.getDeptId();
+        if (deptId == null && loginUser.getSysUser() != null)
+        {
+            deptId = loginUser.getSysUser().getDeptId();
+        }
+        if (deptId != null)
+        {
+            examApply.setDeptId(deptId);
+        }
     }
 }

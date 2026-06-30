@@ -500,19 +500,21 @@ import {
   MagicStick, EditPen, Loading, DataAnalysis, FirstAidKit
 } from '@element-plus/icons-vue'
 import { detectArtifact, aiDiagnosis } from '@/api/hisexam/ctAnalysis'
+import { getApply, updateApply } from '@/api/hisexam/apply'
 
 const route = useRoute()
 const router = useRouter()
 
 // ============ 患者信息 ============
 const patientInfo = reactive({
-  patientName: '张三',
-  gender: '男',
-  age: 58,
-  registerId: 'REG20240617001',
-  applyId: 'APPLY20240617001',
-  doctorName: '李医生',
-  purpose: '头痛、头晕3天，怀疑颅内占位性病变'
+  patientName: '--',
+  gender: '--',
+  age: '',
+  registerId: '',
+  registerNo: '',
+  applyId: '',
+  doctorName: '--',
+  purpose: ''
 })
 
 // ============ CT文件上传与影像 ============
@@ -895,19 +897,67 @@ const diagnosisForm = reactive({
 // ============ 操作 ============
 const goBack = () => router.back()
 
-const saveDiagnosis = () => {
+function formatDateTime(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+async function loadApplyDetail() {
+  const applyId = route.query.applyId
+  if (!applyId) {
+    ElMessage.warning('请先从申请单列表选择对应申请单再执行检查')
+    router.back()
+    return
+  }
+  try {
+    const res = await getApply(applyId)
+    const data = res.data || {}
+    patientInfo.patientName = data.patientName || '--'
+    patientInfo.gender = data.gender || '--'
+    patientInfo.age = data.age || ''
+    patientInfo.registerId = data.registerId || ''
+    patientInfo.registerNo = data.registerNo || ''
+    patientInfo.applyId = data.applyId || applyId
+    patientInfo.doctorName = data.doctorName || '--'
+    patientInfo.purpose = data.applyInfo || data.applyPosition || ''
+    if (data.examResult) {
+      try {
+        const parsed = JSON.parse(data.examResult)
+        Object.assign(diagnosisForm, parsed.diagnosis || parsed)
+      } catch (e) {
+        diagnosisForm.findings = data.examResult
+      }
+    }
+  } catch (e) {
+    ElMessage.error('申请单加载失败，无法执行检查')
+    router.back()
+  }
+}
+
+const saveDiagnosis = async () => {
+  if (!patientInfo.applyId) {
+    ElMessage.warning('缺少申请单ID，不能保存检查结果')
+    return
+  }
   const diagnosisData = {
-    registerId: patientInfo.registerId,
-    applyId: patientInfo.applyId,
     checkType: 'BRAIN_CT',
     diagnosis: diagnosisForm,
     aiResult: aiResult.value,
-    artifactResult: artifactResult.value,
-    doctorId: 'DOC007',
-    checkTime: new Date().toISOString()
+    artifactStats: artifactResult.value?.stats || {},
+    fileName: uploadedFileName.value
   }
-  console.log('保存诊断结果:', diagnosisData)
-  ElMessage.success('诊断结果已保存')
+  try {
+    await updateApply({
+      applyId: patientInfo.applyId,
+      examResult: JSON.stringify(diagnosisData),
+      imageUrl: uploadedFileName.value || null,
+      examTime: formatDateTime(),
+      applyStatus: '已完成'
+    })
+    ElMessage.success('诊断结果已保存到申请单')
+  } catch (e) {
+    ElMessage.error('保存失败：' + (e.response?.data?.msg || e.message || '未知错误'))
+  }
 }
 
 const selectDetection = (det) => {
@@ -915,11 +965,7 @@ const selectDetection = (det) => {
 }
 
 // ============ 生命周期 ============
-onMounted(() => {
-  const { applyId, registerId } = route.query
-  if (applyId) patientInfo.applyId = applyId
-  if (registerId) patientInfo.registerId = registerId
-})
+onMounted(loadApplyDetail)
 </script>
 
 <style scoped lang="scss">

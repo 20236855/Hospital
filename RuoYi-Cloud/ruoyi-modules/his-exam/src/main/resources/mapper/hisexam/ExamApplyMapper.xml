@@ -75,7 +75,55 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <select id="selectExamApplyByApplyId" parameterType="Long" resultMap="ExamApplyResult">
         <include refid="selectExamApplyVo"/>
-        where apply_id = #{applyId}
+        where ea.apply_id = #{applyId}
+    </select>
+
+    <select id="selectExamRegisterOptions" resultType="java.util.Map">
+        select r.register_id as registerId,
+               r.register_no as registerNo,
+               e.encounter_id as encounterId,
+               r.patient_id as patientId,
+               p.name as patientName,
+               p.gender as gender,
+               p.age as age,
+               r.doctor_id as doctorId,
+               d.doctor_name as doctorName,
+               r.dept_id as deptId,
+               sd.dept_name as deptName,
+               r.register_time as registerTime
+        from register r
+        inner join encounter e on e.register_id = r.register_id
+        left join patient p on p.patient_id = r.patient_id
+        left join doctor d on d.doctor_id = r.doctor_id
+        left join sys_dept sd on sd.dept_id = r.dept_id
+        <where>
+            r.register_status = 'registered'
+            <if test="doctorId != null"> and r.doctor_id = #{doctorId}</if>
+            <if test="keyword != null and keyword != ''">
+                and (r.register_no like concat('%', #{keyword}, '%') or p.name like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+        order by r.register_time desc
+    </select>
+
+    <select id="selectExamRegisterContext" resultType="java.util.Map">
+        select r.register_id as registerId,
+               r.register_no as registerNo,
+               e.encounter_id as encounterId,
+               r.patient_id as patientId,
+               p.name as patientName,
+               r.doctor_id as doctorId,
+               d.doctor_name as doctorName,
+               r.dept_id as deptId,
+               sd.dept_name as deptName
+        from register r
+        inner join encounter e on e.register_id = r.register_id
+        left join patient p on p.patient_id = r.patient_id
+        left join doctor d on d.doctor_id = r.doctor_id
+        left join sys_dept sd on sd.dept_id = r.dept_id
+        where r.register_id = #{registerId}
+        order by e.encounter_id desc
+        limit 1
     </select>
 
     <insert id="insertExamApply" parameterType="ExamApply" useGeneratedKeys="true" keyProperty="applyId">
