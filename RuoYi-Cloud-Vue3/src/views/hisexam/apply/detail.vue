@@ -307,7 +307,7 @@
 
       <template #footer>
         <el-button @click="executeDialogOpen = false">取消</el-button>
-        <el-button type="primary" :disabled="!selectedExecuteRoute" @click="confirmExecuteApply">进入检查</el-button>
+        <el-button type="primary" :disabled="!selectedExecuteRoute" @click="confirmExecuteApply">进入检查/检验</el-button>
       </template>
     </el-dialog>
   </div>
@@ -318,7 +318,7 @@ import { ref, reactive, computed, getCurrentInstance, onMounted, onUnmounted } f
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { listApply, getApply, addApply, updateApply, listApplyRegisterOptions } from "@/api/hisexam/apply"
-import { listTechnology } from '@/api/hisexam/technology'
+import { listTechnology, listLabTechnologyOptions } from '@/api/hisexam/technology'
 import useUserStore from '@/store/modules/user'
 import { ArrowLeft, ArrowRight, Document, Clock, CircleCheckFilled, Timer, Plus, View, Edit, VideoPlay } from '@element-plus/icons-vue'
 
@@ -392,9 +392,9 @@ const subItemMap = {
     { name: '皮肤病变检查', description: '通过皮肤镜、病理活检等手段对皮肤病灶进行形态学与组织学评估', duration: '15分钟', route: '/hisexam/check/skin' }
   ],
   INSPEC: [
-    { name: '血常规检验', description: '通过全自动血液分析仪检测红细胞、白细胞、血小板等指标，评估血液系统健康状况', duration: '2小时', route: '' },
-    { name: '生化全套检验', description: '检测肝功能、肾功能、血糖血脂等多项生化指标，全面评估代谢与脏器功能', duration: '4小时', route: '' },
-    { name: '免疫学检验', description: '通过免疫学方法检测抗原抗体反应、自身抗体、补体等，辅助诊断免疫相关疾病', duration: '6小时', route: '' }
+    { name: '血常规检验', aliases: ['验血', '血常规'], description: '通过全自动血液分析仪检测红细胞、白细胞、血小板等指标，评估血液系统健康状况', duration: '2小时', route: '/hisexam/lab/blood-routine' },
+    { name: '生化全套检验', aliases: ['生化检验', '生化全套', '肝功能', '肾功能', '肝肾功能', '血糖血脂'], description: '检测肝功能、肾功能、血糖血脂等多项生化指标，全面评估代谢与脏器功能', duration: '4小时', route: '/hisexam/lab/biochemistry' },
+    { name: '免疫学检验', aliases: ['免疫检验', '免疫学', '感染免疫'], description: '通过免疫学方法检测抗原抗体反应、自身抗体、补体等，辅助诊断免疫相关疾病', duration: '6小时', route: '/hisexam/lab/immunology' }
   ],
   DISPOSAL: [
     { name: '外科手术', description: '由专业外科团队执行各类手术治疗，包括术前准备、术中操作与术后监护全流程管理', duration: '2-4小时', route: '' },
@@ -546,10 +546,26 @@ const onDialogRegisterChange = (registerId) => {
 const dialogTechList = ref([])
 
 const loadDialogTechList = () => {
-  // 根据当前分类加载对应类型的医技项目
-  const techType = applyType.value // CHECK / INSPEC / DISPOSAL
-  listTechnology({ techType, status: '0', pageNum: 1, pageSize: 100 })
-    .then(res => { dialogTechList.value = res.rows || res.data?.rows || [] })
+  const techType = applyType.value
+  if (techType === 'INSPEC') {
+    listLabTechnologyOptions().then(res => {
+      dialogTechList.value = res.data || []
+    })
+    return
+  }
+  listTechnology({ techType, pageNum: 1, pageSize: 100 })
+    .then(res => {
+      const rows = res.rows || res.data?.rows || []
+      if (rows.length || techType !== 'INSPEC') {
+        dialogTechList.value = rows
+        return
+      }
+      return listTechnology({ pageNum: 1, pageSize: 300 }).then(allRes => {
+        const allRows = allRes.rows || allRes.data?.rows || []
+        const labNames = subItemMap.INSPEC.flatMap(item => [item.name, ...(item.aliases || [])])
+        dialogTechList.value = allRows.filter(t => labNames.some(name => normalizeText(t.techName).includes(normalizeText(name)) || normalizeText(name).includes(normalizeText(t.techName))))
+      })
+    })
 }
 
 function handleCreate() {
@@ -564,7 +580,7 @@ function handleCreate() {
 
 function createApplyForItem(item) {
   if (isExamDoctor.value && item.route) {
-    ElMessage.warning('请先在下方申请单列表中选择对应申请单，再执行检查')
+    ElMessage.warning('请先在下方申请单列表中选择对应申请单，再执行检查/检验')
     return
   }
   // 其他角色弹出对话框创建申请单
@@ -578,7 +594,11 @@ function createApplyForItem(item) {
   loadDialogTechList()  // 加载对应类型的医技项目
   // 自动匹配医技项目名称
   setTimeout(() => {
-    const matched = dialogTechList.value.find(t => item.name.includes(t.techName) || t.techName.includes(item.name))
+    const names = [item.name, ...(item.aliases || [])].map(normalizeText)
+    const matched = dialogTechList.value.find(t => {
+      const techName = normalizeText(t.techName)
+      return names.some(name => name.includes(techName) || techName.includes(name))
+    })
     if (matched) applyForm.techId = matched.id
   }, 300)
   dialogOpen.value = true
@@ -630,10 +650,12 @@ function getRecommendedExecuteRoute(row) {
   if (!techName && !position && !applyInfo) return ''
 
   const matched = executeRouteOptions.value.find(item => {
-    const name = normalizeText(item.name)
-    return (techName && (techName === name || techName.includes(name) || name.includes(techName)))
+    const names = [item.name, ...(item.aliases || [])].map(normalizeText)
+    return names.some(name =>
+      (techName && (techName === name || techName.includes(name) || name.includes(techName)))
       || (position && (position === name || position.includes(name) || name.includes(position)))
       || (applyInfo && applyInfo.includes(name))
+    )
   })
   return matched?.route || ''
 }

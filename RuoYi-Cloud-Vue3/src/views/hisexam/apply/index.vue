@@ -375,7 +375,7 @@
 import { ref, reactive, toRefs, getCurrentInstance, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { listApply, getApply, delApply, addApply, updateApply, listApplyRegisterOptions } from "@/api/hisexam/apply"
-import { listTechnology } from '@/api/hisexam/technology'
+import { listTechnology, listLabTechnologyOptions } from '@/api/hisexam/technology'
 import { Plus, ArrowRight, Document, View, Monitor, FirstAidKit } from '@element-plus/icons-vue'
 
 // ============ 分类卡片数据 ============
@@ -606,9 +606,31 @@ function ensureRegisterOption(apply) {
 }
 
 function loadTechOptions() {
-  listTechnology({ techType: form.value.applyType || undefined, status: '0', pageNum: 1, pageSize: 100 })
+  const techType = form.value.applyType || undefined
+  if (techType === 'INSPEC') {
+    listLabTechnologyOptions().then(res => {
+      techOptions.value = res.data || []
+    })
+    return
+  }
+  listTechnology({ techType, pageNum: 1, pageSize: 100 })
     .then(res => {
-      techOptions.value = res.rows || res.data?.rows || res.data || []
+      const rows = res.rows || res.data?.rows || res.data || []
+      if (rows.length || techType !== 'INSPEC') {
+        techOptions.value = rows
+        return
+      }
+      return listTechnology({ pageNum: 1, pageSize: 300 }).then(allRes => {
+        const allRows = allRes.rows || allRes.data?.rows || allRes.data || []
+        const labNames = ['血常规检验', '验血', '血常规', '生化全套检验', '生化检验', '生化全套', '肝功能', '肾功能', '肝肾功能', '血糖血脂', '免疫学检验', '免疫检验', '免疫学']
+        techOptions.value = allRows.filter(t => {
+          const techName = String(t.techName || '').replace(/\s+/g, '').toLowerCase()
+          return labNames.some(name => {
+            const target = name.replace(/\s+/g, '').toLowerCase()
+            return techName.includes(target) || target.includes(techName)
+          })
+        })
+      })
     })
 }
 

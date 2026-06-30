@@ -6,6 +6,11 @@ management:
     sentinel:
       enabled: false
 
+lung:
+  ct:
+    service:
+      url: http://127.0.0.1:5004
+
 doubao:
   ark:
     base-url: https://ark.cn-beijing.volces.com/api/v3
@@ -14,3 +19,11 @@ doubao:
     api-key-file: ApiKey.txt
     connect-timeout-ms: 10000
     read-timeout-ms: 120000
+
+ai:
+  deepseek:
+    api-url: https://api.deepseek.com/chat/completions
+    model: deepseek-chat
+    api-key-file: DeepSeekApiKey.txt
+    connect-timeout-ms: 10000
+    read-timeout-ms: 180000

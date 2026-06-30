@@ -31,6 +31,7 @@ mybatis:
 ai:
   deepseek:
     api-key: ${DEEPSEEK_API_KEY:}
+    api-key-file: DeepSeekApiKey.txt
     api-url: https://api.deepseek.com/chat/completions
     model: deepseek-chat
 

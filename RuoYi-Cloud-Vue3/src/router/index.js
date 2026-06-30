@@ -152,6 +152,45 @@ export const constantRoutes = [
       }
     ]
   },
+  {
+    path: '/hisexam/lab/blood-routine',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/hisexam/lab/blood-routine/index'),
+        name: 'BloodRoutineLab',
+        meta: { title: '血常规检验' }
+      }
+    ]
+  },
+  {
+    path: '/hisexam/lab/biochemistry',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/hisexam/lab/biochemistry/index'),
+        name: 'BiochemistryLab',
+        meta: { title: '生化全套检验' }
+      }
+    ]
+  },
+  {
+    path: '/hisexam/lab/immunology',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/hisexam/lab/immunology/index'),
+        name: 'ImmunologyLab',
+        meta: { title: '免疫学检验' }
+      }
+    ]
+  },
 ]
 
 // 动态路由，基于用户权限动态去加载

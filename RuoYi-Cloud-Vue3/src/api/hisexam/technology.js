@@ -9,6 +9,14 @@ export function listTechnology(query) {
   })
 }
 
+// 查询检验申请可用医技项目
+export function listLabTechnologyOptions() {
+  return request({
+    url: '/hisexam/technology/lab/options',
+    method: 'get'
+  })
+}
+
 // 查询医技项目详细
 export function getTechnology(id) {
   return request({

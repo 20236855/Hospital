@@ -5,7 +5,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -56,6 +61,9 @@ public class AiChatServiceImpl implements IAiChatService
 
     @Value("${ai.deepseek.api-key:${DEEPSEEK_API_KEY:}}")
     private String apiKey;
+
+    @Value("${ai.deepseek.api-key-file:DeepSeekApiKey.txt}")
+    private String apiKeyFile;
 
     @Value("${ai.deepseek.api-url:https://api.deepseek.com/chat/completions}")
     private String apiUrl;
@@ -114,8 +122,7 @@ public class AiChatServiceImpl implements IAiChatService
         
         if (StringUtils.isBlank(apiKey))
         {
-            System.out.println("使用硬编码的 API Key");
-            apiKey = "sk-8fe9cdaddd16459b983edb53116ff773";
+            apiKey = resolveApiKeyFromFile();
         }
         
         System.out.println("最终使用的 API Key: " + (StringUtils.isBlank(apiKey) ? "空" : "已配置"));
@@ -314,6 +321,53 @@ public class AiChatServiceImpl implements IAiChatService
             System.err.println("日期格式化失败: " + e.getMessage());
             return "无记录";
         }
+    }
+
+    private String resolveApiKeyFromFile()
+    {
+        if (StringUtils.isBlank(apiKeyFile))
+        {
+            throw new ServiceException("未配置DeepSeek API Key，请设置 DEEPSEEK_API_KEY 或配置 ai.deepseek.api-key-file");
+        }
+
+        for (Path path : resolveApiKeyCandidates(apiKeyFile))
+        {
+            try
+            {
+                if (!Files.isRegularFile(path))
+                {
+                    continue;
+                }
+                String key = Files.readString(path, StandardCharsets.UTF_8);
+                if (StringUtils.isNotEmpty(key))
+                {
+                    return key.trim();
+                }
+            }
+            catch (IOException ignored)
+            {
+            }
+        }
+        throw new ServiceException("未读取到DeepSeek API Key，请将DeepSeekApiKey.txt放到项目根目录或服务运行目录");
+    }
+
+    private List<Path> resolveApiKeyCandidates(String configuredPath)
+    {
+        List<Path> candidates = new ArrayList<>();
+        Path configured = Paths.get(configuredPath);
+        if (configured.isAbsolute())
+        {
+            candidates.add(configured);
+            return candidates;
+        }
+
+        Path cursor = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+        while (cursor != null)
+        {
+            candidates.add(cursor.resolve(configured).normalize());
+            cursor = cursor.getParent();
+        }
+        return candidates;
     }
 
     private String callDeepSeek(JSONArray messages)

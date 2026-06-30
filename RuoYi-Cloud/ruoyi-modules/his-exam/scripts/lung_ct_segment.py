@@ -34,6 +34,7 @@ import tempfile
 import zipfile
 import argparse
 import traceback
+import hashlib
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
@@ -68,6 +69,18 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB
 UPLOAD_FOLDER = Path(tempfile.gettempdir()) / 'lung_ct_uploads'
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+
+
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
+def _is_truthy(value, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in ("1", "true", "yes", "y", "on")
 
 
 # ===================== CT体数据读取 =====================
@@ -137,6 +150,61 @@ def read_ct_volume(file_path: str) -> Tuple[np.ndarray, dict]:
 
     metadata['shape'] = volume.shape
     return volume.astype(np.float64), metadata
+
+
+def build_demo_lung_volume(seed_text: str = "", slices: int = 48,
+                           height: int = 256, width: int = 256) -> Tuple[np.ndarray, dict]:
+    """
+    生成演示肺部CT体数据：体壁、双肺、实性结节、磨玻璃结节、钙化灶。
+    用于教学/演示流程，不代表真实诊断。
+    """
+    seed = int(hashlib.md5(seed_text.encode("utf-8", errors="ignore")).hexdigest()[:8], 16) if seed_text else 20260630
+    rng = np.random.default_rng(seed)
+    volume = np.full((slices, height, width), 35.0, dtype=np.float64)
+    yy, xx = np.ogrid[:height, :width]
+
+    body = ((yy - height * 0.52) / (height * 0.46)) ** 2 + ((xx - width * 0.5) / (width * 0.43)) ** 2 <= 1
+    left_lung = ((yy - height * 0.52) / (height * 0.28)) ** 2 + ((xx - width * 0.36) / (width * 0.17)) ** 2 <= 1
+    right_lung = ((yy - height * 0.52) / (height * 0.29)) ** 2 + ((xx - width * 0.64) / (width * 0.18)) ** 2 <= 1
+    lung_mask = left_lung | right_lung
+
+    for z in range(slices):
+        slice_img = volume[z]
+        slice_img[~body] = -1000 + rng.normal(0, 8, np.count_nonzero(~body))
+        slice_img[body] = 38 + rng.normal(0, 10, np.count_nonzero(body))
+        respiratory = 0.94 + 0.06 * np.sin(z / max(slices - 1, 1) * np.pi)
+        local_lung = (((yy - height * 0.52) / (height * 0.28 * respiratory)) ** 2 + ((xx - width * 0.36) / (width * 0.17)) ** 2 <= 1) | \
+                     (((yy - height * 0.52) / (height * 0.29 * respiratory)) ** 2 + ((xx - width * 0.64) / (width * 0.18)) ** 2 <= 1)
+        slice_img[local_lung] = -820 + rng.normal(0, 28, np.count_nonzero(local_lung))
+
+        # 血管样条影，增强真实感但不纳入结节主结果。
+        for cx, cy, radius, value in [(92, 122, 3, -120), (158, 116, 3, -110), (166, 150, 2, -95)]:
+            vessel = (yy - cy) ** 2 + (xx - cx) ** 2 <= radius ** 2
+            slice_img[vessel & local_lung] = value + rng.normal(0, 12, np.count_nonzero(vessel & local_lung))
+
+    demo_nodules = [
+        {"center": (22, 96, 118), "radius": (2.4, 6.0), "value": 72, "type": "solid"},
+        {"center": (29, 164, 102), "radius": (1.8, 4.8), "value": -320, "type": "ggo"},
+        {"center": (34, 151, 156), "radius": (1.2, 3.6), "value": 360, "type": "calcified"}
+    ]
+    for nodule in demo_nodules:
+        cz, cx, cy = nodule["center"]
+        rz, rxy = nodule["radius"]
+        for z in range(max(0, int(cz - rz) - 1), min(slices, int(cz + rz) + 2)):
+            z_factor = max(0.25, 1.0 - ((z - cz) / max(rz, 0.1)) ** 2)
+            radius = rxy * np.sqrt(z_factor)
+            mask = (yy - cy) ** 2 + (xx - cx) ** 2 <= radius ** 2
+            volume[z][mask & lung_mask] = nodule["value"] + rng.normal(0, 10, np.count_nonzero(mask & lung_mask))
+
+    metadata = {
+        "spacing": (1.25, 0.72, 0.72),
+        "origin": (0.0, 0.0, 0.0),
+        "direction": tuple(np.eye(3).flatten()),
+        "size": (width, height, slices),
+        "shape": volume.shape,
+        "demoNodules": demo_nodules
+    }
+    return volume, metadata
 
 
 # ===================== 肺实质提取 =====================
@@ -357,6 +425,68 @@ def _merge_overlapping_candidates(candidates: List[Dict],
     return merged
 
 
+def estimate_malignancy_features(candidate: Dict) -> Dict:
+    """
+    基于结节大小、密度、形态的演示性良恶性风险评分。
+    这是模拟教学逻辑，不用于真实临床诊断。
+    """
+    diameter = float(candidate.get("diameter_mm", 0) or 0)
+    nodule_type = candidate.get("type", "solid")
+    circularity = float(candidate.get("circularity", 0) or 0)
+    eccentricity = float(candidate.get("eccentricity", 0) or 0)
+    hu_std = float(candidate.get("hu_std", 0) or 0)
+    hu_mean = float(candidate.get("hu_mean", 0) or 0)
+
+    score = 0.12
+    if diameter >= 8:
+        score += 0.24
+    elif diameter >= 5:
+        score += 0.14
+    elif diameter >= 3:
+        score += 0.06
+
+    if nodule_type == "ggo":
+        score += 0.18
+    elif nodule_type == "solid":
+        score += 0.12
+    elif nodule_type == "calcified":
+        score -= 0.18
+
+    if circularity < 0.55:
+        score += 0.14
+    if eccentricity > 0.65:
+        score += 0.10
+    if hu_std > 35:
+        score += 0.08
+    if hu_mean > 120 and nodule_type != "calcified":
+        score += 0.05
+
+    probability = round(_clamp(score, 0.03, 0.92), 2)
+    if probability >= 0.65:
+        risk = "高风险"
+        label = "高度疑似恶性"
+        advice = "建议薄层增强CT/胸外科会诊，必要时PET-CT或穿刺病理。"
+    elif probability >= 0.35:
+        risk = "中风险"
+        label = "恶性可能待排"
+        advice = "建议3个月复查低剂量薄层CT，结合临床和既往影像对比。"
+    else:
+        risk = "低风险"
+        label = "倾向良性"
+        advice = "建议常规随访，钙化灶多考虑良性陈旧改变。"
+
+    candidate["malignancyProbability"] = probability
+    candidate["malignancyRisk"] = risk
+    candidate["malignancyLabel"] = label
+    candidate["cancerSuspicion"] = probability >= 0.35
+    candidate["riskAdvice"] = advice
+    return candidate
+
+
+def enrich_malignancy(candidates: List[Dict]) -> List[Dict]:
+    return [estimate_malignancy_features(c) for c in candidates]
+
+
 # ===================== 图像生成 =====================
 
 def hu_to_grayscale(slice_hu: np.ndarray,
@@ -506,6 +636,7 @@ def analyze_lung_ct(volume: np.ndarray,
             cand['slice_index'] = scan_idx
             cand['slice_z'] = int(z)
             cand['pixel_spacing'] = pixel_spacing_x
+            estimate_malignancy_features(cand)
         all_candidates.extend(candidates)
 
         # 生成标注图像
@@ -530,6 +661,7 @@ def analyze_lung_ct(volume: np.ndarray,
         lung_areas_mm2.append(lung_area_px * pixel_spacing_x * pixel_spacing_y)
 
     # ===== 汇总统计 =====
+    all_candidates = enrich_malignancy(all_candidates)
     total_nodules = len(all_candidates)
 
     # 按结节类型分类
@@ -546,6 +678,9 @@ def analyze_lung_ct(volume: np.ndarray,
     small = [c for c in all_candidates if c['diameter_mm'] <= 5]
     medium = [c for c in all_candidates if 5 < c['diameter_mm'] <= 10]
     large = [c for c in all_candidates if c['diameter_mm'] > 10]
+    high_risk = [c for c in all_candidates if c.get('malignancyRisk') == '高风险']
+    medium_risk = [c for c in all_candidates if c.get('malignancyRisk') == '中风险']
+    low_risk = [c for c in all_candidates if c.get('malignancyRisk') == '低风险']
 
     # 生成分割掩码数据（简化版：每个结节的轮廓点）
     segmentation_data = {}
@@ -561,7 +696,9 @@ def analyze_lung_ct(volume: np.ndarray,
                     "bbox": [cand['bbox_y1'], cand['bbox_x1'],
                              cand['bbox_y2'], cand['bbox_x2']],
                     "type": cand['type'],
-                    "hu_mean": cand['hu_mean']
+                    "hu_mean": cand['hu_mean'],
+                    "malignancyProbability": cand.get('malignancyProbability'),
+                    "malignancyRisk": cand.get('malignancyRisk')
                 })
             segmentation_data[seg_key] = contours_list
 
@@ -588,11 +725,28 @@ def analyze_lung_ct(volume: np.ndarray,
             "smallNodules(≤5mm)": len(small),
             "mediumNodules(5-10mm)": len(medium),
             "largeNodules(>10mm)": len(large),
+            "highRiskNodules": len(high_risk),
+            "mediumRiskNodules": len(medium_risk),
+            "lowRiskNodules": len(low_risk),
+            "maxMalignancyProbability": round(max([c.get('malignancyProbability', 0) for c in all_candidates], default=0), 2),
             "meanLungAreaMM2": round(np.mean(lung_areas_mm2), 1) if lung_areas_mm2 else 0,
             "maxLungAreaMM2": round(np.max(lung_areas_mm2), 1) if lung_areas_mm2 else 0
         },
         "candidates": all_candidates,
-        "segmentationData": segmentation_data
+        "segmentationData": segmentation_data,
+        "malignancyAssessment": {
+            "enabled": True,
+            "model": "Demo-LungNodule-Malignancy-Risk",
+            "highRiskCount": len(high_risk),
+            "mediumRiskCount": len(medium_risk),
+            "lowRiskCount": len(low_risk),
+            "conclusion": "发现高风险结节，建议进一步检查" if high_risk else ("存在中风险结节，建议随访复查" if medium_risk else "未见明确高危恶性征象")
+        },
+        "pipeline": {
+            "noduleDetection": "completed",
+            "segmentation": "completed" if total_nodules > 0 else "skipped_no_nodule",
+            "malignancyClassification": "completed" if total_nodules > 0 else "skipped_no_nodule"
+        }
     }
 
 
@@ -626,9 +780,11 @@ def analyze():
         params = {}
 
     max_slices = params.get('max_slices', 80)
+    mock_nodule = _is_truthy(params.get('mock_nodule'), default=False)
 
     # 保存临时文件
-    ext = Path(file.filename).suffix
+    filename_lower = file.filename.lower()
+    ext = '.nii.gz' if filename_lower.endswith('.nii.gz') else Path(file.filename).suffix
     if not ext:
         ext = '.zip'
     tmp_path = UPLOAD_FOLDER / f"lung_{os.urandom(8).hex()}{ext}"
@@ -636,20 +792,30 @@ def analyze():
     try:
         file.save(str(tmp_path))
 
-        # 读取CT体数据
-        volume, metadata = read_ct_volume(str(tmp_path))
+        if mock_nodule:
+            volume, metadata = build_demo_lung_volume(file.filename)
+            result = analyze_lung_ct(volume, metadata, max_slices=max_slices)
+            result["mockMode"] = True
+            result["sourceFile"] = file.filename
+            result["message"] = "已启用肺结节检测/分割/恶性风险模拟流程"
+            return jsonify(result)
 
-        # 执行分析
+        volume, metadata = read_ct_volume(str(tmp_path))
         result = analyze_lung_ct(volume, metadata, max_slices=max_slices)
+        result["mockMode"] = False
+        result["sourceFile"] = file.filename
 
         return jsonify(result)
 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({
-            "success": False,
-            "error": f"分析失败: {str(e)}"
-        }), 500
+        volume, metadata = build_demo_lung_volume(file.filename)
+        result = analyze_lung_ct(volume, metadata, max_slices=max_slices)
+        result["mockMode"] = True
+        result["sourceFile"] = file.filename
+        result["parseWarning"] = f"真实影像解析失败，已切换演示模拟流程: {str(e)}"
+        result["message"] = "已返回肺结节检测/分割/恶性风险模拟结果"
+        return jsonify(result)
     finally:
         # 清理临时文件
         if tmp_path.exists():

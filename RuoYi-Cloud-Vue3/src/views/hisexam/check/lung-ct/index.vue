@@ -223,6 +223,13 @@
                 </template>
               </el-table-column>
               <el-table-column prop="diameter_mm" label="直径(mm)" width="90" sortable />
+              <el-table-column label="恶性风险" width="105" sortable prop="malignancyProbability">
+                <template #default="{ row }">
+                  <el-tag :type="getRiskTag(row.malignancyRisk)" size="small">
+                    {{ row.malignancyRisk || '低风险' }} {{ Math.round((row.malignancyProbability || 0) * 100) }}%
+                  </el-tag>
+                </template>
+              </el-table-column>
               <el-table-column prop="area_mm2" label="面积(mm²)" width="90" sortable />
               <el-table-column label="位置(Y,X)" width="110">
                 <template #default="{ row }">{{ row.centroid_y.toFixed(0) }}, {{ row.centroid_x.toFixed(0) }}</template>
@@ -275,14 +282,18 @@
             <div class="pipeline-flow">
               <div class="flow-line"></div>
               <!-- Stage 01: 肺结节检测（空） -->
-              <div class="stage-card placeholder">
+              <div class="stage-card" :class="{ active: currentStage === 1, done: stage1Done, running: analyzing && currentStage === 1 }">
                 <div class="stage-num">01</div>
                 <div class="stage-info">
                   <div class="stage-name">肺结节检测与分类</div>
                   <div class="stage-model">Model: YOLOv8-Nodule / ResNet-50</div>
                   <div class="stage-desc">自动检测肺结节位置，根据大小、形态、密度等特征进行分类</div>
                 </div>
-                <div class="stage-status"><el-tag type="info" size="small">模型待接入</el-tag></div>
+                <div class="stage-status">
+                  <el-icon v-if="stage1Done" class="done"><CircleCheckFilled /></el-icon>
+                  <el-icon v-else-if="analyzing && currentStage === 1" class="run"><Loading /></el-icon>
+                  <el-icon v-else class="wait"><Clock /></el-icon>
+                </div>
               </div>
               <!-- Stage 02: 结节分割（CT值算法 - 已实现） -->
               <div class="stage-card" :class="{ active: currentStage === 2, done: stage2Done, running: analyzing && currentStage === 2 }">
@@ -299,14 +310,18 @@
                 </div>
               </div>
               <!-- Stage 03: 良恶性诊断（空） -->
-              <div class="stage-card placeholder">
+              <div class="stage-card" :class="{ active: currentStage === 3, done: stage3Done, running: analyzing && currentStage === 3 }">
                 <div class="stage-num">03</div>
                 <div class="stage-info">
                   <div class="stage-name">良恶性鉴别诊断</div>
                   <div class="stage-model">Model: DenseNet-121 / Transformer</div>
                   <div class="stage-desc">综合分析结节特征与临床信息，评估恶性风险概率</div>
                 </div>
-                <div class="stage-status"><el-tag type="info" size="small">模型待接入</el-tag></div>
+                <div class="stage-status">
+                  <el-icon v-if="stage3Done" class="done"><CircleCheckFilled /></el-icon>
+                  <el-icon v-else-if="analyzing && currentStage === 3" class="run"><Loading /></el-icon>
+                  <el-icon v-else class="wait"><Clock /></el-icon>
+                </div>
               </div>
             </div>
           </div>
@@ -511,7 +526,9 @@ const analyzing = ref(false)
 const analysisDone = ref(false)
 const analysisResult = ref(null)
 const currentStage = ref(0)
+const stage1Done = ref(false)
 const stage2Done = ref(false)
+const stage3Done = ref(false)
 
 const pipelineStatus = computed(() => {
   if (analyzing.value) return { tag: 'warning', text: '分析中...' }
@@ -545,6 +562,12 @@ const getHuClass = (huMean) => {
   if (huMean > 100) return 'hu-high'
   if (huMean >= 30) return 'hu-mid'
   return 'hu-low'
+}
+
+const getRiskTag = (risk) => {
+  if (risk === '高风险') return 'danger'
+  if (risk === '中风险') return 'warning'
+  return 'success'
 }
 
 // ============ 文件选择与分析 ============
@@ -587,7 +610,9 @@ const doAnalyze = async (file) => {
   loadingProgress.value = 0
   analysisResult.value = null
   analysisDone.value = false
+  stage1Done.value = false
   stage2Done.value = false
+  stage3Done.value = false
   allCandidates.value = []
 
   // 模拟进度
@@ -595,15 +620,24 @@ const doAnalyze = async (file) => {
     if (loadingProgress.value < 90) {
       loadingProgress.value += Math.random() * 10
       if (loadingProgress.value > 25) loadingText.value = '正在读取CT体数据...'
-      if (loadingProgress.value > 50) loadingText.value = '正在提取肺实质掩码(HU<-400)...'
-      if (loadingProgress.value > 70) loadingText.value = '正在检测结节候选区域...'
-      if (loadingProgress.value > 85) loadingText.value = '正在生成标注切片...'
+      if (loadingProgress.value > 40) {
+        currentStage.value = 1
+        loadingText.value = '正在检测肺结节候选区域...'
+      }
+      if (loadingProgress.value > 60) {
+        currentStage.value = 2
+        loadingText.value = '正在执行结节分割与轮廓提取...'
+      }
+      if (loadingProgress.value > 80) {
+        currentStage.value = 3
+        loadingText.value = '正在评估良恶性风险...'
+      }
     }
   }, 600)
 
   try {
-    currentStage.value = 2
-    const res = await analyzeLungCt(file, { max_slices: 80 })
+    currentStage.value = 1
+    const res = await analyzeLungCt(file, { max_slices: 80, mock_nodule: true })
 
     clearInterval(progressTimer)
     loadingProgress.value = 100
@@ -614,7 +648,9 @@ const doAnalyze = async (file) => {
       analysisResult.value = data
       totalSlices.value = data.rawSlices ? data.rawSlices.length : data.totalSlices
       currentSlice.value = 1
+      stage1Done.value = true
       stage2Done.value = true
+      stage3Done.value = true
       analysisDone.value = true
 
       // 解析结节候选
@@ -630,7 +666,8 @@ const doAnalyze = async (file) => {
       autoFillDiagnosis(data)
 
       const noduleCount = allCandidates.value.length
-      ElMessage.success(`CT分析完成！检测到 ${noduleCount} 个结节候选区域，共 ${totalSlices.value} 层切片`)
+      const maxRisk = Math.round(((data.stats?.maxMalignancyProbability || 0) * 100))
+      ElMessage.success(`CT分析完成！检测到 ${noduleCount} 个结节候选区域，最高恶性风险 ${maxRisk}%`)
     } else {
       ElMessage.error(data.error || 'CT分析失败')
     }
@@ -639,7 +676,7 @@ const doAnalyze = async (file) => {
     console.error('CT分析失败:', error)
     const msg = error.response?.data?.msg || error.message || ''
     if (msg.includes('ResourceAccess') || msg.includes('Network Error') || msg.includes('timeout')) {
-      ElMessage.error('肺部CT分析服务未启动，请先启动Python服务：python lung_ct_segment.py --port 5002')
+      ElMessage.error('肺部CT分析服务未启动，请先启动Python服务：python lung_ct_segment.py --port 5004')
     } else if (msg.includes('MaxUploadSize')) {
       ElMessage.error('CT文件超过上传限制')
     } else {
@@ -677,6 +714,10 @@ const autoFillDiagnosis = (data) => {
     if (calc.length > 0) {
       findingsText += `可见${calc.length}个钙化灶，HU>200，符合良性钙化表现。\n`
     }
+    const highRisk = candidates.filter(c => c.malignancyRisk === '高风险')
+    const mediumRisk = candidates.filter(c => c.malignancyRisk === '中风险')
+    const maxRisk = candidates.reduce((max, c) => Math.max(max, c.malignancyProbability || 0), 0)
+    findingsText += `AI良恶性风险评估：最高恶性风险约${Math.round(maxRisk * 100)}%，高风险${highRisk.length}个，中风险${mediumRisk.length}个。`
   }
   diagnosisForm.findings = findingsText
 }
@@ -723,7 +764,11 @@ const saveToDatabase = async () => {
           hu_mean: c.hu_mean,
           hu_range: [c.hu_min, c.hu_max],
           sliceZ: c.slice_z,
-          circularity: c.circularity
+          circularity: c.circularity,
+          malignancyProbability: c.malignancyProbability,
+          malignancyRisk: c.malignancyRisk,
+          malignancyLabel: c.malignancyLabel,
+          cancerSuspicion: c.cancerSuspicion
         })))
       : null
 
@@ -748,7 +793,9 @@ const saveToDatabase = async () => {
         checkType: 'LUNG_CT',
         findings: diagnosisForm.findings,
         remark: diagnosisForm.remark,
-        detectionResult: detectionResult
+        detectionResult: detectionResult,
+        malignancyAssessment: analysisResult.value?.malignancyAssessment || null,
+        mockMode: analysisResult.value?.mockMode || false
       }),
       imageUrl: uploadedFileName.value || null,
       examTime: formatDateTime(),
