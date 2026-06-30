@@ -1,6 +1,8 @@
 package com.ruoyi.hisexam.mapper;
 
 import java.util.List;
+import java.util.Map;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.hisexam.domain.ExamApply;
 
 /**
@@ -26,6 +28,23 @@ public interface ExamApplyMapper
      * @return 检查/检验/处置申请单集合
      */
     public List<ExamApply> selectExamApplyList(ExamApply examApply);
+
+    /**
+     * 查询可用于开立检查/检验/处置申请单的挂号记录。
+     *
+     * @param keyword 挂号编号或患者姓名关键字
+     * @param doctorId 门诊医生ID，非门诊医生为空
+     * @return 挂号、接诊、患者、医生、科室信息
+     */
+    public List<Map<String, Object>> selectExamRegisterOptions(@Param("keyword") String keyword, @Param("doctorId") Long doctorId);
+
+    /**
+     * 根据挂号ID查询开单上下文。
+     *
+     * @param registerId 挂号ID
+     * @return 挂号、接诊、患者、医生、科室信息
+     */
+    public Map<String, Object> selectExamRegisterContext(@Param("registerId") Long registerId);
 
     /**
      * 新增检查/检验/处置申请单

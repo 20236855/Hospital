@@ -1,6 +1,7 @@
 package com.ruoyi.hisexam.service.impl;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -23,7 +24,7 @@ public class SkinAiDiagnosisServiceImpl implements ISkinAiDiagnosisService
     private static final Logger log = LoggerFactory.getLogger(SkinAiDiagnosisServiceImpl.class);
     private static final String ARK_API_URL = "https://ark.cn-beijing.volces.com/api/v3/responses";
     private static final String MODEL_ID = "doubao-seed-2-0-pro-260215";
-    private static final String API_KEY_PATH = "D:/RuoYi-Code/Hospital/ApiKey.txt";
+    private static final String API_KEY_PATH = "ApiKey.txt";
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -290,11 +291,37 @@ public class SkinAiDiagnosisServiceImpl implements ISkinAiDiagnosisService
 
         try
         {
-            return new String(Files.readAllBytes(Paths.get(API_KEY_PATH))).trim();
+            for (Path path : resolveApiKeyCandidates(API_KEY_PATH))
+            {
+                if (Files.isRegularFile(path))
+                {
+                    return new String(Files.readAllBytes(path)).trim();
+                }
+            }
+            throw new RuntimeException("API Key file not found");
         }
         catch (Exception e)
         {
             throw new RuntimeException("无法读取 API Key，请在 " + API_KEY_PATH + " 放置密钥或设置 ARK_API_KEY 环境变量");
         }
+    }
+
+    private List<Path> resolveApiKeyCandidates(String configuredPath)
+    {
+        List<Path> candidates = new ArrayList<>();
+        Path configured = Paths.get(configuredPath);
+        if (configured.isAbsolute())
+        {
+            candidates.add(configured);
+            return candidates;
+        }
+
+        Path cursor = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+        while (cursor != null)
+        {
+            candidates.add(cursor.resolve(configured).normalize());
+            cursor = cursor.getParent();
+        }
+        return candidates;
     }
 }

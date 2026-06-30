@@ -196,12 +196,12 @@
             <span :class="'type-' + scope.row.applyType">{{ scope.row.applyType }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="挂号ID" align="center" prop="registerId" width="80" />
+        <el-table-column label="挂号编号" align="center" prop="registerNo" width="110" show-overflow-tooltip />
         <el-table-column label="接诊ID" align="center" prop="encounterId" width="80" />
-        <el-table-column label="患者ID" align="center" prop="patientId" width="80" />
-        <el-table-column label="医生ID" align="center" prop="doctorId" width="80" />
-        <el-table-column label="科室ID" align="center" prop="deptId" width="80" />
-        <el-table-column label="医技项目" align="center" prop="techId" width="90" />
+        <el-table-column label="患者" align="center" prop="patientName" width="90" show-overflow-tooltip />
+        <el-table-column label="开单医生" align="center" prop="doctorName" width="100" show-overflow-tooltip />
+        <el-table-column label="开单科室" align="center" prop="deptName" width="110" show-overflow-tooltip />
+        <el-table-column label="医技项目" align="center" prop="techName" width="120" show-overflow-tooltip />
         <el-table-column label="目的要求" align="center" prop="applyInfo" min-width="120" show-overflow-tooltip />
         <el-table-column label="部位" align="center" prop="applyPosition" min-width="100" show-overflow-tooltip />
         <el-table-column label="执行人员" align="center" prop="operatorId" width="90" />
@@ -244,37 +244,74 @@
     />
 
     <!-- 添加或修改检查/检验/处置申请单对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="640px" append-to-body>
       <el-form ref="applyRef" :model="form" :rules="rules" label-width="100px">
-        <el-row>
+        <el-row :gutter="16">
           <el-col :span="24">
-            <el-form-item label="挂号ID" prop="registerId">
-              <el-input v-model="form.registerId" placeholder="请输入挂号ID" />
+            <el-form-item label="挂号单" prop="registerId">
+              <el-select
+                v-model="form.registerId"
+                filterable
+                remote
+                clearable
+                :remote-method="searchRegisterOptions"
+                :loading="registerLoading"
+                placeholder="搜索挂号编号 / 患者姓名"
+                style="width:100%"
+                @change="onRegisterChange"
+              >
+                <el-option
+                  v-for="r in registerOptions"
+                  :key="r.registerId"
+                  :label="formatRegisterOption(r)"
+                  :value="r.registerId"
+                >
+                  <span style="font-weight:600">{{ r.registerNo }}</span>
+                  <span style="margin-left:8px;color:#64748B">{{ r.patientName }}</span>
+                  <span style="margin-left:8px;color:#94A3B8;font-size:12px">{{ r.gender || '-' }} {{ r.age ? r.age + '岁' : '' }}</span>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="接诊ID">
+              <el-input v-model="form.encounterId" disabled placeholder="选择挂号后自动填充" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="患者">
+              <el-input :model-value="form._patientInfo || '选择挂号后自动填充'" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="开单医生">
+              <el-input :model-value="form._doctorInfo || '选择挂号后自动填充'" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="开单科室">
+              <el-input :model-value="form._deptInfo || '选择挂号后自动填充'" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="接诊ID" prop="encounterId">
-              <el-input v-model="form.encounterId" placeholder="请输入接诊ID" />
+            <el-form-item label="类型" prop="applyType">
+              <el-select v-model="form.applyType" placeholder="请选择类型" style="width:100%" @change="onApplyTypeChange">
+                <el-option label="检查" value="CHECK" />
+                <el-option label="检验" value="INSPEC" />
+                <el-option label="处置" value="DISPOSAL" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="患者ID" prop="patientId">
-              <el-input v-model="form.patientId" placeholder="请输入患者ID" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="开单医生ID" prop="doctorId">
-              <el-input v-model="form.doctorId" placeholder="请输入开单医生ID" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="开单科室ID" prop="deptId">
-              <el-input v-model="form.deptId" placeholder="请输入开单科室ID" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="医技项目ID" prop="techId">
-              <el-input v-model="form.techId" placeholder="请输入医技项目ID" />
+            <el-form-item label="医技项目" prop="techId">
+              <el-select v-model="form.techId" placeholder="请选择医技项目" filterable style="width:100%">
+                <el-option
+                  v-for="t in techOptions"
+                  :key="t.id"
+                  :label="t.techName"
+                  :value="t.id"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -285,16 +322,6 @@
           <el-col :span="24">
             <el-form-item label="检查/检验/处置部位" prop="applyPosition">
               <el-input v-model="form.applyPosition" placeholder="请输入检查/检验/处置部位" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="执行人员ID" prop="operatorId">
-              <el-input v-model="form.operatorId" placeholder="请输入执行人员ID" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="结果录入人员ID" prop="inputerId">
-              <el-input v-model="form.inputerId" placeholder="请输入结果录入人员ID" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -347,7 +374,8 @@
 <script setup name="Apply">
 import { ref, reactive, toRefs, getCurrentInstance, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { listApply, getApply, delApply, addApply, updateApply } from "@/api/hisexam/apply"
+import { listApply, getApply, delApply, addApply, updateApply, listApplyRegisterOptions } from "@/api/hisexam/apply"
+import { listTechnology } from '@/api/hisexam/technology'
 import { Plus, ArrowRight, Document, View, Monitor, FirstAidKit } from '@element-plus/icons-vue'
 
 // ============ 分类卡片数据 ============
@@ -463,6 +491,9 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
+const registerOptions = ref([])
+const registerLoading = ref(false)
+const techOptions = ref([])
 
 const data = reactive({
   form: {},
@@ -489,25 +520,13 @@ const data = reactive({
   },
   rules: {
     registerId: [
-      { required: true, message: "挂号ID不能为空", trigger: "blur" }
-    ],
-    encounterId: [
-      { required: true, message: "接诊ID不能为空", trigger: "blur" }
-    ],
-    patientId: [
-      { required: true, message: "患者ID不能为空", trigger: "blur" }
-    ],
-    doctorId: [
-      { required: true, message: "开单医生ID不能为空", trigger: "blur" }
-    ],
-    deptId: [
-      { required: true, message: "开单科室ID不能为空", trigger: "blur" }
+      { required: true, message: "请选择挂号单", trigger: "change" }
     ],
     applyType: [
-      { required: true, message: "类型：CHECK检查/INSPEC检验/DISPOSAL处置不能为空", trigger: "change" }
+      { required: true, message: "请选择类型", trigger: "change" }
     ],
     techId: [
-      { required: true, message: "医技项目ID不能为空", trigger: "blur" }
+      { required: true, message: "请选择医技项目", trigger: "change" }
     ],
   }
 })
@@ -522,6 +541,80 @@ function getList() {
     total.value = response.total
     loading.value = false
   })
+}
+
+function formatRegisterOption(item) {
+  if (!item) return ''
+  return `${item.registerNo || item.registerId} - ${item.patientName || '未知患者'}`
+}
+
+function applyRegisterContext(item) {
+  if (!item) return
+  form.value.registerId = item.registerId
+  form.value.encounterId = item.encounterId
+  form.value.patientId = item.patientId
+  form.value.doctorId = item.doctorId
+  form.value.deptId = item.deptId
+  form.value._patientInfo = `${item.patientName || '未知患者'} (ID:${item.patientId || '-'})`
+  form.value._doctorInfo = `${item.doctorName || '未知医生'} (ID:${item.doctorId || '-'})`
+  form.value._deptInfo = `${item.deptName || '未知科室'} (ID:${item.deptId || '-'})`
+}
+
+function searchRegisterOptions(keyword = '') {
+  registerLoading.value = true
+  listApplyRegisterOptions({ keyword })
+    .then(res => {
+      registerOptions.value = res.data || []
+    })
+    .finally(() => {
+      registerLoading.value = false
+    })
+}
+
+function onRegisterChange(registerId) {
+  if (!registerId) {
+    form.value.encounterId = null
+    form.value.patientId = null
+    form.value.doctorId = null
+    form.value.deptId = null
+    form.value._patientInfo = ''
+    form.value._doctorInfo = ''
+    form.value._deptInfo = ''
+    return
+  }
+  const matched = registerOptions.value.find(item => item.registerId === registerId)
+  if (matched) applyRegisterContext(matched)
+}
+
+function ensureRegisterOption(apply) {
+  if (!apply?.registerId) return
+  const option = {
+    registerId: apply.registerId,
+    registerNo: apply.registerNo,
+    encounterId: apply.encounterId,
+    patientId: apply.patientId,
+    patientName: apply.patientName,
+    doctorId: apply.doctorId,
+    doctorName: apply.doctorName,
+    deptId: apply.deptId,
+    deptName: apply.deptName
+  }
+  if (!registerOptions.value.some(item => item.registerId === option.registerId)) {
+    registerOptions.value.unshift(option)
+  }
+  applyRegisterContext(option)
+}
+
+function loadTechOptions() {
+  listTechnology({ techType: form.value.applyType || undefined, status: '0', pageNum: 1, pageSize: 100 })
+    .then(res => {
+      techOptions.value = res.rows || res.data?.rows || res.data || []
+    })
+}
+
+function onApplyTypeChange() {
+  form.value.techId = null
+  loadTechOptions()
 }
 
 /** 取消按钮 */
@@ -555,6 +648,7 @@ function reset() {
     createTime: null,
     updateTime: null
   }
+  registerOptions.value = []
   proxy.resetForm("applyRef")
 }
 
@@ -580,6 +674,8 @@ function handleSelectionChange(selection) {
 /** 新增按钮操作 */
 function handleAdd() {
   reset()
+  searchRegisterOptions('')
+  loadTechOptions()
   open.value = true
   title.value = "添加检查/检验/处置申请单"
 }
@@ -590,6 +686,8 @@ function handleUpdate(row) {
   const _applyId = row.applyId || ids.value
   getApply(_applyId).then(response => {
     form.value = response.data
+    ensureRegisterOption(response.data)
+    loadTechOptions()
     open.value = true
     title.value = "修改检查/检验/处置申请单"
   })

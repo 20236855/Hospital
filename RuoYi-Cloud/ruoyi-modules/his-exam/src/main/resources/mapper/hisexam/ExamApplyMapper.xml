@@ -26,38 +26,104 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="remark"    />
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
+        <!-- 展示用JOIN字段 -->
+        <result property="registerNo"   column="register_no"   />
+        <result property="patientName"  column="patient_name"  />
+        <result property="doctorName"   column="doctor_name"   />
+        <result property="deptName"     column="dept_name"     />
+        <result property="techName"     column="tech_name"     />
     </resultMap>
 
     <sql id="selectExamApplyVo">
-        select apply_id, register_id, encounter_id, patient_id, doctor_id, dept_id, apply_type, tech_id, apply_info, apply_position, operator_id, inputer_id, apply_time, exam_time, exam_result, image_url, apply_status, pay_status, remark, create_time, update_time from exam_apply
+        select ea.apply_id, ea.register_id, ea.encounter_id, ea.patient_id, ea.doctor_id, ea.dept_id,
+               ea.apply_type, ea.tech_id, ea.apply_info, ea.apply_position,
+               ea.operator_id, ea.inputer_id, ea.apply_time, ea.exam_time,
+               ea.exam_result, ea.image_url, ea.apply_status, ea.pay_status,
+               ea.remark, ea.create_time, ea.update_time,
+               r.register_no, p.name as patient_name, d.doctor_name,
+               sd.dept_name, mt.tech_name
+        from exam_apply ea
+        left join register r on ea.register_id = r.register_id
+        left join patient p on ea.patient_id = p.patient_id
+        left join doctor d on ea.doctor_id = d.doctor_id
+        left join sys_dept sd on ea.dept_id = sd.dept_id
+        left join medical_technology mt on ea.tech_id = mt.id
     </sql>
 
     <select id="selectExamApplyList" parameterType="ExamApply" resultMap="ExamApplyResult">
         <include refid="selectExamApplyVo"/>
         <where>  
-            <if test="registerId != null "> and register_id = #{registerId}</if>
-            <if test="encounterId != null "> and encounter_id = #{encounterId}</if>
-            <if test="patientId != null "> and patient_id = #{patientId}</if>
-            <if test="doctorId != null "> and doctor_id = #{doctorId}</if>
-            <if test="deptId != null "> and dept_id = #{deptId}</if>
-            <if test="applyType != null  and applyType != ''"> and apply_type = #{applyType}</if>
-            <if test="techId != null "> and tech_id = #{techId}</if>
-            <if test="applyInfo != null  and applyInfo != ''"> and apply_info = #{applyInfo}</if>
-            <if test="applyPosition != null  and applyPosition != ''"> and apply_position = #{applyPosition}</if>
-            <if test="operatorId != null "> and operator_id = #{operatorId}</if>
-            <if test="inputerId != null "> and inputer_id = #{inputerId}</if>
-            <if test="applyTime != null "> and apply_time = #{applyTime}</if>
-            <if test="examTime != null "> and exam_time = #{examTime}</if>
-            <if test="examResult != null  and examResult != ''"> and exam_result = #{examResult}</if>
-            <if test="imageUrl != null  and imageUrl != ''"> and image_url = #{imageUrl}</if>
-            <if test="applyStatus != null  and applyStatus != ''"> and apply_status = #{applyStatus}</if>
-            <if test="payStatus != null  and payStatus != ''"> and pay_status = #{payStatus}</if>
+            <if test="registerId != null "> and ea.register_id = #{registerId}</if>
+            <if test="encounterId != null "> and ea.encounter_id = #{encounterId}</if>
+            <if test="patientId != null "> and ea.patient_id = #{patientId}</if>
+            <if test="doctorId != null "> and ea.doctor_id = #{doctorId}</if>
+            <if test="deptId != null "> and ea.dept_id = #{deptId}</if>
+            <if test="applyType != null  and applyType != ''"> and ea.apply_type = #{applyType}</if>
+            <if test="techId != null "> and ea.tech_id = #{techId}</if>
+            <if test="applyInfo != null  and applyInfo != ''"> and ea.apply_info = #{applyInfo}</if>
+            <if test="applyPosition != null  and applyPosition != ''"> and ea.apply_position = #{applyPosition}</if>
+            <if test="operatorId != null "> and ea.operator_id = #{operatorId}</if>
+            <if test="inputerId != null "> and ea.inputer_id = #{inputerId}</if>
+            <if test="applyTime != null "> and ea.apply_time = #{applyTime}</if>
+            <if test="examTime != null "> and ea.exam_time = #{examTime}</if>
+            <if test="examResult != null  and examResult != ''"> and ea.exam_result = #{examResult}</if>
+            <if test="imageUrl != null  and imageUrl != ''"> and ea.image_url = #{imageUrl}</if>
+            <if test="applyStatus != null  and applyStatus != ''"> and ea.apply_status = #{applyStatus}</if>
+            <if test="payStatus != null  and payStatus != ''"> and ea.pay_status = #{payStatus}</if>
         </where>
     </select>
     
     <select id="selectExamApplyByApplyId" parameterType="Long" resultMap="ExamApplyResult">
         <include refid="selectExamApplyVo"/>
-        where apply_id = #{applyId}
+        where ea.apply_id = #{applyId}
+    </select>
+
+    <select id="selectExamRegisterOptions" resultType="java.util.Map">
+        select r.register_id as registerId,
+               r.register_no as registerNo,
+               e.encounter_id as encounterId,
+               r.patient_id as patientId,
+               p.name as patientName,
+               p.gender as gender,
+               p.age as age,
+               r.doctor_id as doctorId,
+               d.doctor_name as doctorName,
+               r.dept_id as deptId,
+               sd.dept_name as deptName,
+               r.register_time as registerTime
+        from register r
+        inner join encounter e on e.register_id = r.register_id
+        left join patient p on p.patient_id = r.patient_id
+        left join doctor d on d.doctor_id = r.doctor_id
+        left join sys_dept sd on sd.dept_id = r.dept_id
+        <where>
+            r.register_status = 'registered'
+            <if test="doctorId != null"> and r.doctor_id = #{doctorId}</if>
+            <if test="keyword != null and keyword != ''">
+                and (r.register_no like concat('%', #{keyword}, '%') or p.name like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+        order by r.register_time desc
+    </select>
+
+    <select id="selectExamRegisterContext" resultType="java.util.Map">
+        select r.register_id as registerId,
+               r.register_no as registerNo,
+               e.encounter_id as encounterId,
+               r.patient_id as patientId,
+               p.name as patientName,
+               r.doctor_id as doctorId,
+               d.doctor_name as doctorName,
+               r.dept_id as deptId,
+               sd.dept_name as deptName
+        from register r
+        inner join encounter e on e.register_id = r.register_id
+        left join patient p on p.patient_id = r.patient_id
+        left join doctor d on d.doctor_id = r.doctor_id
+        left join sys_dept sd on sd.dept_id = r.dept_id
+        where r.register_id = #{registerId}
+        order by e.encounter_id desc
+        limit 1
     </select>
 
     <insert id="insertExamApply" parameterType="ExamApply" useGeneratedKeys="true" keyProperty="applyId">

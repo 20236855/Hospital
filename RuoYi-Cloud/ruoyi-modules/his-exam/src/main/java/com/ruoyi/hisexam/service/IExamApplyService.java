@@ -1,6 +1,7 @@
 package com.ruoyi.hisexam.service;
 
 import java.util.List;
+import java.util.Map;
 import com.ruoyi.hisexam.domain.ExamApply;
 
 /**
@@ -26,6 +27,15 @@ public interface IExamApplyService
      * @return 检查/检验/处置申请单集合
      */
     public List<ExamApply> selectExamApplyList(ExamApply examApply);
+
+    /**
+     * 查询可用于开立检查/检验/处置申请单的挂号记录
+     * 
+     * @param keyword 挂号编号或患者姓名关键字
+     * @param doctorId 门诊医生ID，非门诊医生为空
+     * @return 挂号上下文集合
+     */
+    public List<Map<String, Object>> selectExamRegisterOptions(String keyword, Long doctorId);
 
     /**
      * 新增检查/检验/处置申请单

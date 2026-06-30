@@ -138,12 +138,13 @@
         <h3 class="content-title">已创建的{{ currentCategory.name }}申请单</h3>
       </div>
       <el-table v-loading="loading" :data="tableData" stripe style="width: 100%">
-        <el-table-column label="申请ID" align="center" prop="applyId" width="100" />
-        <el-table-column label="挂号ID" align="center" prop="registerId" width="100" />
-        <el-table-column label="患者ID" align="center" prop="patientId" width="100" />
-        <el-table-column label="开单医生ID" align="center" prop="doctorId" width="120" />
-        <el-table-column label="目的/要求" align="center" prop="applyInfo" min-width="150" show-overflow-tooltip />
-        <el-table-column label="检查/检验/处置部位" align="center" prop="applyPosition" min-width="160" show-overflow-tooltip />
+        <el-table-column label="申请ID" align="center" prop="applyId" width="80" />
+        <el-table-column label="挂号编号" align="center" prop="registerNo" width="110" show-overflow-tooltip />
+        <el-table-column label="患者" align="center" prop="patientName" min-width="80" show-overflow-tooltip />
+        <el-table-column label="开单医生" align="center" prop="doctorName" min-width="90" show-overflow-tooltip />
+        <el-table-column label="医技项目" align="center" prop="techName" min-width="120" show-overflow-tooltip />
+        <el-table-column label="部位" align="center" prop="applyPosition" min-width="140" show-overflow-tooltip />
+        <el-table-column label="目的" align="center" prop="applyInfo" min-width="140" show-overflow-tooltip />
         <el-table-column label="开立时间" align="center" prop="applyTime" width="120">
           <template #default="scope">
             <span>{{ parseTime(scope.row.applyTime, '{y}-{m}-{d}') }}</span>
@@ -163,8 +164,9 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" align="center" width="160" fixed="right">
+        <el-table-column label="操作" align="center" width="220" fixed="right">
           <template #default="scope">
+            <el-button v-if="isExamDoctor" link type="success" size="small" icon="VideoPlay" @click="openExecuteDialog(scope.row)">选择申请单</el-button>
             <el-button link type="primary" size="small" icon="View" @click="handleView(scope.row)">查看</el-button>
             <el-button link type="primary" size="small" icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
           </template>
@@ -181,37 +183,75 @@
     </div>
 
     <!-- 新建/编辑申请单对话框 -->
-    <el-dialog :title="dialogTitle" v-model="dialogOpen" width="520px" append-to-body destroy-on-close>
+    <el-dialog :title="dialogTitle" v-model="dialogOpen" width="560px" append-to-body destroy-on-close>
       <el-form ref="applyFormRef" :model="applyForm" :rules="formRules" label-width="100px">
         <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="挂号ID" prop="registerId">
-              <el-input v-model="applyForm.registerId" placeholder="请输入挂号ID" />
+          <!-- 挂号单下拉框 → 选择后自动填充以下只读字段 -->
+          <el-col :span="24">
+            <el-form-item label="挂号单" prop="registerId">
+              <el-select
+                v-model="applyForm.registerId"
+                filterable
+                remote
+                :remote-method="searchRegistersForDialog"
+                :loading="regLoading"
+                placeholder="搜索挂号编号 / 患者姓名"
+                clearable
+                style="width:100%"
+                @change="onDialogRegisterChange"
+              >
+                <el-option
+                  v-for="r in registerOptions"
+                  :key="r.registerId"
+                  :label="r.registerNo + ' - ' + r.patientName"
+                  :value="r.registerId"
+                >
+                  <span style="font-weight:600">{{ r.registerNo }}</span>
+                  <span style="margin-left:8px;color:#64748B">{{ r.patientName }}</span>
+                </el-option>
+              </el-select>
             </el-form-item>
           </el-col>
+          <!-- 接诊ID 自动填充 -->
           <el-col :span="12">
-            <el-form-item label="接诊ID" prop="encounterId">
-              <el-input v-model="applyForm.encounterId" placeholder="请输入接诊ID" />
+            <el-form-item label="接诊ID">
+              <el-input v-model="applyForm.encounterId" placeholder="选择挂号后自动填充" disabled />
             </el-form-item>
           </el-col>
+          <!-- 患者ID 自动填充 -->
           <el-col :span="12">
-            <el-form-item label="患者ID" prop="patientId">
-              <el-input v-model="applyForm.patientId" placeholder="请输入患者ID" />
+            <el-form-item label="患者ID">
+              <el-input v-model="applyForm.patientId" placeholder="选择挂号后自动填充" disabled />
             </el-form-item>
           </el-col>
+          <!-- 开单医生（自动填充 + 只读显示姓名） -->
           <el-col :span="12">
-            <el-form-item label="开单医生ID" prop="doctorId">
-              <el-input v-model="applyForm.doctorId" placeholder="请输入开单医生ID" />
+            <el-form-item label="开单医生">
+              <el-input :model-value="applyForm._doctorInfo || '选择挂号后自动填充'" disabled />
             </el-form-item>
           </el-col>
+          <!-- 开单科室（自动填充 + 只读显示名称） -->
           <el-col :span="12">
-            <el-form-item label="开单科室ID" prop="deptId">
-              <el-input v-model="applyForm.deptId" placeholder="请输入开单科室ID" />
+            <el-form-item label="开单科室">
+              <el-input :model-value="applyForm._deptInfo || '选择挂号后自动填充'" disabled />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="医技项目ID" prop="techId">
-              <el-input v-model="applyForm.techId" placeholder="请输入医技项目ID" />
+          <!-- 医技项目下拉框 -->
+          <el-col :span="24">
+            <el-form-item label="医技项目" prop="techId">
+              <el-select
+                v-model="applyForm.techId"
+                placeholder="选择医技项目"
+                style="width:100%"
+                filterable
+              >
+                <el-option
+                  v-for="t in dialogTechList"
+                  :key="t.id"
+                  :label="t.techName"
+                  :value="t.id"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -231,6 +271,45 @@
         <el-button type="primary" @click="submitApply" :loading="submitting">确定提交</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog title="选择检查检验申请单" v-model="executeDialogOpen" width="560px" append-to-body>
+      <el-descriptions :column="2" border size="small" v-if="selectedApply">
+        <el-descriptions-item label="申请ID">{{ selectedApply.applyId }}</el-descriptions-item>
+        <el-descriptions-item label="挂号编号">{{ selectedApply.registerNo || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="患者">{{ selectedApply.patientName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="医技项目">{{ selectedApply.techName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="部位">{{ selectedApply.applyPosition || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ selectedApply.applyStatus || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="目的" :span="2">{{ selectedApply.applyInfo || '-' }}</el-descriptions-item>
+      </el-descriptions>
+
+      <el-alert
+        v-if="!executeRouteOptions.length"
+        title="该申请单暂未配置对应的执行页面"
+        type="warning"
+        show-icon
+        :closable="false"
+        class="execute-alert"
+      />
+
+      <el-form label-width="90px" class="execute-form" v-else>
+        <el-form-item label="执行项目">
+          <el-select v-model="selectedExecuteRoute" placeholder="请选择与申请单对应的执行项目" style="width:100%">
+            <el-option
+              v-for="item in executeRouteOptions"
+              :key="item.route"
+              :label="item.name"
+              :value="item.route"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="executeDialogOpen = false">取消</el-button>
+        <el-button type="primary" :disabled="!selectedExecuteRoute" @click="confirmExecuteApply">进入检查</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -238,9 +317,10 @@
 import { ref, reactive, computed, getCurrentInstance, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { listApply, getApply, addApply, updateApply } from "@/api/hisexam/apply"
+import { listApply, getApply, addApply, updateApply, listApplyRegisterOptions } from "@/api/hisexam/apply"
+import { listTechnology } from '@/api/hisexam/technology'
 import useUserStore from '@/store/modules/user'
-import { ArrowLeft, ArrowRight, Document, Clock, CircleCheckFilled, Timer, Plus, View, Edit } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, Document, Clock, CircleCheckFilled, Timer, Plus, View, Edit, VideoPlay } from '@element-plus/icons-vue'
 
 import checkImg1 from '@/assets/exam/检查1.png'
 import checkImg2 from '@/assets/exam/检查2.png'
@@ -384,6 +464,10 @@ const dialogTitle = ref('')
 const submitting = ref(false)
 const isEdit = ref(false)
 const applyFormRef = ref(null)
+const executeDialogOpen = ref(false)
+const selectedApply = ref(null)
+const selectedExecuteRoute = ref('')
+const executeRouteOptions = computed(() => subItems.value.filter(item => item.route))
 const applyForm = reactive({
   applyId: null,
   registerId: null,
@@ -402,17 +486,70 @@ const applyForm = reactive({
 })
 
 const formRules = {
-  registerId: [{ required: true, message: '挂号ID不能为空', trigger: 'blur' }],
-  encounterId: [{ required: true, message: '接诊ID不能为空', trigger: 'blur' }],
-  patientId: [{ required: true, message: '患者ID不能为空', trigger: 'blur' }],
-  doctorId: [{ required: true, message: '开单医生ID不能为空', trigger: 'blur' }],
-  deptId: [{ required: true, message: '开单科室ID不能为空', trigger: 'blur' }],
-  techId: [{ required: true, message: '医技项目ID不能为空', trigger: 'blur' }]
+  registerId: [{ required: true, message: '请选择挂号单', trigger: 'change' }],
+  techId: [{ required: true, message: '请选择医技项目', trigger: 'change' }]
 }
 
 function resetApplyForm() {
   Object.keys(applyForm).forEach(k => applyForm[k] = null)
+  applyForm._doctorInfo = ''
+  applyForm._deptInfo = ''
   proxy.resetForm && proxy.resetForm("applyFormRef")
+}
+
+// ============ 对话框：挂号下拉框 ============
+const registerOptions = ref([])
+const regLoading = ref(false)
+
+const searchRegistersForDialog = (keyword) => {
+  regLoading.value = true
+  listApplyRegisterOptions({ keyword })
+    .then(res => { registerOptions.value = res.data || [] })
+    .finally(() => { regLoading.value = false })
+}
+
+const fillApplyFormContext = (data) => {
+  if (!data) return
+  applyForm.registerId = data.registerId
+  applyForm.encounterId = data.encounterId || ''
+  applyForm.patientId = data.patientId || ''
+  applyForm.doctorId = data.doctorId || ''
+  applyForm.deptId = data.deptId || ''
+  applyForm._doctorInfo = (data.doctorName || '未知医生') + ' (ID:' + (data.doctorId || '-') + ')'
+  applyForm._deptInfo = (data.deptName || '未知科室') + ' (ID:' + (data.deptId || '-') + ')'
+}
+
+const ensureDialogRegisterOption = (data) => {
+  if (!data?.registerId) return
+  if (!registerOptions.value.some(item => item.registerId === data.registerId)) {
+    registerOptions.value.unshift({
+      registerId: data.registerId,
+      registerNo: data.registerNo,
+      encounterId: data.encounterId,
+      patientId: data.patientId,
+      patientName: data.patientName,
+      doctorId: data.doctorId,
+      doctorName: data.doctorName,
+      deptId: data.deptId,
+      deptName: data.deptName
+    })
+  }
+}
+
+const onDialogRegisterChange = (registerId) => {
+  if (!registerId) return
+  const matched = registerOptions.value.find(item => item.registerId === registerId)
+  fillApplyFormContext(matched)
+}
+
+// ============ 对话框：医技项目下拉框 ============
+const dialogTechList = ref([])
+
+const loadDialogTechList = () => {
+  // 根据当前分类加载对应类型的医技项目
+  const techType = applyType.value // CHECK / INSPEC / DISPOSAL
+  listTechnology({ techType, status: '0', pageNum: 1, pageSize: 100 })
+    .then(res => { dialogTechList.value = res.rows || res.data?.rows || [] })
 }
 
 function handleCreate() {
@@ -420,13 +557,14 @@ function handleCreate() {
   resetApplyForm()
   applyForm.applyType = applyType.value
   dialogTitle.value = `新建${currentCategory.value?.name}申请单`
+  searchRegistersForDialog('')
+  loadDialogTechList()
   dialogOpen.value = true
 }
 
 function createApplyForItem(item) {
-  // 仅 role_id=7(roleKey='lab') 的检查检验医生可跳转检查页面
   if (isExamDoctor.value && item.route) {
-    router.push({ path: item.route, query: { applyType: applyType.value } })
+    ElMessage.warning('请先在下方申请单列表中选择对应申请单，再执行检查')
     return
   }
   // 其他角色弹出对话框创建申请单
@@ -436,21 +574,32 @@ function createApplyForItem(item) {
   applyForm.applyPosition = item.name
   applyForm.applyInfo = item.description
   dialogTitle.value = `申请：${item.name}`
+  searchRegistersForDialog('')
+  loadDialogTechList()  // 加载对应类型的医技项目
+  // 自动匹配医技项目名称
+  setTimeout(() => {
+    const matched = dialogTechList.value.find(t => item.name.includes(t.techName) || t.techName.includes(item.name))
+    if (matched) applyForm.techId = matched.id
+  }, 300)
   dialogOpen.value = true
 }
 
 function handleView(row) {
   getApply(row.applyId).then(res => {
+    const d = res.data
     proxy.$modal.alert(
       `<div style="line-height:2">
-        <p><b>申请ID：</b>${res.data.applyId}</p>
-        <p><b>类型：</b>${res.data.applyType}</p>
-        <p><b>患者ID：</b>${res.data.patientId}</p>
-        <p><b>医生ID：</b>${res.data.doctorId}</p>
-        <p><b>部位：</b>${res.data.applyPosition || '-'}</p>
-        <p><b>目的：</b>${res.data.applyInfo || '-'}</p>
-        <p><b>状态：</b>${res.data.applyStatus || '-'}</p>
-        <p><b>结果：</b>${res.data.examResult || '-'}</p>
+        <p><b>申请ID：</b>${d.applyId}</p>
+        <p><b>类型：</b>${d.applyType}</p>
+        <p><b>挂号编号：</b>${d.registerNo || d.registerId || '-'}</p>
+        <p><b>患者：</b>${d.patientName || d.patientId || '-'}</p>
+        <p><b>开单医生：</b>${d.doctorName || d.doctorId || '-'}</p>
+        <p><b>开单科室：</b>${d.deptName || d.deptId || '-'}</p>
+        <p><b>医技项目：</b>${d.techName || d.techId || '-'}</p>
+        <p><b>部位：</b>${d.applyPosition || '-'}</p>
+        <p><b>目的：</b>${d.applyInfo || '-'}</p>
+        <p><b>状态：</b>${d.applyStatus || '-'}</p>
+        <p><b>结果：</b>${d.examResult || '-'}</p>
       </div>`,
       '申请单详情',
       { dangerouslyUseHTMLString: true }
@@ -462,9 +611,46 @@ function handleEdit(row) {
   isEdit.value = true
   getApply(row.applyId).then(res => {
     Object.assign(applyForm, res.data)
+    ensureDialogRegisterOption(res.data)
+    fillApplyFormContext(res.data)
+    loadDialogTechList()
     dialogTitle.value = `编辑${currentCategory.value?.name}申请单`
     dialogOpen.value = true
   })
+}
+
+function normalizeText(value) {
+  return String(value || '').replace(/\s+/g, '').toLowerCase()
+}
+
+function getRecommendedExecuteRoute(row) {
+  const techName = normalizeText(row.techName)
+  const position = normalizeText(row.applyPosition)
+  const applyInfo = normalizeText(row.applyInfo)
+  if (!techName && !position && !applyInfo) return ''
+
+  const matched = executeRouteOptions.value.find(item => {
+    const name = normalizeText(item.name)
+    return (techName && (techName === name || techName.includes(name) || name.includes(techName)))
+      || (position && (position === name || position.includes(name) || name.includes(position)))
+      || (applyInfo && applyInfo.includes(name))
+  })
+  return matched?.route || ''
+}
+
+function openExecuteDialog(row) {
+  selectedApply.value = row
+  selectedExecuteRoute.value = getRecommendedExecuteRoute(row)
+  executeDialogOpen.value = true
+}
+
+function confirmExecuteApply() {
+  if (!selectedApply.value?.applyId || !selectedExecuteRoute.value) {
+    ElMessage.warning('请先选择检查检验申请单和对应执行项目')
+    return
+  }
+  executeDialogOpen.value = false
+  router.push({ path: selectedExecuteRoute.value, query: { applyId: selectedApply.value.applyId } })
 }
 
 function submitApply() {

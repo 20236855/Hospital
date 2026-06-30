@@ -11,6 +11,6 @@ doubao:
     base-url: https://ark.cn-beijing.volces.com/api/v3
     model: doubao-seed-2-0-pro-260215
     api-key-env: ARK_API_KEY
-    api-key-file: D:/RuoYi-Code/Hospital/ApiKey.txt
+    api-key-file: ApiKey.txt
     connect-timeout-ms: 10000
     read-timeout-ms: 120000
