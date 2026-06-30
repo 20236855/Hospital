@@ -50,10 +50,6 @@
         <span class="label">开单医生</span>
         <span class="value">{{ patientInfo.doctorName }}</span>
       </div>
-      <div class="patient-item wide">
-        <span class="label">检查目的</span>
-        <span class="value">{{ patientInfo.purpose }}</span>
-      </div>
     </div>
 
     <!-- ==================== 主体内容区 ==================== -->
