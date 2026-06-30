@@ -263,19 +263,49 @@ async function sendAiQuestion() {
   chatMessages.value.push({ role: 'user', content: aiQuestion.value })
   aiLoading.value = true
   try {
+    const imageBase64 = await imageToBase64(imageFile.value)
     const res = await skinAiDiagnosis({
       question: aiQuestion.value,
       patientId: route.query.patientId,
-      result: result.value
+      result: result.value,
+      imageBase64: imageBase64
     })
-    const reply = res.data?.reply || 'AI 未返回有效回复'
+    const replyData = res.data || {}
+    const reply = replyData.opinion || replyData.reply || replyData.rawText || 'AI 未返回有效回复'
     chatMessages.value.push({ role: 'assistant', content: reply })
+
+    // 将AI返回的结构化数据填入诊断表单
+    if (replyData.opinion) {
+      diagnosisForm.value.opinion = replyData.opinion
+    }
+    if (replyData.findings) {
+      diagnosisForm.value.imageFindings = replyData.findings
+    }
+
     aiQuestion.value = ''
   } catch (e) {
     ElMessage.error('AI 请求失败')
   } finally {
     aiLoading.value = false
   }
+}
+
+function imageToBase64(file) {
+  return new Promise((resolve) => {
+    if (!file) {
+      resolve('')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result || ''
+      resolve(result.startsWith('data:image') ? result : '')
+    }
+    reader.onerror = () => {
+      resolve('')
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 function saveDiagnosis() {

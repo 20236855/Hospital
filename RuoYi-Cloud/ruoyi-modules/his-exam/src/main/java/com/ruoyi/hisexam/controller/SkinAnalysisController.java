@@ -11,7 +11,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
-import com.ruoyi.common.security.annotation.RequiresPermissions;
+import com.ruoyi.common.security.annotation.RequiresLogin;
 import com.ruoyi.hisexam.service.ISkinAiDiagnosisService;
 
 /**
@@ -33,7 +33,7 @@ public class SkinAnalysisController extends BaseController
     /**
      * 健康检查
      */
-    @RequiresPermissions("hisexam:skin:list")
+    @RequiresLogin
     @GetMapping("/health")
     public AjaxResult health()
     {
@@ -51,7 +51,7 @@ public class SkinAnalysisController extends BaseController
     /**
      * 皮肤病变分析：上传图片 → Python Flask 服务 → 返回检测结果 + 标注图
      */
-    @RequiresPermissions("hisexam:skin:list")
+    @RequiresLogin
     @PostMapping("/analyze")
     public AjaxResult analyze(
             @RequestParam("file") MultipartFile file,
@@ -90,7 +90,7 @@ public class SkinAnalysisController extends BaseController
     /**
      * AI 辅助诊断（基于分析结果自然语言提问）
      */
-    @RequiresPermissions("hisexam:skin:list")
+    @RequiresLogin
     @PostMapping("/ai-diagnosis")
     public AjaxResult aiDiagnosis(@RequestBody Map<String, Object> requestMap)
     {
