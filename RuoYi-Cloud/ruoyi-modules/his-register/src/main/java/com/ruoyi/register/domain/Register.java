@@ -33,6 +33,10 @@ public class Register extends BaseEntity
     @Excel(name = "排班ID")
     private Long scheduleId;
 
+    /** 预约时间片ID */
+    @Excel(name = "预约时间片ID")
+    private Long slotId;
+
     /** 医生ID */
     @Excel(name = "医生ID")
     private Long doctorId;
@@ -62,7 +66,7 @@ public class Register extends BaseEntity
     private BigDecimal registerFee;
 
     /** 挂号时间 */
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     @Excel(name = "挂号时间", width = 30, dateFormat = "yyyy-MM-dd")
     private Date registerTime;
 
@@ -80,6 +84,12 @@ public class Register extends BaseEntity
 
     /** 挂号级别名称（查询/展示用，不入挂号表） */
     private String levelName;
+
+    /** 预约时间片开始时间（查询/展示用，不入挂号表） */
+    private String startTime;
+
+    /** 预约时间片结束时间（查询/展示用，不入挂号表） */
+    private String endTime;
 
     public void setRegisterId(Long registerId) 
     {
@@ -119,6 +129,16 @@ public class Register extends BaseEntity
     public Long getScheduleId() 
     {
         return scheduleId;
+    }
+
+    public void setSlotId(Long slotId)
+    {
+        this.slotId = slotId;
+    }
+
+    public Long getSlotId()
+    {
+        return slotId;
     }
 
     public void setDoctorId(Long doctorId) 
@@ -251,6 +271,26 @@ public class Register extends BaseEntity
         return levelName;
     }
 
+    public void setStartTime(String startTime)
+    {
+        this.startTime = startTime;
+    }
+
+    public String getStartTime()
+    {
+        return startTime;
+    }
+
+    public void setEndTime(String endTime)
+    {
+        this.endTime = endTime;
+    }
+
+    public String getEndTime()
+    {
+        return endTime;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -258,6 +298,7 @@ public class Register extends BaseEntity
             .append("registerNo", getRegisterNo())
             .append("patientId", getPatientId())
             .append("scheduleId", getScheduleId())
+            .append("slotId", getSlotId())
             .append("doctorId", getDoctorId())
             .append("deptId", getDeptId())
             .append("levelId", getLevelId())
@@ -271,6 +312,8 @@ public class Register extends BaseEntity
             .append("doctorName", getDoctorName())
             .append("deptName", getDeptName())
             .append("levelName", getLevelName())
+            .append("startTime", getStartTime())
+            .append("endTime", getEndTime())
             .append("remark", getRemark())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())

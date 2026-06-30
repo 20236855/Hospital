@@ -168,6 +168,7 @@ public class ScheduleController extends BaseController
     @GetMapping("/open/list")
     public TableDataInfo openList(Schedule schedule)
     {
+        schedule.setRoleId(OUTPATIENT_DOCTOR_ROLE_ID);
         startPage();
         List<Schedule> list = scheduleService.selectScheduleList(schedule);
         return getDataTable(list);

@@ -1,6 +1,7 @@
 package com.ruoyi.hisdoctor.domain;
 
 import java.util.Date;
+import java.math.BigDecimal;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -23,6 +24,30 @@ public class Schedule extends BaseEntity
     /** 医生ID */
     @Excel(name = "医生ID")
     private Long doctorId;
+
+    /** 科室ID */
+    private Long deptId;
+
+    /** 医生姓名 */
+    private String doctorName;
+
+    /** 医生角色ID，仅用于查询过滤 */
+    private Long roleId;
+
+    /** 挂号级别ID */
+    private Long levelId;
+
+    /** 挂号级别名称 */
+    private String levelName;
+
+    /** 挂号费用 */
+    private BigDecimal fee;
+
+    /** 查询开始日期 */
+    private String beginDate;
+
+    /** 查询结束日期 */
+    private String endDate;
 
     /** 排班日期 */
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
@@ -67,6 +92,86 @@ public class Schedule extends BaseEntity
     public Long getDoctorId() 
     {
         return doctorId;
+    }
+
+    public void setDeptId(Long deptId)
+    {
+        this.deptId = deptId;
+    }
+
+    public Long getDeptId()
+    {
+        return deptId;
+    }
+
+    public void setDoctorName(String doctorName)
+    {
+        this.doctorName = doctorName;
+    }
+
+    public String getDoctorName()
+    {
+        return doctorName;
+    }
+
+    public void setRoleId(Long roleId)
+    {
+        this.roleId = roleId;
+    }
+
+    public Long getRoleId()
+    {
+        return roleId;
+    }
+
+    public void setLevelId(Long levelId)
+    {
+        this.levelId = levelId;
+    }
+
+    public Long getLevelId()
+    {
+        return levelId;
+    }
+
+    public void setLevelName(String levelName)
+    {
+        this.levelName = levelName;
+    }
+
+    public String getLevelName()
+    {
+        return levelName;
+    }
+
+    public void setFee(BigDecimal fee)
+    {
+        this.fee = fee;
+    }
+
+    public BigDecimal getFee()
+    {
+        return fee;
+    }
+
+    public void setBeginDate(String beginDate)
+    {
+        this.beginDate = beginDate;
+    }
+
+    public String getBeginDate()
+    {
+        return beginDate;
+    }
+
+    public void setEndDate(String endDate)
+    {
+        this.endDate = endDate;
+    }
+
+    public String getEndDate()
+    {
+        return endDate;
     }
 
     public void setScheduleDate(Date scheduleDate) 
@@ -139,6 +244,14 @@ public class Schedule extends BaseEntity
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("scheduleId", getScheduleId())
             .append("doctorId", getDoctorId())
+            .append("deptId", getDeptId())
+            .append("doctorName", getDoctorName())
+            .append("roleId", getRoleId())
+            .append("levelId", getLevelId())
+            .append("levelName", getLevelName())
+            .append("fee", getFee())
+            .append("beginDate", getBeginDate())
+            .append("endDate", getEndDate())
             .append("scheduleDate", getScheduleDate())
             .append("timeSlot", getTimeSlot())
             .append("maxNumber", getMaxNumber())

@@ -21,20 +21,31 @@
 
     <!-- 患者信息栏 -->
     <div class="patient-bar" v-if="patientInfo">
-      <span><strong>{{ patientInfo.name || '未知' }}</strong></span>
-      <span class="sep">|</span>
-      <span>性别：{{ patientInfo.gender || '-' }}</span>
-      <span class="sep">|</span>
-      <span>年龄：{{ patientInfo.age || '-' }}</span>
-      <span class="sep">|</span>
-      <span>挂号：{{ patientInfo.registerNo || patientInfo.registerId || '-' }}</span>
-      <span class="sep">|</span>
-      <span>申请单号：{{ patientInfo.applyId || '-' }}</span>
+      <div class="patient-item">
+        <span class="label">患者姓名</span>
+        <span class="value">{{ patientInfo.name || '--' }}</span>
+      </div>
+      <div class="patient-item">
+        <span class="label">性别</span>
+        <span class="value">{{ patientInfo.gender || '--' }}</span>
+      </div>
+      <div class="patient-item">
+        <span class="label">年龄</span>
+        <span class="value">{{ patientInfo.age ? patientInfo.age + '岁' : '--' }}</span>
+      </div>
+      <div class="patient-item">
+        <span class="label">挂号ID</span>
+        <span class="value">{{ patientInfo.registerNo || patientInfo.registerId || '--' }}</span>
+      </div>
+      <div class="patient-item">
+        <span class="label">申请单号</span>
+        <span class="value">{{ patientInfo.applyId || '--' }}</span>
+      </div>
     </div>
 
     <!-- 主体：左右两栏 -->
     <el-row :gutter="16" class="main-row">
-      <!-- 左侧：图片上传区 -->
+      <!-- 左侧：图片上传区 + AI标注图像 -->
       <el-col :span="14">
         <div class="panel upload-panel">
           <div class="panel-title">皮肤图像</div>
@@ -60,17 +71,45 @@
               </div>
               <div class="preview-actions">
                 <el-button type="primary" @click="analyzeImage" :loading="analyzing" size="large">
-                  <el-icon><Search /></el-icon> AI 识别分析
+                  识别分析
                 </el-button>
-                <el-button @click="resetImage">重新上传</el-button>
+                <el-button @click="resetImage" size="large">重新上传</el-button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- AI 标注图像：始终显示 -->
+        <div class="panel annotated-panel">
+          <div class="panel-title">AI 标注图像</div>
+          <div class="panel-body">
+            <template v-if="result && result.annotatedImage">
+              <img :src="'data:image/png;base64,' + result.annotatedImage" class="annotated-img" alt="标注结果" />
+            </template>
+            <template v-else-if="analyzing">
+              <div class="annotated-placeholder">
+                <el-icon :size="36" class="is-loading"><Loading /></el-icon>
+                <p>AI 正在分析中...</p>
+              </div>
+            </template>
+            <template v-else-if="imageUrl">
+              <div class="annotated-placeholder">
+                <el-icon :size="36"><Picture /></el-icon>
+                <p>点击「AI 识别分析」后将在此显示标注结果</p>
+              </div>
+            </template>
+            <template v-else>
+              <div class="annotated-placeholder">
+                <el-icon :size="36"><Picture /></el-icon>
+                <p>请先上传皮肤图片，再点击 AI 识别分析</p>
+              </div>
+            </template>
           </div>
         </div>
       </el-col>
 
       <!-- 右侧：分析结果 + 诊断 -->
-      <el-col :span="10">
+      <el-col :span="10" class="right-col">
         <!-- 检测结果 -->
         <div class="panel result-panel" v-if="result">
           <div class="panel-title">
@@ -101,11 +140,25 @@
           </div>
         </div>
 
-        <!-- AI 标注图像 -->
-        <div class="panel annotated-panel" v-if="result && result.annotatedImage">
-          <div class="panel-title">AI 标注图像</div>
+        <!-- AI 辅助诊断对话结果 -->
+        <div class="panel ai-result-panel">
+          <div class="panel-title">AI检测结果</div>
           <div class="panel-body">
-            <img :src="'data:image/png;base64,' + result.annotatedImage" class="annotated-img" alt="标注结果" />
+            <template v-if="chatMessages.length">
+              <div class="ai-chat-inline">
+                <div v-for="(msg, i) in chatMessages" :key="i" :class="['chat-msg', msg.role]">
+                  <strong>{{ msg.role === 'user' ? '医生' : 'AI' }}：</strong>
+                  <p>{{ msg.content }}</p>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="ai-result-placeholder">
+                <el-icon :size="32" color="#c0c4cc"><ChatDotRound /></el-icon>
+                <p>打开「AI辅助诊断」选择病变图片并提问</p>
+                <p class="sub-tip">AI将结合当前切片生成返回结果</p>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -173,7 +226,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { analyzeSkin, skinAiDiagnosis } from '@/api/hisexam/skinAnalysis'
 import { getApply, updateApply } from '@/api/hisexam/apply'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ChatDotRound, Check, Search, Upload, Promotion } from '@element-plus/icons-vue'
+import { ArrowLeft, ChatDotRound, Check, Search, Upload, Promotion, Loading, Picture } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -264,19 +317,49 @@ async function sendAiQuestion() {
   chatMessages.value.push({ role: 'user', content: aiQuestion.value })
   aiLoading.value = true
   try {
+    const imageBase64 = await imageToBase64(imageFile.value)
     const res = await skinAiDiagnosis({
       question: aiQuestion.value,
-      patientId: patientInfo.value?.patientId,
-      result: result.value
+      patientId: route.query.patientId,
+      result: result.value,
+      imageBase64: imageBase64
     })
-    const reply = res.data?.reply || 'AI 未返回有效回复'
+    const replyData = res.data || {}
+    const reply = replyData.opinion || replyData.reply || replyData.rawText || 'AI 未返回有效回复'
     chatMessages.value.push({ role: 'assistant', content: reply })
+
+    // 将AI返回的结构化数据填入诊断表单
+    if (replyData.opinion) {
+      diagnosisForm.value.opinion = replyData.opinion
+    }
+    if (replyData.findings) {
+      diagnosisForm.value.imageFindings = replyData.findings
+    }
+
     aiQuestion.value = ''
   } catch (e) {
     ElMessage.error('AI 请求失败')
   } finally {
     aiLoading.value = false
   }
+}
+
+function imageToBase64(file) {
+  return new Promise((resolve) => {
+    if (!file) {
+      resolve('')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result || ''
+      resolve(result.startsWith('data:image') ? result : '')
+    }
+    reader.onerror = () => {
+      resolve('')
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 function formatDateTime(date = new Date()) {
@@ -370,12 +453,52 @@ onMounted(async () => {
 }
 
 .patient-bar {
-  background: #fff; padding: 10px 16px; border-radius: 6px; margin-bottom: 14px;
-  font-size: 14px; display: flex; gap: 8px; flex-wrap: wrap;
-  .sep { color: #dcdfe6; }
+  display: grid;
+  grid-template-columns: repeat(5, minmax(108px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, .04);
+
+  .patient-item {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px;
+    background: #F8FAFC;
+    border: 1px solid #EEF2F7;
+    border-radius: 6px;
+
+    .label {
+      color: #64748B;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .value {
+      overflow: hidden;
+      color: #0F172A;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
 }
 
-.main-row { margin: 0; }
+.main-row { margin: 0; align-items: stretch; }
+.right-col {
+  display: flex; flex-direction: column;
+  > .panel { flex: 1 1 0; display: flex; flex-direction: column; min-height: 0;
+    .panel-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  }
+  > .result-panel { flex: 0 0 auto; }
+}
 
 .panel {
   background: #fff; border-radius: 8px; margin-bottom: 14px; overflow: hidden;
@@ -415,9 +538,28 @@ onMounted(async () => {
 }
 
 .annotated-img { width: 100%; border-radius: 4px; }
+.annotated-placeholder {
+  text-align: center; padding: 40px 16px; color: #909399;
+  p { margin-top: 10px; font-size: 13px; }
+}
 
 .diagnosis-panel {
   .el-form { margin-top: 0; }
+}
+
+.ai-result-panel {
+  .ai-chat-inline { max-height: 260px; overflow-y: auto; }
+  .chat-msg {
+    margin-bottom: 10px; padding: 10px; border-radius: 8px; font-size: 13px;
+    &.user { background: #ecf5ff; }
+    &.assistant { background: #f0f9eb; }
+    p { margin: 4px 0 0; }
+  }
+}
+.ai-result-placeholder {
+  text-align: center; padding: 24px 16px; color: #909399;
+  p { margin-top: 8px; font-size: 13px; }
+  .sub-tip { font-size: 12px; color: #c0c4cc; margin-top: 4px; }
 }
 
 .ai-dialog {

@@ -50,10 +50,6 @@
         <span class="label">开单医生</span>
         <span class="value">{{ patientInfo.doctorName }}</span>
       </div>
-      <div class="patient-item wide">
-        <span class="label">检查目的</span>
-        <span class="value">{{ patientInfo.purpose }}</span>
-      </div>
     </div>
 
     <!-- ==================== 主体内容区 ==================== -->
@@ -1113,10 +1109,17 @@ onMounted(loadApplyDetail)
     }
 
     .side-col {
-      grid-row: 3 / span 2;
+      grid-row: 3;
       grid-column: 2;
       gap: 14px;
       min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      max-height: calc(100vh - 160px);
+      align-self: start;
+      position: sticky;
+      top: 12px;
+      padding-right: 8px;
     }
 
     .panel {
@@ -1809,13 +1812,10 @@ onMounted(loadApplyDetail)
   .brain-ct-page {
     .main-content {
       .side-col {
-        position: sticky;
-        top: 12px;
-        max-height: calc(100vh - 24px);
+        max-height: calc(100vh - 160px);
         overflow-y: auto;
         overflow-x: hidden;
-        overscroll-behavior: contain;
-        padding-right: 4px !important;
+        padding-right: 8px !important;
       }
     }
   }

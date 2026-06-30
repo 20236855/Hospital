@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.hisdoctor.mapper.ScheduleSlotMapper">
+
+    <resultMap type="ScheduleSlot" id="ScheduleSlotResult">
+        <result property="slotId" column="slot_id" />
+        <result property="scheduleId" column="schedule_id" />
+        <result property="doctorId" column="doctor_id" />
+        <result property="deptId" column="dept_id" />
+        <result property="deptName" column="dept_name" />
+        <result property="doctorName" column="doctor_name" />
+        <result property="levelId" column="level_id" />
+        <result property="levelName" column="level_name" />
+        <result property="fee" column="fee" />
+        <result property="scheduleDate" column="schedule_date" />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
+        <result property="maxNumber" column="max_number" />
+        <result property="reservedNumber" column="reserved_number" />
+        <result property="availableNumber" column="available_number" />
+        <result property="status" column="status" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="selectScheduleSlotVo">
+        select
+            ss.slot_id,
+            ss.schedule_id,
+            ss.doctor_id,
+            d.dept_id,
+            sd.dept_name,
+            d.doctor_name,
+            d.level_id,
+            rl.level_name,
+            rl.fee,
+            ss.schedule_date,
+            date_format(ss.start_time, '%H:%i') as start_time,
+            date_format(ss.end_time, '%H:%i') as end_time,
+            ss.max_number,
+            ss.reserved_number,
+            greatest(ifnull(ss.max_number, 0) - ifnull(ss.reserved_number, 0), 0) as available_number,
+            ss.status,
+            ss.create_time,
+            ss.update_time
+        from schedule_slot ss
+            inner join doctor d on d.doctor_id = ss.doctor_id
+            left join sys_dept sd on sd.dept_id = d.dept_id
+            left join regist_level rl on rl.level_id = d.level_id
+    </sql>
+
+    <select id="selectScheduleSlotBySlotId" parameterType="Long" resultMap="ScheduleSlotResult">
+        <include refid="selectScheduleSlotVo"/>
+        where ss.slot_id = #{slotId}
+    </select>
+
+    <select id="selectScheduleSlotList" parameterType="ScheduleSlot" resultMap="ScheduleSlotResult">
+        <include refid="selectScheduleSlotVo"/>
+        <where>
+            <if test="slotId != null"> and ss.slot_id = #{slotId}</if>
+            <if test="scheduleId != null"> and ss.schedule_id = #{scheduleId}</if>
+            <if test="doctorId != null"> and ss.doctor_id = #{doctorId}</if>
+            <if test="deptId != null"> and d.dept_id = #{deptId}</if>
+            <if test="roleId != null"> and exists (select 1 from sys_user_role ur where ur.user_id = d.user_id and ur.role_id = #{roleId})</if>
+            <if test="scheduleDate != null"> and ss.schedule_date = #{scheduleDate}</if>
+            <if test="beginDate != null and beginDate != ''"> and ss.schedule_date &gt;= #{beginDate}</if>
+            <if test="endDate != null and endDate != ''"> and ss.schedule_date &lt;= #{endDate}</if>
+            <if test="status != null and status != ''"> and ss.status = #{status}</if>
+        </where>
+        order by ss.schedule_date, ss.start_time, d.level_id desc, d.doctor_id
+    </select>
+
+    <select id="selectOpenDoctorSlots" parameterType="ScheduleSlot" resultMap="ScheduleSlotResult">
+        select
+            min(ss.slot_id) as slot_id,
+            min(ss.schedule_id) as schedule_id,
+            ss.doctor_id,
+            d.dept_id,
+            sd.dept_name,
+            d.doctor_name,
+            d.level_id,
+            rl.level_name,
+            rl.fee,
+            ss.schedule_date,
+            min(date_format(ss.start_time, '%H:%i')) as start_time,
+            max(date_format(ss.end_time, '%H:%i')) as end_time,
+            sum(ss.max_number) as max_number,
+            sum(ss.reserved_number) as reserved_number,
+            sum(greatest(ifnull(ss.max_number, 0) - ifnull(ss.reserved_number, 0), 0)) as available_number,
+            '0' as status,
+            null as create_time,
+            null as update_time
+        from schedule_slot ss
+            inner join doctor d on d.doctor_id = ss.doctor_id
+            left join sys_dept sd on sd.dept_id = d.dept_id
+            left join regist_level rl on rl.level_id = d.level_id
+        <where>
+            ss.status = '0'
+            and ss.reserved_number &lt; ss.max_number
+            <if test="doctorId != null"> and ss.doctor_id = #{doctorId}</if>
+            <if test="deptId != null"> and d.dept_id = #{deptId}</if>
+            <if test="roleId != null"> and exists (select 1 from sys_user_role ur where ur.user_id = d.user_id and ur.role_id = #{roleId})</if>
+            <if test="scheduleDate != null"> and ss.schedule_date = #{scheduleDate}</if>
+            <if test="beginDate != null and beginDate != ''"> and ss.schedule_date &gt;= #{beginDate}</if>
+            <if test="endDate != null and endDate != ''"> and ss.schedule_date &lt;= #{endDate}</if>
+        </where>
+        group by ss.doctor_id, d.dept_id, sd.dept_name, d.doctor_name, d.level_id, rl.level_name, rl.fee, ss.schedule_date
+        order by ss.schedule_date, d.level_id desc, d.doctor_id
+    </select>
+
+    <insert id="insertScheduleSlot" parameterType="ScheduleSlot" useGeneratedKeys="true" keyProperty="slotId">
+        insert into schedule_slot
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="scheduleId != null">schedule_id,</if>
+            <if test="doctorId != null">doctor_id,</if>
+            <if test="scheduleDate != null">schedule_date,</if>
+            <if test="startTime != null and startTime != ''">start_time,</if>
+            <if test="endTime != null and endTime != ''">end_time,</if>
+            <if test="maxNumber != null">max_number,</if>
+            <if test="reservedNumber != null">reserved_number,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="scheduleId != null">#{scheduleId},</if>
+            <if test="doctorId != null">#{doctorId},</if>
+            <if test="scheduleDate != null">#{scheduleDate},</if>
+            <if test="startTime != null and startTime != ''">#{startTime},</if>
+            <if test="endTime != null and endTime != ''">#{endTime},</if>
+            <if test="maxNumber != null">#{maxNumber},</if>
+            <if test="reservedNumber != null">#{reservedNumber},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateScheduleSlot" parameterType="ScheduleSlot">
+        update schedule_slot
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="scheduleId != null">schedule_id = #{scheduleId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="scheduleDate != null">schedule_date = #{scheduleDate},</if>
+            <if test="startTime != null and startTime != ''">start_time = #{startTime},</if>
+            <if test="endTime != null and endTime != ''">end_time = #{endTime},</if>
+            <if test="maxNumber != null">max_number = #{maxNumber},</if>
+            <if test="reservedNumber != null">reserved_number = #{reservedNumber},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where slot_id = #{slotId}
+    </update>
+
+    <delete id="deleteScheduleSlotBySlotId" parameterType="Long">
+        delete from schedule_slot where slot_id = #{slotId}
+    </delete>
+
+    <delete id="deleteScheduleSlotByScheduleId" parameterType="Long">
+        delete from schedule_slot where schedule_id = #{scheduleId}
+    </delete>
+
+    <select id="countByScheduleId" parameterType="Long" resultType="int">
+        select count(1) from schedule_slot where schedule_id = #{scheduleId}
+    </select>
+
+    <select id="countReservedByScheduleId" parameterType="Long" resultType="int">
+        select count(1) from schedule_slot where schedule_id = #{scheduleId} and reserved_number &gt; 0
+    </select>
+
+    <update id="incrementReservedNumber" parameterType="Long">
+        update schedule_slot
+        set reserved_number = reserved_number + 1,
+            status = case when reserved_number + 1 &gt;= max_number then '1' else status end,
+            update_time = now()
+        where slot_id = #{slotId}
+          and status = '0'
+          and reserved_number &lt; max_number
+    </update>
+
+    <update id="decrementReservedNumber" parameterType="Long">
+        update schedule_slot
+        set reserved_number = reserved_number - 1,
+            status = case when status = '1' and reserved_number - 1 &lt; max_number then '0' else status end,
+            update_time = now()
+        where slot_id = #{slotId}
+          and reserved_number &gt; 0
+    </update>
+
+    <update id="updateScheduleSlotStatus">
+        update schedule_slot set status = #{status}, update_time = now()
+        where slot_id = #{slotId}
+    </update>
+</mapper>

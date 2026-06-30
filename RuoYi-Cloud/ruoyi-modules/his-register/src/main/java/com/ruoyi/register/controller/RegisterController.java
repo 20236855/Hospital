@@ -1,6 +1,10 @@
 package com.ruoyi.register.controller;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +47,7 @@ public class RegisterController extends BaseController
 {
     private static final Long NURSE_POST_ID = 2L;
     private static final Long OUTPATIENT_DOCTOR_ROLE_ID = 5L;
+    private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
 
     @Autowired
     private IRegisterService registerService;
@@ -160,6 +165,7 @@ public class RegisterController extends BaseController
         result.put("registerNo", register.getRegisterNo());
         result.put("patientId", register.getPatientId());
         result.put("scheduleId", register.getScheduleId());
+        result.put("slotId", register.getSlotId());
         result.put("registerFee", register.getRegisterFee());
         result.put("registerStatus", register.getRegisterStatus());
         result.put("payStatus", register.getPayStatus());
@@ -228,6 +234,20 @@ public class RegisterController extends BaseController
         return toAjax(registerService.cancelRegister(registerId));
     }
 
+    @Log(title = "患者退号", businessType = BusinessType.UPDATE)
+    @PutMapping({"/patient/cancel/{registerId}", "/register/patient/cancel/{registerId}"})
+    public AjaxResult patientCancel(@PathVariable Long registerId)
+    {
+        if (!isPatientUser())
+        {
+            throw new ServiceException("Only patients can use this refund endpoint");
+        }
+        Register register = registerService.selectRegisterByRegisterId(registerId);
+        checkPatientScope(register);
+        checkRefundable(register);
+        return toAjax(registerService.cancelRegister(registerId));
+    }
+
     private void applyPatientScope(Register register)
     {
         if (isPatientUser())
@@ -242,6 +262,38 @@ public class RegisterController extends BaseController
         {
             throw new ServiceException("No permission to access another patient's info");
         }
+    }
+
+    private void checkRefundable(Register register)
+    {
+        if (register == null)
+        {
+            throw new ServiceException("Register record does not exist");
+        }
+        if (!"registered".equals(register.getRegisterStatus()))
+        {
+            throw new ServiceException("当前挂号状态不能退号");
+        }
+        LocalDateTime appointmentTime = getAppointmentDateTime(register);
+        if (appointmentTime != null && !LocalDateTime.now(ZONE).isBefore(appointmentTime))
+        {
+            throw new ServiceException("已超过预约时间，不能退号");
+        }
+    }
+
+    private LocalDateTime getAppointmentDateTime(Register register)
+    {
+        if (register.getRegisterTime() == null)
+        {
+            return null;
+        }
+        LocalDate date = register.getRegisterTime().toInstant().atZone(ZONE).toLocalDate();
+        LocalTime time = LocalTime.MAX;
+        if (register.getStartTime() != null && !register.getStartTime().isEmpty())
+        {
+            time = LocalTime.parse(register.getStartTime());
+        }
+        return LocalDateTime.of(date, time);
     }
 
     private Long getCurrentPatientId()

@@ -32,6 +32,7 @@ import com.ruoyi.hisdoctor.mapper.AgentScheduleRunMapper;
 import com.ruoyi.hisdoctor.mapper.DoctorMapper;
 import com.ruoyi.hisdoctor.mapper.ScheduleMapper;
 import com.ruoyi.hisdoctor.service.IAgentScheduleService;
+import com.ruoyi.hisdoctor.service.IScheduleSlotService;
 
 /**
  * 智能体自动排班核心逻辑。
@@ -56,6 +57,9 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
 
     @Autowired
     private LocalAiReasoningService localAiReasoningService;
+
+    @Autowired
+    private IScheduleSlotService scheduleSlotService;
 
     @PostConstruct
     public void init()
@@ -333,7 +337,12 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
                 schedule.setReservedNumber(0L);
                 schedule.setStatus("0");
                 schedule.setCreateTime(DateUtils.getNowDate());
-                inserted += scheduleMapper.insertSchedule(schedule);
+                int rows = scheduleMapper.insertSchedule(schedule);
+                if (rows > 0)
+                {
+                    scheduleSlotService.generateSlotsForSchedule(schedule);
+                }
+                inserted += rows;
             }
             existing = scheduleMapper.selectAgentScheduleItems(startDate, endDate);
             generated = new ArrayList<>();

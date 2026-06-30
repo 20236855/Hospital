@@ -130,16 +130,16 @@
 
         <div class="info-card">
           <div class="timeline-glow"></div>
-          <template v-if="appointmentList.length > 0">
+          <template v-if="todayAppointmentList.length > 0">
             <div
-              v-for="appt in appointmentList.slice(0, 2)"
+              v-for="appt in todayAppointmentList.slice(0, 2)"
               :key="appt.registerId"
               class="detail-item"
             >
-              <span class="time-pill">{{ formatRegisterTime(appt.registerTime) }}</span>
+              <span class="time-pill">{{ formatAppointmentTime(appt) }}</span>
               <div class="detail-copy">
                 <strong>{{ appt.deptName || '门诊科室' }}</strong>
-                <span>{{ appt.doctorName || '接诊医生' }} · 待就诊</span>
+                <span>{{ appt.doctorName || '接诊医生' }} · {{ getRegisterStatusText(appt.registerStatus) }}</span>
               </div>
             </div>
           </template>
@@ -148,8 +148,8 @@
               <van-icon name="calendar-o" />
             </span>
             <div>
-              <strong>暂无今日预约</strong>
-              <span>可以先进行预约挂号或在线问诊。</span>
+              <strong>今日暂无到院预约</strong>
+              <span>如需就诊，可以先进行预约挂号。</span>
             </div>
           </div>
         </div>
@@ -276,6 +276,15 @@ const deptList = ref([])
 
 const displayName = computed(() => username.value || '患者')
 const visibleServiceItems = computed(() => (showAllServices.value ? serviceItems : serviceItems.slice(0, 4)))
+const todayAppointmentList = computed(() => {
+  return appointmentList.value
+    .filter((item) => isTodayAppointment(item) && item.registerStatus !== 'cancel')
+    .sort((a, b) => {
+      const aTime = getAppointmentDateTime(a)?.getTime() || 0
+      const bTime = getAppointmentDateTime(b)?.getTime() || 0
+      return aTime - bTime
+    })
+})
 const homeExpertDoctors = computed(() => {
   return doctorList.value.slice(0, 12)
 })
@@ -477,11 +486,45 @@ function hideBrokenAvatar(event) {
   event.target.style.display = 'none'
 }
 
-const formatRegisterTime = (value) => {
-  if (!value) return '--:--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '--:--'
+const parseDate = (value) => {
+  if (!value) return null
+  const date = new Date(String(value).replace(/-/g, '/'))
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const getAppointmentDateTime = (item) => {
+  const date = parseDate(item?.registerTime)
+  if (!date) return null
+  const start = item?.startTime || item?.start_time
+  if (start) {
+    const [hour, minute] = String(start).split(':').map(Number)
+    if (!Number.isNaN(hour) && !Number.isNaN(minute)) {
+      date.setHours(hour, minute, 0, 0)
+      return date
+    }
+  }
+  return date
+}
+
+const isTodayAppointment = (item) => {
+  const date = parseDate(item?.registerTime)
+  if (!date) return false
+  return date.toDateString() === new Date().toDateString()
+}
+
+const formatAppointmentTime = (item) => {
+  const start = item?.startTime || item?.start_time
+  const end = item?.endTime || item?.end_time
+  if (start && end) return `${start}-${end}`
+  const date = getAppointmentDateTime(item)
+  if (!date || Number.isNaN(date.getTime())) return '--:--'
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
+const getRegisterStatusText = (status) => {
+  if (status === 'completed') return '已完成'
+  if (status === 'cancel') return '已取消'
+  return '待就诊'
 }
 
 const loadUserData = async () => {
@@ -511,11 +554,7 @@ const loadUserData = async () => {
     const registerRes = await getRegisterList({ pageNum: 1, pageSize: 10 })
     if (registerRes.rows) {
       appointmentList.value = registerRes.rows
-      todayAppointments.value = registerRes.rows.filter((r) => {
-        const today = new Date().toDateString()
-        const regDate = new Date(r.registerTime).toDateString()
-        return today === regDate
-      }).length
+      todayAppointments.value = todayAppointmentList.value.length
     }
   } catch (error) {
     console.error('加载用户数据失败', error)
