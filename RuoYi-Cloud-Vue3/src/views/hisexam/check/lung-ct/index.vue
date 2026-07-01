@@ -35,7 +35,6 @@
           remote
           :remote-method="searchRegisters"
           :loading="registerLoading"
-          :disabled="!!currentApplyId"
           placeholder="搜索挂号编号/患者姓名"
           clearable
           class="full-select"
@@ -66,6 +65,10 @@
         </el-select>
       </div>
       <!-- 挂号编号(只读) -->
+      <div class="patient-item">
+        <span class="label">申请单号</span>
+        <span class="value">{{ patientInfo.applyId || '--' }}</span>
+      </div>
       <div class="patient-item">
         <span class="label">挂号编号</span>
         <span class="value">{{ patientInfo.registerNo || '--' }}</span>
@@ -223,13 +226,6 @@
                 </template>
               </el-table-column>
               <el-table-column prop="diameter_mm" label="直径(mm)" width="90" sortable />
-              <el-table-column label="恶性风险" width="105" sortable prop="malignancyProbability">
-                <template #default="{ row }">
-                  <el-tag :type="getRiskTag(row.malignancyRisk)" size="small">
-                    {{ row.malignancyRisk || '低风险' }} {{ Math.round((row.malignancyProbability || 0) * 100) }}%
-                  </el-tag>
-                </template>
-              </el-table-column>
               <el-table-column prop="area_mm2" label="面积(mm²)" width="90" sortable />
               <el-table-column label="位置(Y,X)" width="110">
                 <template #default="{ row }">{{ row.centroid_y.toFixed(0) }}, {{ row.centroid_x.toFixed(0) }}</template>
@@ -282,18 +278,14 @@
             <div class="pipeline-flow">
               <div class="flow-line"></div>
               <!-- Stage 01: 肺结节检测（空） -->
-              <div class="stage-card" :class="{ active: currentStage === 1, done: stage1Done, running: analyzing && currentStage === 1 }">
+              <div class="stage-card placeholder">
                 <div class="stage-num">01</div>
                 <div class="stage-info">
                   <div class="stage-name">肺结节检测与分类</div>
                   <div class="stage-model">Model: YOLOv8-Nodule / ResNet-50</div>
                   <div class="stage-desc">自动检测肺结节位置，根据大小、形态、密度等特征进行分类</div>
                 </div>
-                <div class="stage-status">
-                  <el-icon v-if="stage1Done" class="done"><CircleCheckFilled /></el-icon>
-                  <el-icon v-else-if="analyzing && currentStage === 1" class="run"><Loading /></el-icon>
-                  <el-icon v-else class="wait"><Clock /></el-icon>
-                </div>
+                <div class="stage-status"><el-tag type="info" size="small">模型待接入</el-tag></div>
               </div>
               <!-- Stage 02: 结节分割（CT值算法 - 已实现） -->
               <div class="stage-card" :class="{ active: currentStage === 2, done: stage2Done, running: analyzing && currentStage === 2 }">
@@ -310,18 +302,14 @@
                 </div>
               </div>
               <!-- Stage 03: 良恶性诊断（空） -->
-              <div class="stage-card" :class="{ active: currentStage === 3, done: stage3Done, running: analyzing && currentStage === 3 }">
+              <div class="stage-card placeholder">
                 <div class="stage-num">03</div>
                 <div class="stage-info">
                   <div class="stage-name">良恶性鉴别诊断</div>
                   <div class="stage-model">Model: DenseNet-121 / Transformer</div>
                   <div class="stage-desc">综合分析结节特征与临床信息，评估恶性风险概率</div>
                 </div>
-                <div class="stage-status">
-                  <el-icon v-if="stage3Done" class="done"><CircleCheckFilled /></el-icon>
-                  <el-icon v-else-if="analyzing && currentStage === 3" class="run"><Loading /></el-icon>
-                  <el-icon v-else class="wait"><Clock /></el-icon>
-                </div>
+                <div class="stage-status"><el-tag type="info" size="small">模型待接入</el-tag></div>
               </div>
             </div>
           </div>
@@ -369,68 +357,59 @@ import {
   CircleCheckFilled, SuccessFilled
 } from '@element-plus/icons-vue'
 import { analyzeLungCt, saveCtSlices, getSlicesByApplyId } from '@/api/hisexam/lungCtAnalysis'
+import { listRegister, getRegister } from '@/api/register/register'
 import { listTechnology } from '@/api/hisexam/technology'
-import { getApply, updateApply, listApplyRegisterOptions } from '@/api/hisexam/apply'
+import { getApply } from '@/api/hisexam/apply'
 
 const route = useRoute()
 const router = useRouter()
-const currentApplyId = ref(null)
 
 // ============ 挂号下拉框 ============
+const currentApplyId = ref(null)
 const selectedRegisterId = ref(null)
 const registerList = ref([])
 const registerLoading = ref(false)
 
 const searchRegisters = (keyword) => {
   registerLoading.value = true
-  listApplyRegisterOptions({ keyword })
+  listRegister({ registerNo: keyword || undefined, pageNum: 1, pageSize: 30 })
     .then(res => {
-      const data = res.data || []
+      const data = res.rows || (res.data && res.data.rows) || res.data || []
       registerList.value = data
     })
     .catch(err => { console.error('搜索挂号单失败:', err) })
     .finally(() => { registerLoading.value = false })
 }
 
-const fillPatientFromApply = (data) => {
-  selectedRegisterId.value = data.registerId || null
-  selectedTechId.value = data.techId || null
-  Object.assign(patientInfo, {
-    registerId: data.registerId || '',
-    registerNo: data.registerNo || '',
-    patientId: data.patientId || '',
-    patientName: data.patientName || '--',
-    gender: data.gender || '--',
-    age: data.age || 0,
-    doctorId: data.doctorId || '',
-    doctorName: data.doctorName || '--',
-    deptId: data.deptId || '',
-    deptName: data.deptName || '--',
-    encounterId: data.encounterId || ''
-  })
-  if (data.registerId && !registerList.value.some(item => item.registerId === data.registerId)) {
-    registerList.value.unshift({
-      registerId: data.registerId,
-      registerNo: data.registerNo,
-      patientName: data.patientName,
-      gender: data.gender,
-      age: data.age
-    })
-  }
-}
-
-const onRegisterChange = (registerId) => {
+const onRegisterChange = async (registerId) => {
   if (!registerId) {
     resetPatientInfo()
     return
   }
-  const data = registerList.value.find(item => item.registerId === registerId)
-  if (data) fillPatientFromApply(data)
+  try {
+    const res = await getRegister(registerId)
+    const data = res.data || res
+    if (data) {
+      patientInfo.registerId = data.registerId
+      patientInfo.registerNo = data.registerNo || ''
+      patientInfo.patientId = data.patientId || ''
+      patientInfo.patientName = data.patientName || '--'
+      patientInfo.gender = data.gender || '--'
+      patientInfo.age = data.age || 0
+      patientInfo.doctorId = data.doctorId || ''
+      patientInfo.doctorName = data.doctorName || '--'
+      patientInfo.deptId = data.deptId || ''
+      patientInfo.deptName = data.deptName || '--'
+      patientInfo.encounterId = '' // 接诊ID由门诊流程产生，此处暂空
+    }
+  } catch (e) {
+    console.error('获取挂号详情失败:', e)
+  }
 }
 
 const resetPatientInfo = () => {
   Object.assign(patientInfo, {
-    registerId: '', registerNo: '', patientId: '', patientName: '--',
+    applyId: '', registerId: '', registerNo: '', patientId: '', patientName: '--',
     gender: '--', age: 0, doctorId: '', doctorName: '--',
     deptId: '', deptName: '--', encounterId: ''
   })
@@ -438,6 +417,7 @@ const resetPatientInfo = () => {
 
 // ============ 患者信息 ============
 const patientInfo = reactive({
+  applyId: '',
   registerId: '',
   registerNo: '',
   patientId: '',
@@ -465,6 +445,40 @@ const loadTechList = () => {
     .catch(err => {
       console.error('加载医技项目失败:', err)
     })
+}
+
+const loadApplyInfo = async (applyId) => {
+  if (!applyId) {
+    ElMessage.warning('请先从申请单列表选择对应申请单再执行检查')
+    return
+  }
+  try {
+    const res = await getApply(applyId)
+    const data = res.data || res
+    if (!data) {
+      ElMessage.error('申请单加载失败，无法执行检查')
+      return
+    }
+    currentApplyId.value = data.applyId || applyId
+    selectedRegisterId.value = data.registerId || null
+    selectedTechId.value = data.techId || null
+    patientInfo.applyId = data.applyId || applyId
+    patientInfo.registerId = data.registerId || ''
+    patientInfo.registerNo = data.registerNo || data.registerId || ''
+    patientInfo.patientId = data.patientId || ''
+    patientInfo.patientName = data.patientName || '--'
+    patientInfo.gender = data.gender || '--'
+    patientInfo.age = data.age || 0
+    patientInfo.doctorId = data.doctorId || ''
+    patientInfo.doctorName = data.doctorName || data.doctorId || '--'
+    patientInfo.deptId = data.deptId || ''
+    patientInfo.deptName = data.deptName || data.deptId || '--'
+    patientInfo.encounterId = data.encounterId || ''
+    await loadSavedSlices(currentApplyId.value)
+  } catch (e) {
+    console.error('申请单加载失败:', e)
+    ElMessage.error('申请单加载失败，无法执行检查')
+  }
 }
 
 // ============ CT文件上传与影像 ============
@@ -526,9 +540,7 @@ const analyzing = ref(false)
 const analysisDone = ref(false)
 const analysisResult = ref(null)
 const currentStage = ref(0)
-const stage1Done = ref(false)
 const stage2Done = ref(false)
-const stage3Done = ref(false)
 
 const pipelineStatus = computed(() => {
   if (analyzing.value) return { tag: 'warning', text: '分析中...' }
@@ -562,12 +574,6 @@ const getHuClass = (huMean) => {
   if (huMean > 100) return 'hu-high'
   if (huMean >= 30) return 'hu-mid'
   return 'hu-low'
-}
-
-const getRiskTag = (risk) => {
-  if (risk === '高风险') return 'danger'
-  if (risk === '中风险') return 'warning'
-  return 'success'
 }
 
 // ============ 文件选择与分析 ============
@@ -610,9 +616,7 @@ const doAnalyze = async (file) => {
   loadingProgress.value = 0
   analysisResult.value = null
   analysisDone.value = false
-  stage1Done.value = false
   stage2Done.value = false
-  stage3Done.value = false
   allCandidates.value = []
 
   // 模拟进度
@@ -620,24 +624,15 @@ const doAnalyze = async (file) => {
     if (loadingProgress.value < 90) {
       loadingProgress.value += Math.random() * 10
       if (loadingProgress.value > 25) loadingText.value = '正在读取CT体数据...'
-      if (loadingProgress.value > 40) {
-        currentStage.value = 1
-        loadingText.value = '正在检测肺结节候选区域...'
-      }
-      if (loadingProgress.value > 60) {
-        currentStage.value = 2
-        loadingText.value = '正在执行结节分割与轮廓提取...'
-      }
-      if (loadingProgress.value > 80) {
-        currentStage.value = 3
-        loadingText.value = '正在评估良恶性风险...'
-      }
+      if (loadingProgress.value > 50) loadingText.value = '正在提取肺实质掩码(HU<-400)...'
+      if (loadingProgress.value > 70) loadingText.value = '正在检测结节候选区域...'
+      if (loadingProgress.value > 85) loadingText.value = '正在生成标注切片...'
     }
   }, 600)
 
   try {
-    currentStage.value = 1
-    const res = await analyzeLungCt(file, { max_slices: 80, mock_nodule: true })
+    currentStage.value = 2
+    const res = await analyzeLungCt(file, { max_slices: 80 })
 
     clearInterval(progressTimer)
     loadingProgress.value = 100
@@ -648,9 +643,7 @@ const doAnalyze = async (file) => {
       analysisResult.value = data
       totalSlices.value = data.rawSlices ? data.rawSlices.length : data.totalSlices
       currentSlice.value = 1
-      stage1Done.value = true
       stage2Done.value = true
-      stage3Done.value = true
       analysisDone.value = true
 
       // 解析结节候选
@@ -666,8 +659,7 @@ const doAnalyze = async (file) => {
       autoFillDiagnosis(data)
 
       const noduleCount = allCandidates.value.length
-      const maxRisk = Math.round(((data.stats?.maxMalignancyProbability || 0) * 100))
-      ElMessage.success(`CT分析完成！检测到 ${noduleCount} 个结节候选区域，最高恶性风险 ${maxRisk}%`)
+      ElMessage.success(`CT分析完成！检测到 ${noduleCount} 个结节候选区域，共 ${totalSlices.value} 层切片`)
     } else {
       ElMessage.error(data.error || 'CT分析失败')
     }
@@ -676,7 +668,7 @@ const doAnalyze = async (file) => {
     console.error('CT分析失败:', error)
     const msg = error.response?.data?.msg || error.message || ''
     if (msg.includes('ResourceAccess') || msg.includes('Network Error') || msg.includes('timeout')) {
-      ElMessage.error('肺部CT分析服务未启动，请先启动Python服务：python lung_ct_segment.py --port 5004')
+      ElMessage.error('肺部CT分析服务未启动，请先启动Python服务：python lung_ct_segment.py --port 5002')
     } else if (msg.includes('MaxUploadSize')) {
       ElMessage.error('CT文件超过上传限制')
     } else {
@@ -714,10 +706,6 @@ const autoFillDiagnosis = (data) => {
     if (calc.length > 0) {
       findingsText += `可见${calc.length}个钙化灶，HU>200，符合良性钙化表现。\n`
     }
-    const highRisk = candidates.filter(c => c.malignancyRisk === '高风险')
-    const mediumRisk = candidates.filter(c => c.malignancyRisk === '中风险')
-    const maxRisk = candidates.reduce((max, c) => Math.max(max, c.malignancyProbability || 0), 0)
-    findingsText += `AI良恶性风险评估：最高恶性风险约${Math.round(maxRisk * 100)}%，高风险${highRisk.length}个，中风险${mediumRisk.length}个。`
   }
   diagnosisForm.findings = findingsText
 }
@@ -732,6 +720,10 @@ const diagnosisForm = reactive({
 const saveToDatabase = async () => {
   if (!currentApplyId.value) {
     ElMessage.warning('缺少申请单ID，不能保存检查结果')
+    return
+  }
+  if (!selectedRegisterId.value) {
+    ElMessage.warning('申请单缺少挂号信息')
     return
   }
   if (!selectedTechId.value) {
@@ -764,11 +756,7 @@ const saveToDatabase = async () => {
           hu_mean: c.hu_mean,
           hu_range: [c.hu_min, c.hu_max],
           sliceZ: c.slice_z,
-          circularity: c.circularity,
-          malignancyProbability: c.malignancyProbability,
-          malignancyRisk: c.malignancyRisk,
-          malignancyLabel: c.malignancyLabel,
-          cancerSuspicion: c.cancerSuspicion
+          circularity: c.circularity
         })))
       : null
 
@@ -787,20 +775,6 @@ const saveToDatabase = async () => {
     }
 
     await saveCtSlices(saveData)
-    await updateApply({
-      applyId: currentApplyId.value,
-      examResult: JSON.stringify({
-        checkType: 'LUNG_CT',
-        findings: diagnosisForm.findings,
-        remark: diagnosisForm.remark,
-        detectionResult: detectionResult,
-        malignancyAssessment: analysisResult.value?.malignancyAssessment || null,
-        mockMode: analysisResult.value?.mockMode || false
-      }),
-      imageUrl: uploadedFileName.value || null,
-      examTime: formatDateTime(),
-      applyStatus: '已完成'
-    })
     ElMessage.success(`CT影像已保存！共 ${slices.length} 层切片写入数据库，诊断结论请由门诊医生出具`)
   } catch (error) {
     console.error('保存失败:', error)
@@ -821,7 +795,6 @@ const loadSavedSlices = async (applyId) => {
       savedSlicesLoaded.value = data.length > 0
       totalSlices.value = data.length
       currentSlice.value = 1
-      analysisResult.value = { sliceIndices: data.map(item => item.sliceZ) }
       analysisDone.value = true
     }
   } catch (e) {
@@ -832,38 +805,21 @@ const loadSavedSlices = async (applyId) => {
 // ============ 导航与生命周期 ============
 const goBack = () => router.back()
 
-function formatDateTime(date = new Date()) {
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-}
-
-async function loadApplyDetail() {
-  const applyId = route.query.applyId
-  if (!applyId) {
-    ElMessage.warning('请先从申请单列表选择对应申请单再执行检查')
-    router.back()
-    return
-  }
-  currentApplyId.value = applyId
-  try {
-    const res = await getApply(applyId)
-    fillPatientFromApply(res.data || {})
-    await loadSavedSlices(applyId)
-  } catch (e) {
-    ElMessage.error('申请单加载失败，无法执行检查')
-    router.back()
-  }
-}
-
 onMounted(() => {
   // 预加载挂号列表
   searchRegisters('')
   // 加载医技项目列表
   loadTechList()
-  loadApplyDetail()
 
-  // 从URL参数自动填充：如果是卡片进入，自动匹配医技项目
-  const { techName, registerId } = route.query
+  const applyId = route.query.applyId
+  if (applyId) {
+    loadApplyInfo(applyId)
+  } else {
+    ElMessage.warning('请先从申请单列表选择对应申请单再执行检查')
+  }
+
+  // 兼容旧URL参数自动填充医技项目
+  const { techName } = route.query
   if (techName && techList.value.length === 0) {
     // techList还未加载完毕，等加载完再匹配
     const checkAndMatch = setInterval(() => {

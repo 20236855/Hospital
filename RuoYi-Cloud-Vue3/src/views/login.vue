@@ -1,5 +1,11 @@
 <template>
   <div class="auth-page login">
+    <!-- 视频背景 -->
+    <video class="auth-video-bg" autoplay loop muted playsinline>
+      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260331_074327_a4d6275d-82d9-4c83-bfbe-f1fb2213c17c.mp4" type="video/mp4" />
+    </video>
+    <div class="auth-video-overlay"></div>
+
     <span class="auth-bg-cross cross-one"></span>
     <span class="auth-bg-cross cross-two"></span>
     <span class="auth-bg-cross cross-three"></span>

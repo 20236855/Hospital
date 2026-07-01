@@ -100,6 +100,18 @@
       </el-row>
     </div>
 
+    <DoctorInsightDashboard
+      eyebrow="Medical Technology Board"
+      title="检查检验申请业务仪表盘"
+      subtitle="用当前申请单接口数据展示待执行、完成、支付和项目类型分布，辅助医生判断业务压力"
+      tone="diagnostic"
+      :focus-value="applyDashboard.focusValue"
+      focus-label="完成率"
+      :metrics="applyDashboard.metrics"
+      :lanes="applyDashboard.lanes"
+      :chips="applyDashboard.chips"
+    />
+
     <!-- ==================== 搜索区域 ==================== -->
     <div class="search-panel" v-show="showSearch">
       <el-form :model="queryParams" ref="queryRef" label-width="110px" class="search-form">
@@ -297,7 +309,7 @@
             <el-form-item label="类型" prop="applyType">
               <el-select v-model="form.applyType" placeholder="请选择类型" style="width:100%" @change="onApplyTypeChange">
                 <el-option label="检查" value="CHECK" />
-                <el-option label="检验" value="INSPEC" />
+                <el-option label="检验" value="LAB" />
                 <el-option label="处置" value="DISPOSAL" />
               </el-select>
             </el-form-item>
@@ -372,11 +384,12 @@
 </template>
 
 <script setup name="Apply">
-import { ref, reactive, toRefs, getCurrentInstance, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, toRefs, getCurrentInstance, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { listApply, getApply, delApply, addApply, updateApply, listApplyRegisterOptions } from "@/api/hisexam/apply"
 import { listTechnology, listLabTechnologyOptions } from '@/api/hisexam/technology'
-import { Plus, ArrowRight, Document, View, Monitor, FirstAidKit } from '@element-plus/icons-vue'
+import { Plus, ArrowRight, Document, View, Monitor, FirstAidKit, Clock, CircleCheckFilled, Money } from '@element-plus/icons-vue'
+import DoctorInsightDashboard from '@/components/DoctorInsightDashboard/index.vue'
 
 // ============ 分类卡片数据 ============
 const router = useRouter()
@@ -407,7 +420,7 @@ const categories = reactive([
     timer: null
   },
   {
-    type: 'INSPEC',
+    type: 'LAB',
     name: '检验',
     subtitle: '实验室检验',
     icon: Monitor,
@@ -494,6 +507,38 @@ const title = ref("")
 const registerOptions = ref([])
 const registerLoading = ref(false)
 const techOptions = ref([])
+
+const percent = (part, whole) => whole ? Math.round((part / whole) * 100) : 0
+const applyDashboard = computed(() => {
+  const rows = applyList.value || []
+  const listTotal = rows.length
+  const pending = rows.filter(item => item.applyStatus === '待执行' || item.applyStatus === '待缴费').length
+  const done = rows.filter(item => item.applyStatus === '已完成').length
+  const unpaid = rows.filter(item => item.payStatus === '未支付').length
+  const check = rows.filter(item => item.applyType === 'CHECK').length
+  const lab = rows.filter(item => item.applyType === 'LAB' || item.applyType === 'INSPEC').length
+  const disposal = rows.filter(item => item.applyType === 'DISPOSAL').length
+  const doneRate = percent(done, listTotal)
+  return {
+    focusValue: doneRate + '%',
+    metrics: [
+      { label: '当前申请单', value: listTotal, note: `接口总数 ${total.value || listTotal}`, icon: Document, progress: Math.min(listTotal * 8, 100) },
+      { label: '待处理', value: pending, note: pending ? '需要医技执行' : '队列清空', icon: Clock, state: pending ? 'warn' : 'good', progress: percent(pending, listTotal) },
+      { label: '已完成', value: done, note: `完成率 ${doneRate}%`, icon: CircleCheckFilled, state: 'good', progress: doneRate },
+      { label: '未支付', value: unpaid, note: unpaid ? '影响执行闭环' : '支付正常', icon: Money, state: unpaid ? 'warn' : 'good', progress: percent(unpaid, listTotal) }
+    ],
+    lanes: [
+      { label: '影像检查', value: check, progress: percent(check, listTotal) },
+      { label: '实验室检验', value: lab, progress: percent(lab, listTotal) },
+      { label: '临床处置', value: disposal, progress: percent(disposal, listTotal) }
+    ],
+    chips: [
+      { label: '检查单', value: check, type: 'info' },
+      { label: '检验单', value: lab, type: 'success' },
+      { label: '待闭环', value: pending + unpaid, type: pending + unpaid ? 'warning' : 'success' }
+    ]
+  }
+})
 
 const data = reactive({
   form: {},
@@ -607,7 +652,7 @@ function ensureRegisterOption(apply) {
 
 function loadTechOptions() {
   const techType = form.value.applyType || undefined
-  if (techType === 'INSPEC') {
+  if (techType === 'LAB') {
     listLabTechnologyOptions().then(res => {
       techOptions.value = res.data || []
     })
@@ -616,7 +661,7 @@ function loadTechOptions() {
   listTechnology({ techType, pageNum: 1, pageSize: 100 })
     .then(res => {
       const rows = res.rows || res.data?.rows || res.data || []
-      if (rows.length || techType !== 'INSPEC') {
+      if (rows.length || techType !== 'LAB') {
         techOptions.value = rows
         return
       }
@@ -1135,6 +1180,7 @@ getList()
       /* 类型标识 */
       .type-CHECK,
       .type-INSPEC,
+      .type-LAB,
       .type-DISPOSAL {
         display: inline-block;
         padding: 2px 8px;

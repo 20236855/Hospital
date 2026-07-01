@@ -250,6 +250,102 @@
       <van-tabbar-item icon="notes-o" to="/record">病历</van-tabbar-item>
       <van-tabbar-item icon="user-o" to="/profile">我的</van-tabbar-item>
     </van-tabbar>
+
+    <!-- ========== 患者信息完善弹窗 ========== -->
+    <van-popup v-model:show="showPatientPopup" round position="bottom" :style="{ height: '92%' }" :close-on-click-overlay="false" lock-scroll>
+      <div class="popup-complete">
+        <div class="popup-header">
+          <h2>🏥 完善患者信息</h2>
+          <p>首次使用需要完善您的个人医疗信息</p>
+        </div>
+        <div class="popup-body">
+          <div class="popup-section-title">基本信息</div>
+
+          <div class="popup-field">
+            <label>姓名 <span class="req">*</span></label>
+            <input v-model="patientForm.name" type="text" placeholder="请输入真实姓名" />
+          </div>
+
+          <div class="popup-field">
+            <label>性别 <span class="req">*</span></label>
+            <div class="popup-radio-row">
+              <span :class="['popup-radio', { on: patientForm.gender === '男' }]" @click="patientForm.gender = '男'">男</span>
+              <span :class="['popup-radio', { on: patientForm.gender === '女' }]" @click="patientForm.gender = '女'">女</span>
+            </div>
+          </div>
+
+          <div class="popup-field">
+            <label>出生日期 <span class="req">*</span></label>
+            <input v-model="patientForm.birthday" type="date" />
+          </div>
+
+          <div class="popup-field">
+            <label>手机号 <span class="req">*</span></label>
+            <input v-model="patientForm.phone" type="tel" maxlength="11" placeholder="请输入手机号" />
+          </div>
+
+          <div class="popup-field">
+            <label>身份证号 <span class="req">*</span></label>
+            <input v-model="patientForm.idCard" type="text" maxlength="18" placeholder="请输入身份证号" />
+          </div>
+
+          <div class="popup-section-title">医疗信息</div>
+
+          <div class="popup-field">
+            <label>血型</label>
+            <select v-model="patientForm.bloodType">
+              <option value="">请选择血型</option>
+              <option value="A">A型</option>
+              <option value="B">B型</option>
+              <option value="AB">AB型</option>
+              <option value="O">O型</option>
+            </select>
+          </div>
+
+          <div class="popup-field">
+            <label>婚姻状态</label>
+            <div class="popup-radio-row">
+              <span :class="['popup-radio', { on: patientForm.maritalStatus === '未婚' }]" @click="patientForm.maritalStatus = '未婚'">未婚</span>
+              <span :class="['popup-radio', { on: patientForm.maritalStatus === '已婚' }]" @click="patientForm.maritalStatus = '已婚'">已婚</span>
+            </div>
+          </div>
+
+          <div class="popup-field">
+            <label>家庭住址</label>
+            <input v-model="patientForm.address" type="text" placeholder="请输入详细住址" />
+          </div>
+
+          <div class="popup-section-title">紧急联系</div>
+
+          <div class="popup-field">
+            <label>紧急联系人</label>
+            <input v-model="patientForm.emergencyContact" type="text" placeholder="请输入紧急联系人姓名" />
+          </div>
+
+          <div class="popup-field">
+            <label>紧急联系电话</label>
+            <input v-model="patientForm.emergencyPhone" type="tel" maxlength="11" placeholder="请输入紧急联系电话" />
+          </div>
+
+          <div class="popup-section-title">健康史</div>
+
+          <div class="popup-field">
+            <label>过敏史</label>
+            <textarea v-model="patientForm.allergyHistory" rows="2" placeholder="请输入药物或食物过敏史，如无请填无"></textarea>
+          </div>
+
+          <div class="popup-field">
+            <label>既往史</label>
+            <textarea v-model="patientForm.pastHistory" rows="2" placeholder="请输入既往病史、手术史等，如无请填无"></textarea>
+          </div>
+        </div>
+        <div class="popup-footer">
+          <button class="popup-submit" :disabled="popupLoading" @click="handlePatientComplete">
+            {{ popupLoading ? '保存中...' : '保存信息并进入首页' }}
+          </button>
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -257,7 +353,8 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { getPatientList } from '@/api/patient'
+import { getPatientList, getPatientByUserId, completePatient } from '@/api/patient'
+import { getInfo } from '@/api/user'
 import { getRegisterList, getDeptList } from '@/api/register'
 import { listDoctor } from '@/api/doctor'
 import doctor1 from '@/assets/doctor1.png'
@@ -273,6 +370,71 @@ const appointmentList = ref([])
 const showAllServices = ref(false)
 const doctorList = ref([])
 const deptList = ref([])
+
+// ========== 患者信息完善弹窗 ==========
+const showPatientPopup = ref(false)
+const popupLoading = ref(false)
+const patientForm = ref({
+  name: '',
+  gender: '',
+  birthday: '',
+  phone: '',
+  idCard: '',
+  bloodType: '',
+  maritalStatus: '',
+  address: '',
+  emergencyContact: '',
+  emergencyPhone: '',
+  allergyHistory: '',
+  pastHistory: '',
+  status: '1'
+})
+
+const loadAndCheckPatient = async () => {
+  try {
+    const flag = localStorage.getItem('needPatientComplete')
+    if (!flag) return
+    const res = await getInfo()
+    if (!res.user || !res.user.userId) return
+    const patientRes = await getPatientByUserId(res.user.userId)
+    const patient = patientRes?.data
+    const hasPatient = patient && Object.keys(patient).length > 0
+    if (!hasPatient) {
+      patientForm.value.name = res.user.nickName || ''
+      patientForm.value.phone = res.user.phonenumber || ''
+      showPatientPopup.value = true
+    } else {
+      localStorage.removeItem('needPatientComplete')
+    }
+  } catch (e) { console.error('检查患者信息失败', e) }
+}
+
+const handlePatientComplete = async () => {
+  if (!patientForm.value.name) { showToast('请输入姓名'); return }
+  if (!patientForm.value.gender) { showToast('请选择性别'); return }
+  if (!patientForm.value.birthday) { showToast('请选择出生日期'); return }
+  if (!patientForm.value.phone) { showToast('请输入手机号'); return }
+  if (!/^1[3-9]\d{9}$/.test(patientForm.value.phone)) { showToast('请输入正确的手机号'); return }
+  if (!patientForm.value.idCard) { showToast('请输入身份证号'); return }
+  if (!/^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/.test(patientForm.value.idCard)) { showToast('请输入正确的身份证号'); return }
+
+  popupLoading.value = true
+  try {
+    const result = await completePatient(patientForm.value)
+    if (result?.data?.patientId) {
+      localStorage.setItem('patientId', result.data.patientId)
+    }
+    localStorage.setItem('patientName', patientForm.value.name)
+    localStorage.removeItem('needPatientComplete')
+    username.value = patientForm.value.name
+    showToast('信息保存成功')
+    showPatientPopup.value = false
+  } catch (error) {
+    showToast(error.msg || '保存失败，请稍后重试')
+  } finally {
+    popupLoading.value = false
+  }
+}
 
 const displayName = computed(() => username.value || '患者')
 const visibleServiceItems = computed(() => (showAllServices.value ? serviceItems : serviceItems.slice(0, 4)))
@@ -580,6 +742,7 @@ const loadHomeDoctors = async () => {
 onMounted(() => {
   loadUserData()
   loadHomeDoctors()
+  loadAndCheckPatient()
 })
 </script>
 
@@ -1242,5 +1405,59 @@ button {
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+// ========== 患者信息完善弹窗 ==========
+.popup-complete {
+  display: flex; flex-direction: column; height: 100%;
+  background: #f5faf8;
+}
+.popup-header {
+  padding: 24px 20px 12px; text-align: center; flex-shrink: 0;
+  h2 { margin: 0; font-size: 20px; font-weight: 800; color: #2d5a4e; }
+  p { margin: 6px 0 0; font-size: 13px; color: #6b9e8a; }
+}
+.popup-body {
+  flex: 1; overflow-y: auto; padding: 0 20px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+.popup-section-title {
+  font-size: 14px; font-weight: 800; color: #2d5a4e;
+  margin: 16px 0 10px; padding-bottom: 6px;
+  border-bottom: 2px solid rgba(95,158,140,.2);
+}
+.popup-field {
+  margin-bottom: 12px;
+  label { display: block; font-size: 13px; font-weight: 600; color: #4f7380; margin-bottom: 6px; }
+  .req { color: #e74c3c; }
+  input, select, textarea {
+    width: 100%; box-sizing: border-box;
+    min-height: 44px; padding: 10px 14px;
+    border: 1px solid rgba(181,221,231,.9); border-radius: 12px;
+    background: rgba(255,255,255,.82); font-size: 14px; color: #2d5a4e;
+    outline: none; font-family: inherit;
+    &:focus { border-color: #5f9e8c; background: #fff; box-shadow: 0 0 0 3px rgba(95,158,140,.1); }
+  }
+  textarea { resize: none; min-height: 60px; line-height: 1.5; }
+  select { cursor: pointer; }
+}
+.popup-radio-row { display: flex; gap: 10px; }
+.popup-radio {
+  padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
+  background: rgba(255,255,255,.6); border: 2px solid rgba(181,221,231,.9);
+  color: #4f7380; cursor: pointer; transition: all .2s;
+  &.on { background: rgba(95,158,140,.12); border-color: #5f9e8c; color: #2d5a4e; }
+}
+.popup-footer {
+  flex-shrink: 0; padding: 16px 20px 28px; background: #f5faf8;
+  border-top: 1px solid rgba(181,221,231,.4);
+}
+.popup-submit {
+  width: 100%; height: 50px; border: none; border-radius: 14px;
+  color: #fff; font-size: 16px; font-weight: 800;
+  background: linear-gradient(135deg, #5f9e8c, #48c9b0);
+  box-shadow: 0 8px 24px rgba(95,158,140,.3); cursor: pointer;
+  &:active:not(:disabled) { transform: scale(.98); }
+  &:disabled { opacity: .65; }
 }
 </style>

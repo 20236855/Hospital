@@ -164,11 +164,18 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" align="center" width="220" fixed="right">
+        <el-table-column label="操作" align="center" width="230" fixed="right">
           <template #default="scope">
-            <el-button v-if="isExamDoctor" link type="success" size="small" icon="VideoPlay" @click="openExecuteDialog(scope.row)">选择申请单</el-button>
             <el-button link type="primary" size="small" icon="View" @click="handleView(scope.row)">查看</el-button>
             <el-button link type="primary" size="small" icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
+            <el-button
+              v-if="isExamDoctor"
+              link
+              type="success"
+              size="small"
+              icon="VideoPlay"
+              @click="executeApply(scope.row)"
+            >选择申请单</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -271,45 +278,6 @@
         <el-button type="primary" @click="submitApply" :loading="submitting">确定提交</el-button>
       </template>
     </el-dialog>
-
-    <el-dialog title="选择检查检验申请单" v-model="executeDialogOpen" width="560px" append-to-body>
-      <el-descriptions :column="2" border size="small" v-if="selectedApply">
-        <el-descriptions-item label="申请ID">{{ selectedApply.applyId }}</el-descriptions-item>
-        <el-descriptions-item label="挂号编号">{{ selectedApply.registerNo || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="患者">{{ selectedApply.patientName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="医技项目">{{ selectedApply.techName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="部位">{{ selectedApply.applyPosition || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ selectedApply.applyStatus || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="目的" :span="2">{{ selectedApply.applyInfo || '-' }}</el-descriptions-item>
-      </el-descriptions>
-
-      <el-alert
-        v-if="!executeRouteOptions.length"
-        title="该申请单暂未配置对应的执行页面"
-        type="warning"
-        show-icon
-        :closable="false"
-        class="execute-alert"
-      />
-
-      <el-form label-width="90px" class="execute-form" v-else>
-        <el-form-item label="执行项目">
-          <el-select v-model="selectedExecuteRoute" placeholder="请选择与申请单对应的执行项目" style="width:100%">
-            <el-option
-              v-for="item in executeRouteOptions"
-              :key="item.route"
-              :label="item.name"
-              :value="item.route"
-            />
-          </el-select>
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="executeDialogOpen = false">取消</el-button>
-        <el-button type="primary" :disabled="!selectedExecuteRoute" @click="confirmExecuteApply">进入检查/检验</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -317,10 +285,12 @@
 import { ref, reactive, computed, getCurrentInstance, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { listApply, getApply, addApply, updateApply, listApplyRegisterOptions } from "@/api/hisexam/apply"
+import { listApply, getApply, addApply, updateApply } from "@/api/hisexam/apply"
+import { listRegister, getRegister } from '@/api/register/register'
 import { listTechnology, listLabTechnologyOptions } from '@/api/hisexam/technology'
+import { listEncounter } from '@/api/emr/encounter'
 import useUserStore from '@/store/modules/user'
-import { ArrowLeft, ArrowRight, Document, Clock, CircleCheckFilled, Timer, Plus, View, Edit, VideoPlay } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, Document, Clock, CircleCheckFilled, Timer, Plus, View, Edit } from '@element-plus/icons-vue'
 
 import checkImg1 from '@/assets/exam/检查1.png'
 import checkImg2 from '@/assets/exam/检查2.png'
@@ -362,8 +332,8 @@ const categoryMap = {
     colorBg: '#E8F3EF',
     items: ['颅内病变CT', '肺部病变CT', '皮肤病变']
   },
-  INSPEC: {
-    type: 'INSPEC',
+  LAB: {
+    type: 'LAB',
     name: '检验',
     subtitle: '实验室检验',
     description: '通过分析血液、体液等样本提供诊断依据，包含验血、生化分析等实验室检验项目',
@@ -391,10 +361,10 @@ const subItemMap = {
     { name: '肺部病变CT检查', description: '利用低剂量螺旋CT技术对肺部进行薄层扫描，检测结节、炎症、纤维化等肺部疾病', duration: '20分钟', route: '/hisexam/check/lung-ct' },
     { name: '皮肤病变检查', description: '通过皮肤镜、病理活检等手段对皮肤病灶进行形态学与组织学评估', duration: '15分钟', route: '/hisexam/check/skin' }
   ],
-  INSPEC: [
-    { name: '血常规检验', aliases: ['验血', '血常规'], description: '通过全自动血液分析仪检测红细胞、白细胞、血小板等指标，评估血液系统健康状况', duration: '2小时', route: '/hisexam/lab/blood-routine' },
-    { name: '生化全套检验', aliases: ['生化检验', '生化全套', '肝功能', '肾功能', '肝肾功能', '血糖血脂'], description: '检测肝功能、肾功能、血糖血脂等多项生化指标，全面评估代谢与脏器功能', duration: '4小时', route: '/hisexam/lab/biochemistry' },
-    { name: '免疫学检验', aliases: ['免疫检验', '免疫学', '感染免疫'], description: '通过免疫学方法检测抗原抗体反应、自身抗体、补体等，辅助诊断免疫相关疾病', duration: '6小时', route: '/hisexam/lab/immunology' }
+  LAB: [
+    { name: '血常规检验', description: '通过全自动血液分析仪检测红细胞、白细胞、血小板等指标，评估血液系统健康状况', duration: '2小时', route: '/hisexam/lab/blood-routine' },
+    { name: '生化全套检验', description: '检测肝功能、肾功能、血糖血脂等多项生化指标，全面评估代谢与脏器功能', duration: '4小时', route: '/hisexam/lab/biochemistry' },
+    { name: '免疫学检验', description: '通过免疫学方法检测抗原抗体反应、自身抗体、补体等，辅助诊断免疫相关疾病', duration: '6小时', route: '/hisexam/lab/immunology' }
   ],
   DISPOSAL: [
     { name: '外科手术', description: '由专业外科团队执行各类手术治疗，包括术前准备、术中操作与术后监护全流程管理', duration: '2-4小时', route: '' },
@@ -404,9 +374,10 @@ const subItemMap = {
 }
 
 // ============ 当前分类 ============
-const applyType = computed(() => route.query.applyType || 'CHECK')
+const applyType = computed(() => route.query.applyType === 'INSPEC' ? 'LAB' : (route.query.applyType || 'CHECK'))
 const currentCategory = computed(() => categoryMap[applyType.value] || categoryMap.CHECK)
 const subItems = computed(() => subItemMap[applyType.value] || [])
+const currentApplyType = computed(() => currentCategory.value.type)
 
 // ============ Hero 轮播 ============
 const heroIndex = ref(0)
@@ -443,12 +414,18 @@ const queryParams = reactive({
 const pendingCount = computed(() => tableData.value.filter(r => r.applyStatus === '待执行' || r.applyStatus === '待缴费').length)
 const doneCount = computed(() => tableData.value.filter(r => r.applyStatus === '已完成').length)
 
+function isCurrentApplyType(type) {
+  if (currentApplyType.value === 'LAB') return type === 'LAB' || type === 'INSPEC'
+  return type === currentApplyType.value
+}
+
 function fetchList() {
   loading.value = true
-  queryParams.applyType = applyType.value
+  queryParams.applyType = currentApplyType.value
   listApply(queryParams).then(res => {
-    tableData.value = res.rows || []
-    total.value = res.total || 0
+    const rows = res.rows || []
+    tableData.value = rows.filter(row => isCurrentApplyType(row.applyType))
+    total.value = tableData.value.length
     loading.value = false
   }).catch(() => { loading.value = false })
 }
@@ -464,10 +441,6 @@ const dialogTitle = ref('')
 const submitting = ref(false)
 const isEdit = ref(false)
 const applyFormRef = ref(null)
-const executeDialogOpen = ref(false)
-const selectedApply = ref(null)
-const selectedExecuteRoute = ref('')
-const executeRouteOptions = computed(() => subItems.value.filter(item => item.route))
 const applyForm = reactive({
   applyId: null,
   registerId: null,
@@ -486,8 +459,11 @@ const applyForm = reactive({
 })
 
 const formRules = {
-  registerId: [{ required: true, message: '请选择挂号单', trigger: 'change' }],
-  techId: [{ required: true, message: '请选择医技项目', trigger: 'change' }]
+  registerId: [{ required: true, message: '挂号ID不能为空', trigger: 'blur' }],
+  patientId: [{ required: true, message: '患者ID不能为空', trigger: 'blur' }],
+  doctorId: [{ required: true, message: '开单医生ID不能为空', trigger: 'blur' }],
+  deptId: [{ required: true, message: '开单科室ID不能为空', trigger: 'blur' }],
+  techId: [{ required: true, message: '医技项目ID不能为空', trigger: 'blur' }]
 }
 
 function resetApplyForm() {
@@ -503,105 +479,118 @@ const regLoading = ref(false)
 
 const searchRegistersForDialog = (keyword) => {
   regLoading.value = true
-  listApplyRegisterOptions({ keyword })
-    .then(res => { registerOptions.value = res.data || [] })
+  listRegister({ registerNo: keyword || undefined, pageNum: 1, pageSize: 30 })
+    .then(res => { registerOptions.value = res.rows || res.data?.rows || [] })
     .finally(() => { regLoading.value = false })
 }
 
-const fillApplyFormContext = (data) => {
-  if (!data) return
-  applyForm.registerId = data.registerId
-  applyForm.encounterId = data.encounterId || ''
-  applyForm.patientId = data.patientId || ''
-  applyForm.doctorId = data.doctorId || ''
-  applyForm.deptId = data.deptId || ''
-  applyForm._doctorInfo = (data.doctorName || '未知医生') + ' (ID:' + (data.doctorId || '-') + ')'
-  applyForm._deptInfo = (data.deptName || '未知科室') + ' (ID:' + (data.deptId || '-') + ')'
-}
-
-const ensureDialogRegisterOption = (data) => {
-  if (!data?.registerId) return
-  if (!registerOptions.value.some(item => item.registerId === data.registerId)) {
-    registerOptions.value.unshift({
-      registerId: data.registerId,
-      registerNo: data.registerNo,
-      encounterId: data.encounterId,
-      patientId: data.patientId,
-      patientName: data.patientName,
-      doctorId: data.doctorId,
-      doctorName: data.doctorName,
-      deptId: data.deptId,
-      deptName: data.deptName
-    })
-  }
-}
-
-const onDialogRegisterChange = (registerId) => {
+const onDialogRegisterChange = async (registerId) => {
   if (!registerId) return
-  const matched = registerOptions.value.find(item => item.registerId === registerId)
-  fillApplyFormContext(matched)
+  try {
+    const res = await getRegister(registerId)
+    const data = res.data || res
+    if (data) {
+      applyForm.patientId = data.patientId || ''
+      applyForm.doctorId = data.doctorId || ''
+      applyForm.deptId = data.deptId || ''
+      // 执行人员默认使用挂号的开单医生
+      applyForm.operatorId = data.doctorId || ''
+      // 录入人员默认使用挂号的开单医生
+      applyForm.inputerId = data.doctorId || ''
+      // 执行时间默认当前时间
+      applyForm.examTime = new Date().toISOString()
+      // 尝试通过挂号查找接诊ID
+      applyForm.encounterId = data.encounterId || ''
+      if (!applyForm.encounterId) {
+        try {
+          const encRes = await listEncounter({ registerId, pageNum: 1, pageSize: 1 })
+          const encList = encRes.rows || encRes.data?.rows || []
+          if (encList.length > 0) applyForm.encounterId = encList[0].encounterId
+        } catch (e) {}
+      }
+      applyForm._doctorInfo = (data.doctorName || '') + ' (ID:' + (data.doctorId || '') + ')'
+      applyForm._deptInfo = (data.deptName || '') + ' (ID:' + (data.deptId || '') + ')'
+    }
+  } catch (e) { console.error('获取挂号详情失败:', e) }
 }
 
 // ============ 对话框：医技项目下拉框 ============
 const dialogTechList = ref([])
 
 const loadDialogTechList = () => {
-  const techType = applyType.value
-  if (techType === 'INSPEC') {
+  // 根据当前分类加载对应类型的医技项目
+  const techType = currentApplyType.value // CHECK / LAB / DISPOSAL
+  if (techType === 'LAB') {
     listLabTechnologyOptions().then(res => {
       dialogTechList.value = res.data || []
     })
     return
   }
-  listTechnology({ techType, pageNum: 1, pageSize: 100 })
-    .then(res => {
-      const rows = res.rows || res.data?.rows || []
-      if (rows.length || techType !== 'INSPEC') {
-        dialogTechList.value = rows
-        return
-      }
-      return listTechnology({ pageNum: 1, pageSize: 300 }).then(allRes => {
-        const allRows = allRes.rows || allRes.data?.rows || []
-        const labNames = subItemMap.INSPEC.flatMap(item => [item.name, ...(item.aliases || [])])
-        dialogTechList.value = allRows.filter(t => labNames.some(name => normalizeText(t.techName).includes(normalizeText(name)) || normalizeText(name).includes(normalizeText(t.techName))))
-      })
-    })
+  listTechnology({ techType, status: '0', pageNum: 1, pageSize: 100 })
+    .then(res => { dialogTechList.value = res.rows || res.data?.rows || [] })
 }
 
 function handleCreate() {
   isEdit.value = false
   resetApplyForm()
-  applyForm.applyType = applyType.value
+  applyForm.applyType = currentApplyType.value
   dialogTitle.value = `新建${currentCategory.value?.name}申请单`
-  searchRegistersForDialog('')
   loadDialogTechList()
   dialogOpen.value = true
 }
 
 function createApplyForItem(item) {
   if (isExamDoctor.value && item.route) {
-    ElMessage.warning('请先在下方申请单列表中选择对应申请单，再执行检查/检验')
+    ElMessage.warning('请先在下方申请单列表选择对应申请单，再执行检查/检验')
     return
   }
   // 其他角色弹出对话框创建申请单
   isEdit.value = false
   resetApplyForm()
-  applyForm.applyType = applyType.value
+  applyForm.applyType = currentApplyType.value
   applyForm.applyPosition = item.name
   applyForm.applyInfo = item.description
   dialogTitle.value = `申请：${item.name}`
-  searchRegistersForDialog('')
   loadDialogTechList()  // 加载对应类型的医技项目
   // 自动匹配医技项目名称
   setTimeout(() => {
-    const names = [item.name, ...(item.aliases || [])].map(normalizeText)
-    const matched = dialogTechList.value.find(t => {
-      const techName = normalizeText(t.techName)
-      return names.some(name => name.includes(techName) || techName.includes(name))
-    })
+    const matched = dialogTechList.value.find(t => item.name.includes(t.techName) || t.techName.includes(item.name))
     if (matched) applyForm.techId = matched.id
   }, 300)
   dialogOpen.value = true
+}
+
+function normalizeName(value) {
+  return String(value || '').replace(/\s+/g, '').toLowerCase()
+}
+
+function getExecuteRoute(row) {
+  const name = normalizeName(row.techName || row.applyPosition || row.applyInfo)
+  const matched = subItems.value.find(item => {
+    const itemName = normalizeName(item.name)
+    return item.route && (name.includes(itemName) || itemName.includes(name))
+  })
+  if (matched?.route) return matched.route
+  if (name.includes('颅') || name.includes('脑')) return '/hisexam/check/brain-ct'
+  if (name.includes('肺')) return '/hisexam/check/lung-ct'
+  if (name.includes('皮肤') || name.includes('痣')) return '/hisexam/check/skin'
+  if (name.includes('血常规') || name.includes('验血')) return '/hisexam/lab/blood-routine'
+  if (name.includes('生化') || name.includes('肝功能') || name.includes('肾功能') || name.includes('血糖') || name.includes('血脂')) return '/hisexam/lab/biochemistry'
+  if (name.includes('免疫')) return '/hisexam/lab/immunology'
+  return ''
+}
+
+function executeApply(row) {
+  if (!row?.applyId) {
+    ElMessage.warning('请先选择有效的检查/检验申请单')
+    return
+  }
+  const executeRoute = getExecuteRoute(row)
+  if (!executeRoute) {
+    ElMessage.warning('当前申请单未匹配到可执行的检查/检验页面')
+    return
+  }
+  router.push({ path: executeRoute, query: { applyId: row.applyId } })
 }
 
 function handleView(row) {
@@ -631,48 +620,9 @@ function handleEdit(row) {
   isEdit.value = true
   getApply(row.applyId).then(res => {
     Object.assign(applyForm, res.data)
-    ensureDialogRegisterOption(res.data)
-    fillApplyFormContext(res.data)
-    loadDialogTechList()
     dialogTitle.value = `编辑${currentCategory.value?.name}申请单`
     dialogOpen.value = true
   })
-}
-
-function normalizeText(value) {
-  return String(value || '').replace(/\s+/g, '').toLowerCase()
-}
-
-function getRecommendedExecuteRoute(row) {
-  const techName = normalizeText(row.techName)
-  const position = normalizeText(row.applyPosition)
-  const applyInfo = normalizeText(row.applyInfo)
-  if (!techName && !position && !applyInfo) return ''
-
-  const matched = executeRouteOptions.value.find(item => {
-    const names = [item.name, ...(item.aliases || [])].map(normalizeText)
-    return names.some(name =>
-      (techName && (techName === name || techName.includes(name) || name.includes(techName)))
-      || (position && (position === name || position.includes(name) || name.includes(position)))
-      || (applyInfo && applyInfo.includes(name))
-    )
-  })
-  return matched?.route || ''
-}
-
-function openExecuteDialog(row) {
-  selectedApply.value = row
-  selectedExecuteRoute.value = getRecommendedExecuteRoute(row)
-  executeDialogOpen.value = true
-}
-
-function confirmExecuteApply() {
-  if (!selectedApply.value?.applyId || !selectedExecuteRoute.value) {
-    ElMessage.warning('请先选择检查检验申请单和对应执行项目')
-    return
-  }
-  executeDialogOpen.value = false
-  router.push({ path: selectedExecuteRoute.value, query: { applyId: selectedApply.value.applyId } })
 }
 
 function submitApply() {

@@ -35,8 +35,8 @@ public class MedicalTechnology extends BaseEntity
     @Excel(name = "单价")
     private BigDecimal techPrice;
 
-    /** 项目类型：CHECK检查/INSPEC检验/DISPOSAL处置 */
-    @Excel(name = "项目类型：CHECK检查/INSPEC检验/DISPOSAL处置")
+    /** 项目类型：CHECK检查/LAB检验/DISPOSAL处置 */
+    @Excel(name = "项目类型：CHECK检查/LAB检验/DISPOSAL处置")
     private String techType;
 
     /** 费用分类 */

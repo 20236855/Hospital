@@ -35,7 +35,7 @@ import com.ruoyi.hisexam.service.IExamApplyService;
 @RequestMapping("/lung-ct")
 public class LungCtAnalysisController extends BaseController {
 
-    @Value("${lung.ct.service.url:http://127.0.0.1:5004}")
+    @Value("${lung.ct.service.url:http://127.0.0.1:5002}")
     private String lungCtServiceUrl;
 
     /** CT切片文件存储根目录（默认在picture/ct_slices下，与ruoyi-file共用存储空间） */
@@ -109,7 +109,7 @@ public class LungCtAnalysisController extends BaseController {
 
         } catch (org.springframework.web.client.ResourceAccessException e) {
             logger.error("无法连接服务: {}", e.getMessage());
-            return error("肺部CT分析服务未启动，请执行: python lung_ct_segment.py --port 5004");
+            return error("肺部CT分析服务未启动，请执行: python lung_ct_segment.py --port 5002");
         } catch (Exception e) {
             logger.error("CT分析失败", e);
             return error("分析失败: " + e.getMessage());

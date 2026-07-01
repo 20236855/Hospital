@@ -70,7 +70,7 @@ public class MedicalTechnologyServiceImpl implements IMedicalTechnologyService
                 MedicalTechnology item = new MedicalTechnology();
                 item.setTechCode(seed.code);
                 item.setTechName(seed.name);
-                item.setTechType("INSPEC");
+                item.setTechType("LAB");
                 item.setTechFormat("次");
                 item.setTechPrice(seed.price);
                 item.setPriceType("检验费");

@@ -28,7 +28,7 @@ public interface IMedicalTechnologyService
     public List<MedicalTechnology> selectMedicalTechnologyList(MedicalTechnology medicalTechnology);
 
     /**
-     * 查询检验类医技项目，兼容历史LAB类型并补齐标准检验项目
+     * 查询检验类医技项目，兼容历史INSPEC类型并补齐标准检验项目
      *
      * @return 检验类医技项目集合
      */

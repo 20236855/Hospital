@@ -47,7 +47,7 @@ public class MedicalTechnologyController extends BaseController
     }
 
     /**
-     * 查询检验申请可用医技项目，兼容历史LAB类型
+     * 查询检验申请可用医技项目，兼容历史INSPEC类型
      */
     @GetMapping("/lab/options")
     public AjaxResult labOptions()

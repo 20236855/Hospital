@@ -127,7 +127,7 @@
   overflow: hidden;
   border-radius: 32px 0 0 32px;
   background:
-    linear-gradient(135deg, rgba(255, 253, 248, .74), rgba(224, 246, 252, .58)),
+    linear-gradient(135deg, #fffdf8, #e0f6fc),
     repeating-linear-gradient(110deg, rgba(148, 211, 225, .12) 0 1px, transparent 1px 34px);
 }
 

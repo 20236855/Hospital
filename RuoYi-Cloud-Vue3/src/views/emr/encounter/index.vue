@@ -1,5 +1,17 @@
 <template>
   <div class="app-container encounter-page">
+    <DoctorInsightDashboard
+      eyebrow="Outpatient Command"
+      title="接诊医生业务驾驶舱"
+      subtitle="基于当前接诊列表实时计算待接诊、接诊中、完成率和AI辅助使用情况"
+      tone="clinical"
+      :focus-value="encounterDashboard.focusValue"
+      focus-label="完成率"
+      :metrics="encounterDashboard.metrics"
+      :lanes="encounterDashboard.lanes"
+      :chips="encounterDashboard.chips"
+    />
+
     <!-- ===== 搜索区域 ===== -->
     <div class="search-panel">
       <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
@@ -296,7 +308,8 @@
 <script setup name="Encounter">
 import { ref, reactive, toRefs, computed, getCurrentInstance, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { MagicStick, UserFilled, List, Connection, Document, Position } from '@element-plus/icons-vue'
+import { MagicStick, UserFilled, List, Connection, Document, Position, TrendCharts, Clock, CircleCheckFilled } from '@element-plus/icons-vue'
+import DoctorInsightDashboard from '@/components/DoctorInsightDashboard/index.vue'
 import { listEncounter, getEncounter, delEncounter, addEncounter, updateEncounter } from "@/api/emr/encounter"
 import { saveRecord as saveRecordApi } from "@/api/emr/record"
 import { listPatient } from "@/api/patient/patient"
@@ -323,6 +336,40 @@ const registerOptions = ref([])
 
 const isDoctorUser = computed(() => {
   return userStore.roles?.some(r => r === 'doctor' || r.roleKey === 'doctor' || r.roleId === 5) || false
+})
+
+const percent = (part, whole) => whole ? Math.round((part / whole) * 100) : 0
+const countStatus = (status) => encounterList.value.filter(item => item.encounterStatus === status).length
+const encounterDashboard = computed(() => {
+  const rows = encounterList.value || []
+  const listTotal = rows.length
+  const waiting = countStatus('待接诊')
+  const active = countStatus('接诊中')
+  const done = countStatus('就诊已完成')
+  const canceled = countStatus('已取消就诊')
+  const urgent = rows.filter(item => item.encounterType === '急诊').length
+  const aiTurns = aiMessages.value.filter(item => item.role === 'assistant').length
+  const doneRate = percent(done, listTotal)
+  return {
+    focusValue: doneRate + '%',
+    metrics: [
+      { label: '当前列表接诊', value: listTotal, note: `接口总数 ${total.value || listTotal}`, icon: UserFilled, progress: Math.min(listTotal * 8, 100) },
+      { label: '待接诊队列', value: waiting, note: waiting ? '需要尽快处理' : '暂无积压', icon: Clock, state: waiting ? 'warn' : 'good', progress: percent(waiting, listTotal) },
+      { label: '接诊中', value: active, note: active ? '正在诊疗' : '空闲可接诊', icon: TrendCharts, progress: percent(active, listTotal) },
+      { label: '已完成', value: done, note: `完成率 ${doneRate}%`, icon: CircleCheckFilled, state: 'good', progress: doneRate }
+    ],
+    lanes: [
+      { label: '待接诊', value: waiting, progress: percent(waiting, listTotal) },
+      { label: '接诊中', value: active, progress: percent(active, listTotal) },
+      { label: '已完成', value: done, progress: doneRate },
+      { label: '已取消', value: canceled, progress: percent(canceled, listTotal) }
+    ],
+    chips: [
+      { label: '急诊关注', value: urgent, type: urgent ? 'danger' : 'success' },
+      { label: 'AI回复', value: aiTurns, type: aiTurns ? 'success' : 'info' },
+      { label: '当前医生', value: isDoctorUser.value ? '本人视角' : '全院视角', type: 'info' }
+    ]
+  }
 })
 
 const data = reactive({
