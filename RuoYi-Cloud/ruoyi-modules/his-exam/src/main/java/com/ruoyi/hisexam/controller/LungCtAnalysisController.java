@@ -35,7 +35,7 @@ import com.ruoyi.hisexam.service.IExamApplyService;
 @RequestMapping("/lung-ct")
 public class LungCtAnalysisController extends BaseController {
 
-    @Value("${lung.ct.service.url:http://127.0.0.1:5002}")
+    @Value("${lung.ct.service.url:http://127.0.0.1:5004}")
     private String lungCtServiceUrl;
 
     /** CT切片文件存储根目录（默认在picture/ct_slices下，与ruoyi-file共用存储空间） */
@@ -109,7 +109,7 @@ public class LungCtAnalysisController extends BaseController {
 
         } catch (org.springframework.web.client.ResourceAccessException e) {
             logger.error("无法连接服务: {}", e.getMessage());
-            return error("肺部CT分析服务未启动，请执行: python lung_ct_segment.py --port 5002");
+            return error("肺部CT分析服务未启动，请执行: python lung_ct_segment.py --port 5004");
         } catch (Exception e) {
             logger.error("CT分析失败", e);
             return error("分析失败: " + e.getMessage());
@@ -127,8 +127,10 @@ public class LungCtAnalysisController extends BaseController {
     public AjaxResult saveSlices(@RequestBody Map<String, Object> saveData) {
         try {
             // 解析参数
-            Long registerId = saveData.get("applyId") != null
+            Long applyId = saveData.get("applyId") != null
                 ? Long.valueOf(saveData.get("applyId").toString()) : null;
+            Long registerId = saveData.get("registerId") != null
+                ? Long.valueOf(saveData.get("registerId").toString()) : null;
             Long techId = saveData.get("techId") != null
                 ? Long.valueOf(saveData.get("techId").toString()) : null;
             String checkType = (String) saveData.getOrDefault("checkType", "LUNG_CT");
@@ -138,10 +140,12 @@ public class LungCtAnalysisController extends BaseController {
                 ? Long.valueOf(saveData.get("doctorId").toString()) : null;
             String fileName = (String) saveData.get("fileName");
 
-            if (registerId == null) return error("挂号ID不能为空");
+            if (applyId == null && registerId == null) return error("申请单ID不能为空");
 
-            // 查找或创建 exam_apply 记录
-            Long applyId = findOrCreateApply(registerId, techId, patientId, doctorId, checkType, fileName);
+            // 检查医生必须从申请单进入；兼容旧数据才允许按挂号查找或创建。
+            if (applyId == null) {
+                applyId = findOrCreateApply(registerId, techId, patientId, doctorId, checkType, fileName);
+            }
 
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> slices = (List<Map<String, Object>>) saveData.get("slices");

@@ -5,9 +5,12 @@ import request from '@/utils/request'
  */
 
 /**
- * 上传CT文件执行分析（Step 02: CT值结节分割）
+ * 上传CT文件执行完整肺结节分析
+ * Step 01: CT值结节检测与分类
+ * Step 02: HU阈值 + 形态学精确分割
+ * Step 03: CT特征良恶性风险评估
  * @param {File} file CT文件 (DICOM zip / MHD / NIfTI)
- * @param {Object} params 算法参数 { max_slices, lung_threshold, soft_min, soft_max }
+ * @param {Object} params 算法参数 { max_slices, lung_threshold, soft_min, soft_max, autodl_endpoint }
  */
 export function analyzeLungCt(file, params = {}) {
   const formData = new FormData()

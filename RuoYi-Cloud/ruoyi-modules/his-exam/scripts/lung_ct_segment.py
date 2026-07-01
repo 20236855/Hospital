@@ -4,16 +4,16 @@
 基于CT亨氏单位（HU）实现肺实质提取 + 结节候选检测 + 分割
 无需深度学习模型，纯CT值+形态学算法
 
-启动方式: python lung_ct_segment.py --port 5002
+启动方式: python lung_ct_segment.py --port 5004
 依赖: pip install flask simpleitk numpy scipy scikit-image pillow
 
 算法流程:
   1. 读取CT体数据（DICOM/NIfTI/MHD）
   2. 提取肺实质掩码（HU < -400 阈值法）
-  3. 结节候选检测（HU > -100 && HU < 200，形态学分析）
-  4. 计算每个候选的HU统计特征
-  5. 生成带标注的切片PNG（肺实质轮廓 + 结节ROI）
-  6. 返回切片Base64 + JSON统计信息
+  3. 肺结节候选检测与分类（密度/大小/形态）
+  4. 结节精确分割（连通域掩码 + 轮廓点）
+  5. 良恶性风险评估（CT值、大小、形态综合评分）
+  6. 生成带标注的切片PNG并返回三阶段结构化结果
 
 HU值参考：
   空气: -1000 ~ -900
@@ -59,7 +59,7 @@ except ImportError:
     print("警告: scipy未安装，请运行: pip install scipy")
 
 try:
-    from skimage.measure import regionprops, label
+    from skimage.measure import regionprops, label, find_contours
     from skimage.morphology import remove_small_objects
 except ImportError:
     print("警告: scikit-image未安装，请运行: pip install scikit-image")
@@ -73,6 +73,49 @@ UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
 def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
+
+
+def _size_class(diameter_mm: float) -> str:
+    if diameter_mm < 5:
+        return "微小结节"
+    if diameter_mm <= 10:
+        return "小结节"
+    if diameter_mm <= 30:
+        return "较大结节"
+    return "肿块样病灶"
+
+
+def _density_class(nodule_type: str, hu_mean: float) -> str:
+    if nodule_type == "ggo":
+        return "磨玻璃密度"
+    if nodule_type == "calcified":
+        return "钙化密度"
+    if hu_mean < 30:
+        return "低密度实性"
+    if hu_mean <= 100:
+        return "软组织密度实性"
+    return "高密度实性"
+
+
+def _morphology_class(circularity: float, eccentricity: float) -> str:
+    if circularity >= 0.7 and eccentricity <= 0.45:
+        return "类圆形"
+    if circularity < 0.55 or eccentricity > 0.65:
+        return "形态不规则"
+    return "椭圆形"
+
+
+def _compact_contour(binary_mask: np.ndarray,
+                     offset_y: int,
+                     offset_x: int,
+                     max_points: int = 80) -> List[List[float]]:
+    contours = find_contours(binary_mask.astype(float), 0.5)
+    if not contours:
+        return []
+    contour = max(contours, key=len)
+    step = max(1, int(np.ceil(len(contour) / max_points)))
+    points = contour[::step]
+    return [[round(float(p[0] + offset_y), 1), round(float(p[1] + offset_x), 1)] for p in points]
 
 
 def _is_truthy(value, default: bool = False) -> bool:
@@ -365,25 +408,44 @@ def _extract_candidates(slice_hu: np.ndarray,
 
         # 离心率
         eccentricity = p.eccentricity if hasattr(p, 'eccentricity') else 0
+        y1, x1, y2, x2 = p.bbox
+        contour_points = _compact_contour(p.image, y1, x1)
+        density_class = _density_class(nodule_type, hu_mean)
+        size_class = _size_class(diameter_mm)
+        morphology_class = _morphology_class(circularity, eccentricity)
 
         cand = {
             "centroid_y": float(p.centroid[0]),
             "centroid_x": float(p.centroid[1]),
-            "bbox_y1": float(p.bbox[0]),
-            "bbox_x1": float(p.bbox[1]),
-            "bbox_y2": float(p.bbox[2]),
-            "bbox_x2": float(p.bbox[3]),
+            "bbox_y1": float(y1),
+            "bbox_x1": float(x1),
+            "bbox_y2": float(y2),
+            "bbox_x2": float(x2),
+            "bbox": [float(y1), float(x1), float(y2), float(x2)],
             "area_pixels": int(p.area),
             "area_mm2": round(area_mm2, 2),
             "diameter_mm": round(diameter_mm, 2),
             "perimeter_mm": round(perimeter, 1),
             "circularity": round(circularity, 3),
             "eccentricity": round(eccentricity, 3),
+            "solidity": round(float(getattr(p, "solidity", 0) or 0), 3),
             "hu_mean": round(hu_mean, 1),
             "hu_std": round(hu_std, 1),
             "hu_min": round(hu_min, 1),
             "hu_max": round(hu_max, 1),
-            "type": nodule_type
+            "type": nodule_type,
+            "densityClass": density_class,
+            "sizeClass": size_class,
+            "morphologyClass": morphology_class,
+            "classification": f"{size_class} / {density_class} / {morphology_class}",
+            "segmentation": {
+                "algorithm": "HU阈值 + 连通域 + 形态学过滤",
+                "maskAreaPixels": int(p.area),
+                "maskAreaMM2": round(area_mm2, 2),
+                "contour": contour_points,
+                "contourPointCount": len(contour_points),
+                "bbox": [float(y1), float(x1), float(y2), float(x2)]
+            }
         }
         candidates.append(cand)
 
@@ -485,6 +547,19 @@ def estimate_malignancy_features(candidate: Dict) -> Dict:
 
 def enrich_malignancy(candidates: List[Dict]) -> List[Dict]:
     return [estimate_malignancy_features(c) for c in candidates]
+
+
+def apply_autodl_config(result: Dict, params: Dict) -> Dict:
+    """预留AutoDL模型接口配置；未启用时完整使用本地HU流程。"""
+    endpoint = params.get("autodl_endpoint") or params.get("autodlUrl")
+    enable_autodl = _is_truthy(params.get("enable_autodl"), default=False)
+    autodl = result.setdefault("pipeline", {}).setdefault("autodl", {})
+    autodl["enabled"] = bool(enable_autodl and endpoint)
+    autodl["endpoint"] = endpoint
+    if autodl["enabled"]:
+        autodl["status"] = "configured_not_called"
+        autodl["message"] = "AutoDL接口已配置；当前仍使用本地HU+形态学结果，模型服务完成后可在此处替换/融合推理结果。"
+    return result
 
 
 # ===================== 图像生成 =====================
@@ -682,7 +757,7 @@ def analyze_lung_ct(volume: np.ndarray,
     medium_risk = [c for c in all_candidates if c.get('malignancyRisk') == '中风险']
     low_risk = [c for c in all_candidates if c.get('malignancyRisk') == '低风险']
 
-    # 生成分割掩码数据（简化版：每个结节的轮廓点）
+    # 生成分割掩码数据：每个结节的精确轮廓、面积、边界框和风险字段
     segmentation_data = {}
     for z_idx, z in enumerate(slice_indices):
         slice_cands = [c for c in all_candidates if c.get('slice_index') == z_idx]
@@ -696,14 +771,74 @@ def analyze_lung_ct(volume: np.ndarray,
                     "bbox": [cand['bbox_y1'], cand['bbox_x1'],
                              cand['bbox_y2'], cand['bbox_x2']],
                     "type": cand['type'],
+                    "classification": cand.get("classification"),
+                    "segmentation": cand.get("segmentation"),
                     "hu_mean": cand['hu_mean'],
                     "malignancyProbability": cand.get('malignancyProbability'),
                     "malignancyRisk": cand.get('malignancyRisk')
                 })
             segmentation_data[seg_key] = contours_list
 
+    top_risk = sorted(all_candidates, key=lambda c: c.get("malignancyProbability", 0), reverse=True)[:5]
+    detection_items = [{
+        "sliceIndex": c.get("slice_index"),
+        "sliceZ": c.get("slice_z"),
+        "type": c.get("type"),
+        "classification": c.get("classification"),
+        "sizeClass": c.get("sizeClass"),
+        "densityClass": c.get("densityClass"),
+        "morphologyClass": c.get("morphologyClass"),
+        "diameterMm": c.get("diameter_mm"),
+        "areaMm2": c.get("area_mm2"),
+        "huMean": c.get("hu_mean"),
+        "bbox": c.get("bbox")
+    } for c in all_candidates]
+    segmentation_items = [{
+        "sliceIndex": c.get("slice_index"),
+        "sliceZ": c.get("slice_z"),
+        "type": c.get("type"),
+        "diameterMm": c.get("diameter_mm"),
+        "areaMm2": c.get("area_mm2"),
+        "contourPointCount": (c.get("segmentation") or {}).get("contourPointCount", 0),
+        "segmentation": c.get("segmentation")
+    } for c in all_candidates]
+    malignancy_items = [{
+        "sliceIndex": c.get("slice_index"),
+        "sliceZ": c.get("slice_z"),
+        "type": c.get("type"),
+        "diameterMm": c.get("diameter_mm"),
+        "probability": c.get("malignancyProbability"),
+        "risk": c.get("malignancyRisk"),
+        "label": c.get("malignancyLabel"),
+        "advice": c.get("riskAdvice"),
+        "features": {
+            "sizeClass": c.get("sizeClass"),
+            "densityClass": c.get("densityClass"),
+            "morphologyClass": c.get("morphologyClass"),
+            "circularity": c.get("circularity"),
+            "eccentricity": c.get("eccentricity"),
+            "huMean": c.get("hu_mean"),
+            "huStd": c.get("hu_std")
+        }
+    } for c in all_candidates]
+    overall_risk = "高风险" if high_risk else ("中风险" if medium_risk else ("低风险" if total_nodules else "未检出结节"))
+    pipeline = {
+        "noduleDetection": "completed",
+        "classification": "completed",
+        "segmentation": "completed" if total_nodules > 0 else "completed_no_target",
+        "malignancyClassification": "completed" if total_nodules > 0 else "completed_no_target",
+        "method": "local_hu_morphology",
+        "autodl": {
+            "enabled": False,
+            "endpoint": None,
+            "status": "reserved",
+            "message": "已预留AutoDL模型接口；未配置时使用本地CT值与形态学全流程。"
+        }
+    }
+
     return {
         "success": True,
+        "algorithmVersion": "HU-Morphology-Lung-Nodule-v2",
         "totalSlices": total_slices,
         "totalSlicesOrig": total_slices_orig,
         "sliceIndices": slice_indices,
@@ -734,19 +869,37 @@ def analyze_lung_ct(volume: np.ndarray,
         },
         "candidates": all_candidates,
         "segmentationData": segmentation_data,
+        "detectionClassification": {
+            "enabled": True,
+            "method": "CT值阈值 + 肺实质掩码 + 连通域形态学分类",
+            "model": "HU-Morphology-Detector; AutoDL YOLOv8/ResNet接口预留",
+            "completed": True,
+            "count": total_nodules,
+            "items": detection_items
+        },
+        "segmentationAssessment": {
+            "enabled": True,
+            "method": "HU阈值 + 形态学过滤 + 连通域轮廓提取",
+            "completed": True,
+            "count": len(segmentation_items),
+            "items": segmentation_items
+        },
         "malignancyAssessment": {
             "enabled": True,
-            "model": "Demo-LungNodule-Malignancy-Risk",
+            "method": "CT值、直径、圆度、离心率、密度类型综合评分",
+            "model": "HU-Morphology-Risk; AutoDL DenseNet/Transformer接口预留",
+            "completed": True,
             "highRiskCount": len(high_risk),
             "mediumRiskCount": len(medium_risk),
             "lowRiskCount": len(low_risk),
+            "overallRisk": overall_risk,
+            "maxProbability": round(max([c.get('malignancyProbability', 0) for c in all_candidates], default=0), 2),
+            "topRiskItems": top_risk,
+            "items": malignancy_items,
             "conclusion": "发现高风险结节，建议进一步检查" if high_risk else ("存在中风险结节，建议随访复查" if medium_risk else "未见明确高危恶性征象")
-        },
-        "pipeline": {
-            "noduleDetection": "completed",
-            "segmentation": "completed" if total_nodules > 0 else "skipped_no_nodule",
-            "malignancyClassification": "completed" if total_nodules > 0 else "skipped_no_nodule"
         }
+        ,
+        "pipeline": pipeline
     }
 
 
@@ -795,6 +948,7 @@ def analyze():
         if mock_nodule:
             volume, metadata = build_demo_lung_volume(file.filename)
             result = analyze_lung_ct(volume, metadata, max_slices=max_slices)
+            result = apply_autodl_config(result, params)
             result["mockMode"] = True
             result["sourceFile"] = file.filename
             result["message"] = "已启用肺结节检测/分割/恶性风险模拟流程"
@@ -802,6 +956,7 @@ def analyze():
 
         volume, metadata = read_ct_volume(str(tmp_path))
         result = analyze_lung_ct(volume, metadata, max_slices=max_slices)
+        result = apply_autodl_config(result, params)
         result["mockMode"] = False
         result["sourceFile"] = file.filename
 
@@ -809,13 +964,12 @@ def analyze():
 
     except Exception as e:
         traceback.print_exc()
-        volume, metadata = build_demo_lung_volume(file.filename)
-        result = analyze_lung_ct(volume, metadata, max_slices=max_slices)
-        result["mockMode"] = True
-        result["sourceFile"] = file.filename
-        result["parseWarning"] = f"真实影像解析失败，已切换演示模拟流程: {str(e)}"
-        result["message"] = "已返回肺结节检测/分割/恶性风险模拟结果"
-        return jsonify(result)
+        return jsonify({
+            "success": False,
+            "error": "真实肺部CT文件解析失败，请确认上传 DICOM序列zip、NIfTI(.nii/.nii.gz)、MHD 或 DCM 文件",
+            "detail": str(e),
+            "sourceFile": file.filename
+        }), 400
     finally:
         # 清理临时文件
         if tmp_path.exists():
@@ -865,7 +1019,7 @@ def analyze_slice():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='肺部CT结节分割服务')
-    parser.add_argument('--port', type=int, default=5002, help='服务端口 (默认: 5002)')
+    parser.add_argument('--port', type=int, default=5004, help='服务端口 (默认: 5004)')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='监听地址 (默认: 0.0.0.0)')
     parser.add_argument('--debug', action='store_true', help='调试模式')
     args = parser.parse_args()

@@ -216,6 +216,10 @@
                 <span class="badge-num">{{ stats.calcifiedNodules }}</span>
                 <span class="badge-txt">钙化灶</span>
               </div>
+              <div class="stat-badge risk">
+                <span class="badge-num">{{ stats.highRiskNodules }}</span>
+                <span class="badge-txt">高风险</span>
+              </div>
               <div class="stat-badge info">
                 <span class="badge-num">{{ totalSlices }}</span>
                 <span class="badge-txt">切片数</span>
@@ -247,6 +251,18 @@
               <el-table-column prop="hu_max" label="HU最大" width="75" />
               <el-table-column prop="circularity" label="圆度" width="70" sortable>
                 <template #default="{ row }">{{ row.circularity?.toFixed(2) }}</template>
+              </el-table-column>
+              <el-table-column label="分割" width="90">
+                <template #default="{ row }">
+                  <el-tag type="success" size="small">{{ row.segmentation?.contourPointCount || 0 }}点</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="良恶性风险" width="130" sortable>
+                <template #default="{ row }">
+                  <el-tag :type="riskTag(row.malignancyRisk)" size="small">
+                    {{ row.malignancyRisk || '低风险' }} {{ Math.round((row.malignancyProbability || 0) * 100) }}%
+                  </el-tag>
+                </template>
               </el-table-column>
               <el-table-column label="HU特征" min-width="150">
                 <template #default="{ row }">
@@ -288,15 +304,19 @@
             <!-- 三阶段管线 -->
             <div class="pipeline-flow">
               <div class="flow-line"></div>
-              <!-- Stage 01: 肺结节检测（空） -->
-              <div class="stage-card placeholder">
+              <!-- Stage 01: 肺结节检测与分类 -->
+              <div class="stage-card" :class="{ active: currentStage === 1, done: stage1Done, running: analyzing && currentStage === 1 }">
                 <div class="stage-num">01</div>
                 <div class="stage-info">
-                  <div class="stage-name">肺结节检测与分类</div>
-                  <div class="stage-model">Model: YOLOv8-Nodule / ResNet-50</div>
-                  <div class="stage-desc">自动检测肺结节位置，根据大小、形态、密度等特征进行分类</div>
+                  <div class="stage-name">肺结节检测与分类 <el-tag size="small" type="success" effect="plain">CT值算法</el-tag></div>
+                  <div class="stage-model">HU-Morphology Detector / AutoDL YOLOv8接口预留</div>
+                  <div class="stage-desc">基于真实CT体数据，自动检测肺结节位置，并按大小、密度和形态进行分类</div>
                 </div>
-                <div class="stage-status"><el-tag type="info" size="small">模型待接入</el-tag></div>
+                <div class="stage-status">
+                  <el-icon v-if="stage1Done" class="done"><CircleCheckFilled /></el-icon>
+                  <el-icon v-else-if="analyzing && currentStage === 1" class="run"><Loading /></el-icon>
+                  <el-icon v-else class="wait"><Clock /></el-icon>
+                </div>
               </div>
               <!-- Stage 02: 结节分割（CT值算法 - 已实现） -->
               <div class="stage-card" :class="{ active: currentStage === 2, done: stage2Done, running: analyzing && currentStage === 2 }">
@@ -312,15 +332,20 @@
                   <el-icon v-else class="wait"><Clock /></el-icon>
                 </div>
               </div>
-              <!-- Stage 03: 良恶性诊断（空） -->
-              <div class="stage-card placeholder">
+              <!-- Stage 03: 良恶性诊断 -->
+              <div class="stage-card" :class="{ active: currentStage === 3, done: stage3Done, running: analyzing && currentStage === 3 }">
                 <div class="stage-num">03</div>
                 <div class="stage-info">
-                  <div class="stage-name">良恶性鉴别诊断</div>
-                  <div class="stage-model">Model: DenseNet-121 / Transformer</div>
-                  <div class="stage-desc">综合分析结节特征与临床信息，评估恶性风险概率</div>
+                  <div class="stage-name">良恶性鉴别诊断 <el-tag size="small" type="warning" effect="plain">{{ malignancySummary.overallRisk }}</el-tag></div>
+                  <div class="stage-model">HU-Morphology Risk / AutoDL DenseNet-121接口预留</div>
+                  <div class="stage-desc">综合结节大小、密度、圆度、离心率和HU离散度，输出恶性风险概率与随访建议</div>
+                  <div class="stage-desc risk-line" v-if="analysisDone">{{ malignancySummary.conclusion }}</div>
                 </div>
-                <div class="stage-status"><el-tag type="info" size="small">模型待接入</el-tag></div>
+                <div class="stage-status">
+                  <el-icon v-if="stage3Done" class="done"><CircleCheckFilled /></el-icon>
+                  <el-icon v-else-if="analyzing && currentStage === 3" class="run"><Loading /></el-icon>
+                  <el-icon v-else class="wait"><Clock /></el-icon>
+                </div>
               </div>
             </div>
           </div>
@@ -556,7 +581,9 @@ const saving = ref(false)
 const savingSlice = ref(false)
 const savedSliceImageUrl = ref('')
 const currentStage = ref(0)
+const stage1Done = ref(false)
 const stage2Done = ref(false)
+const stage3Done = ref(false)
 
 const pipelineStatus = computed(() => {
   if (analyzing.value) return { tag: 'warning', text: '分析中...' }
@@ -576,12 +603,21 @@ const paginatedCandidates = computed(() => {
 
 // 汇总统计
 const stats = computed(() => {
-  if (!analysisResult.value) return { solidNodules: 0, ggoNodules: 0, calcifiedNodules: 0 }
+  if (!analysisResult.value) return { solidNodules: 0, ggoNodules: 0, calcifiedNodules: 0, highRiskNodules: 0 }
   const s = analysisResult.value.stats || {}
   return {
     solidNodules: s.solidNodules || 0,
     ggoNodules: s.ggoNodules || 0,
-    calcifiedNodules: s.calcifiedNodules || 0
+    calcifiedNodules: s.calcifiedNodules || 0,
+    highRiskNodules: s.highRiskNodules || 0
+  }
+})
+
+const malignancySummary = computed(() => {
+  const m = analysisResult.value?.malignancyAssessment || {}
+  return {
+    overallRisk: m.overallRisk || '待评估',
+    conclusion: m.conclusion || '上传真实CT文件后自动完成风险评估'
   }
 })
 
@@ -590,6 +626,12 @@ const getHuClass = (huMean) => {
   if (huMean > 100) return 'hu-high'
   if (huMean >= 30) return 'hu-mid'
   return 'hu-low'
+}
+
+const riskTag = (risk) => {
+  if (risk === '高风险') return 'danger'
+  if (risk === '中风险') return 'warning'
+  return 'success'
 }
 
 // ============ 文件选择与分析 ============
@@ -632,23 +674,25 @@ const doAnalyze = async (file) => {
   loadingProgress.value = 0
   analysisResult.value = null
   analysisDone.value = false
+  stage1Done.value = false
   stage2Done.value = false
+  stage3Done.value = false
   allCandidates.value = []
 
   // 模拟进度
   const progressTimer = setInterval(() => {
     if (loadingProgress.value < 90) {
       loadingProgress.value += Math.random() * 10
-      if (loadingProgress.value > 25) loadingText.value = '正在读取CT体数据...'
-      if (loadingProgress.value > 50) loadingText.value = '正在提取肺实质掩码(HU<-400)...'
-      if (loadingProgress.value > 70) loadingText.value = '正在检测结节候选区域...'
-      if (loadingProgress.value > 85) loadingText.value = '正在生成标注切片...'
+      if (loadingProgress.value > 20) { currentStage.value = 1; loadingText.value = '正在读取真实CT体数据并检测结节...' }
+      if (loadingProgress.value > 48) { currentStage.value = 2; loadingText.value = '正在提取肺实质掩码并执行结节精确分割...' }
+      if (loadingProgress.value > 72) { currentStage.value = 3; loadingText.value = '正在计算良恶性风险概率...' }
+      if (loadingProgress.value > 86) loadingText.value = '正在生成标注切片和结构化结果...'
     }
   }, 600)
 
   try {
-    currentStage.value = 2
-    const res = await analyzeLungCt(file, { max_slices: 80 })
+    currentStage.value = 1
+    const res = await analyzeLungCt(file, { max_slices: 80, enable_autodl: false })
 
     clearInterval(progressTimer)
     loadingProgress.value = 100
@@ -659,7 +703,9 @@ const doAnalyze = async (file) => {
       analysisResult.value = data
       totalSlices.value = data.rawSlices ? data.rawSlices.length : data.totalSlices
       currentSlice.value = 1
-      stage2Done.value = true
+      stage1Done.value = data.pipeline?.noduleDetection === 'completed'
+      stage2Done.value = ['completed', 'completed_no_target'].includes(data.pipeline?.segmentation)
+      stage3Done.value = ['completed', 'completed_no_target'].includes(data.pipeline?.malignancyClassification)
       analysisDone.value = true
 
       // 解析结节候选
@@ -675,7 +721,7 @@ const doAnalyze = async (file) => {
       autoFillDiagnosis(data)
 
       const noduleCount = allCandidates.value.length
-      ElMessage.success(`CT分析完成！检测到 ${noduleCount} 个结节候选区域，共 ${totalSlices.value} 层切片`)
+      ElMessage.success(`肺部CT全流程完成：检测/分割/良恶性评估已执行，检出 ${noduleCount} 个结节候选，共 ${totalSlices.value} 层切片`)
     } else {
       ElMessage.error(data.error || 'CT分析失败')
     }
@@ -684,7 +730,7 @@ const doAnalyze = async (file) => {
     console.error('CT分析失败:', error)
     const msg = error.response?.data?.msg || error.message || ''
     if (msg.includes('ResourceAccess') || msg.includes('Network Error') || msg.includes('timeout')) {
-      ElMessage.error('肺部CT分析服务未启动，请先启动Python服务：python lung_ct_segment.py --port 5002')
+      ElMessage.error('肺部CT分析服务未启动，请先启动Python服务：python lung_ct_segment.py --port 5004')
     } else if (msg.includes('MaxUploadSize')) {
       ElMessage.error('CT文件超过上传限制')
     } else {
@@ -706,11 +752,13 @@ const autoFillDiagnosis = (data) => {
 
   let findingsText = '肺部CT平扫示：\n'
   if (totalNodules === 0) {
-    findingsText += '双肺纹理清晰，未见明显异常密度影。肺实质HU值分布正常，未见明确结节或肿块。'
+    findingsText += '双肺纹理清晰，未见明显异常密度影。肺实质HU值分布正常，未见明确结节或肿块。\n'
+    findingsText += '肺结节检测、肺实质/结节分割及良恶性风险评估流程已完成，未触发可评估结节目标。'
   } else {
     const solid = candidates.filter(c => c.type === 'solid')
     const ggo = candidates.filter(c => c.type === 'ggo')
     const calc = candidates.filter(c => c.type === 'calcified')
+    const topRisk = [...candidates].sort((a, b) => (b.malignancyProbability || 0) - (a.malignancyProbability || 0))[0]
 
     if (solid.length > 0) {
       const avgDiam = (solid.reduce((s, c) => s + c.diameter_mm, 0) / solid.length).toFixed(1)
@@ -721,6 +769,10 @@ const autoFillDiagnosis = (data) => {
     }
     if (calc.length > 0) {
       findingsText += `可见${calc.length}个钙化灶，HU>200，符合良性钙化表现。\n`
+    }
+    findingsText += `已完成结节精确分割，生成${data.segmentationAssessment?.count || totalNodules}个结节轮廓/掩码区域。\n`
+    if (topRisk) {
+      findingsText += `良恶性风险评估：最高风险结节位于Z层${topRisk.slice_z}，${topRisk.malignancyRisk || '低风险'}，概率约${Math.round((topRisk.malignancyProbability || 0) * 100)}%，提示：${topRisk.riskAdvice || data.malignancyAssessment?.conclusion || ''}`
     }
   }
   diagnosisForm.findings = findingsText
@@ -770,20 +822,70 @@ function buildDiagnosisPayload() {
   return JSON.stringify({
     checkType: 'LUNG_CT',
     findings: diagnosisForm.findings,
-    impression: diagnosisForm.impression,
-    conclusion: diagnosisForm.conclusion,
+    impression: malignancySummary.value.conclusion,
+    conclusion: malignancySummary.value.overallRisk,
     remark: diagnosisForm.remark,
     stats: {
       solidNodules: stats.value.solidNodules,
       ggoNodules: stats.value.ggoNodules,
-      calcifiedNodules: stats.value.calcifiedNodules
+      calcifiedNodules: stats.value.calcifiedNodules,
+      highRiskNodules: stats.value.highRiskNodules
     },
+    detectionClassification: analysisResult.value?.detectionClassification || null,
+    segmentationAssessment: analysisResult.value?.segmentationAssessment || null,
+    segmentationData: analysisResult.value?.segmentationData || null,
     detectionResult: candidates.length > 0 ? candidates.map(c => ({
       type: c.type, diameter_mm: c.diameter_mm, sliceZ: c.slice_z,
-      malignancyRisk: c.malignancyRisk
+      classification: c.classification,
+      segmentation: c.segmentation,
+      malignancyRisk: c.malignancyRisk,
+      malignancyProbability: c.malignancyProbability
     })) : null,
-    malignancyAssessment: analysisResult.value?.malignancyAssessment || null
+    malignancyAssessment: analysisResult.value?.malignancyAssessment || null,
+    pipeline: analysisResult.value?.pipeline || null
   })
+}
+
+function buildSliceSavePayload(imageUrlSaved) {
+  const result = analysisResult.value
+  if (!result || savedSlicesLoaded.value) return null
+  const slices = result.slices || []
+  const rawSlices = result.rawSlices || []
+  if (!slices.length) return null
+  return {
+    applyId: currentApplyId.value,
+    techId: selectedTechId.value,
+    checkType: 'LUNG_CT',
+    patientId: patientInfo.patientId || null,
+    doctorId: patientInfo.doctorId || null,
+    fileName: uploadedFileName.value || 'lung_ct',
+    remark: diagnosisForm.remark,
+    segmentationData: JSON.stringify({
+      segmentationData: result.segmentationData || {},
+      segmentationAssessment: result.segmentationAssessment || null
+    }),
+    detectionResult: JSON.stringify({
+      detectionClassification: result.detectionClassification || null,
+      candidates: allCandidates.value || [],
+      malignancyAssessment: result.malignancyAssessment || null,
+      pipeline: result.pipeline || null,
+      representativeImageUrl: imageUrlSaved || null
+    }),
+    slices: slices.map((sliceImage, index) => {
+      const stat = result.sliceHuStats?.[index] || {}
+      return {
+        sliceImage,
+        rawImage: rawSlices[index],
+        sliceZ: result.sliceIndices?.[index] ?? index,
+        huMin: stat.hu_min,
+        huMax: stat.hu_max,
+        huMean: stat.hu_mean,
+        sliceThickness: result.sliceThickness,
+        pixelSpacingX: result.pixelSpacingX,
+        pixelSpacingY: result.pixelSpacingY
+      }
+    })
+  }
 }
 
 async function saveOrUpdateExamResult(payload) {
@@ -809,6 +911,10 @@ const saveDiagnosis = async () => {
       const res = await uploadFile(file)
       imageUrlSaved = res.data?.url || res.url || null
     }
+    const slicePayload = buildSliceSavePayload(imageUrlSaved)
+    if (slicePayload) {
+      await saveCtSlices(slicePayload)
+    }
     // 更新申请单状态
     await updateApply({
       applyId: currentApplyId.value,
@@ -822,8 +928,8 @@ const saveDiagnosis = async () => {
       applyId: currentApplyId.value,
       imageUrl: imageUrlSaved,
       imageFind: diagnosisForm.findings || null,
-      diagnosisOpinion: diagnosisForm.impression || null,
-      diagnosisResult: diagnosisForm.conclusion || null,
+      diagnosisOpinion: malignancySummary.value.conclusion || null,
+      diagnosisResult: malignancySummary.value.overallRisk || null,
       sort: 1,
       status: '1',
       reportTime: formatDateTime()
@@ -851,11 +957,69 @@ const loadSavedSlices = async (applyId) => {
       savedSlicesLoaded.value = data.length > 0
       totalSlices.value = data.length
       currentSlice.value = 1
-      analysisDone.value = true
+      if (data.length > 0) {
+        restoreSavedAnalysis(data)
+        analysisDone.value = true
+      }
     }
   } catch (e) {
     console.error('加载切片失败:', e)
   }
+}
+
+function safeJsonParse(text, fallback = null) {
+  if (!text) return fallback
+  try { return JSON.parse(text) } catch { return fallback }
+}
+
+function restoreSavedAnalysis(rows) {
+  const first = rows[0] || {}
+  const detection = safeJsonParse(first.detectionResult, {})
+  const segmentation = safeJsonParse(first.segmentationData, {})
+  const candidates = detection.candidates || detection.detectionClassification?.items || []
+  allCandidates.value = candidates.map(c => ({
+    ...c,
+    slice_z: c.slice_z ?? c.sliceZ,
+    diameter_mm: c.diameter_mm ?? c.diameterMm,
+    area_mm2: c.area_mm2 ?? c.areaMm2,
+    hu_mean: c.hu_mean ?? c.huMean,
+    _originalSliceIndex: c.slice_index ?? c.sliceIndex
+  }))
+  analysisResult.value = {
+    success: true,
+    totalSlices: rows.length,
+    totalSlicesOrig: rows.length,
+    sliceIndices: rows.map((row, index) => row.sliceZ ?? index),
+    slices: rows.map(row => row.imagePath).filter(Boolean),
+    rawSlices: rows.map(row => row.rawImagePath || row.imagePath).filter(Boolean),
+    sliceHuStats: rows.map(row => ({
+      slice_index: row.sliceIndex,
+      slice_z: row.sliceZ,
+      hu_min: row.huMin,
+      hu_max: row.huMax,
+      hu_mean: row.huMean
+    })),
+    stats: detection.detectionClassification?.count != null ? {
+      solidNodules: allCandidates.value.filter(c => c.type === 'solid').length,
+      ggoNodules: allCandidates.value.filter(c => c.type === 'ggo').length,
+      calcifiedNodules: allCandidates.value.filter(c => c.type === 'calcified').length,
+      highRiskNodules: allCandidates.value.filter(c => c.malignancyRisk === '高风险').length
+    } : {},
+    candidates: allCandidates.value,
+    detectionClassification: detection.detectionClassification || null,
+    segmentationData: segmentation.segmentationData || {},
+    segmentationAssessment: segmentation.segmentationAssessment || null,
+    malignancyAssessment: detection.malignancyAssessment || null,
+    pipeline: detection.pipeline || {
+      noduleDetection: 'completed',
+      segmentation: 'completed',
+      malignancyClassification: 'completed'
+    }
+  }
+  stage1Done.value = true
+  stage2Done.value = true
+  stage3Done.value = true
+  candidatePage.value = 1
 }
 
 // ============ 导航与生命周期 ============
