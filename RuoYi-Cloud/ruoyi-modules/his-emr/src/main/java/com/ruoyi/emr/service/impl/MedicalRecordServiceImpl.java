@@ -131,14 +131,14 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
         MedicalRecord existing = medicalRecordMapper.selectMedicalRecordByEncounterId(medicalRecord.getEncounterId());
         if (existing != null)
         {
-            // 存在则更新
-            medicalRecord.setRecordId(existing.getRecordId());
+            // 同一次接诊只更新本接诊病历，不使用前端可能携带的旧recordId
             medicalRecord.setUpdateTime(DateUtils.getNowDate());
-            return medicalRecordMapper.updateMedicalRecord(medicalRecord);
+            return medicalRecordMapper.updateMedicalRecordByEncounterId(medicalRecord);
         }
         else
         {
-            // 不存在则新增
+            // 不同接诊必须新增独立病历
+            medicalRecord.setRecordId(null);
             medicalRecord.setCreateTime(DateUtils.getNowDate());
             return medicalRecordMapper.insertMedicalRecord(medicalRecord);
         }

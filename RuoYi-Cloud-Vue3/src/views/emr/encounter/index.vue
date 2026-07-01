@@ -464,6 +464,7 @@ function openAIAssistant(row) {
   aiMessages.value = []
   aiInput.value = ''
   aiSessionId.value = ''  // 新会话
+  resetPreviewRecord()
   aiDrawer.value = true
   nextTick(() => scrollChat())
 }
@@ -575,8 +576,21 @@ const previewRecord = reactive({
   allergyHistory: '', physicalExam: '', diagnosisOpinion: '', treatmentPlan: '', doctorAdvice: ''
 })
 
+function resetPreviewRecord(encounterId = null) {
+  previewRecord.encounterId = encounterId
+  previewRecord.chiefComplaint = ''
+  previewRecord.presentIllness = ''
+  previewRecord.pastHistory = ''
+  previewRecord.allergyHistory = ''
+  previewRecord.physicalExam = ''
+  previewRecord.diagnosisOpinion = ''
+  previewRecord.treatmentPlan = ''
+  previewRecord.doctorAdvice = ''
+}
+
 async function aiGenerateFullRecord() {
   if (!currentPatient.value) return
+  resetPreviewRecord(currentPatient.value.encounterId)
 
   // 收集对话中的问诊信息
   const messages = aiMessages.value
@@ -678,8 +692,19 @@ JSON格式：
 
 async function saveRecord() {
   if (!previewRecord.encounterId) { ElMessage.warning('缺接诊ID'); return }
+  const recordPayload = {
+    encounterId: previewRecord.encounterId,
+    chiefComplaint: previewRecord.chiefComplaint,
+    presentIllness: previewRecord.presentIllness,
+    pastHistory: previewRecord.pastHistory,
+    allergyHistory: previewRecord.allergyHistory,
+    physicalExam: previewRecord.physicalExam,
+    diagnosisOpinion: previewRecord.diagnosisOpinion,
+    treatmentPlan: previewRecord.treatmentPlan,
+    doctorAdvice: previewRecord.doctorAdvice
+  }
   try {
-    await saveRecordApi({ ...previewRecord })
+    await saveRecordApi(recordPayload)
     ElMessage.success('病历保存成功')
     previewOpen.value = false
     // 更新接诊状态
