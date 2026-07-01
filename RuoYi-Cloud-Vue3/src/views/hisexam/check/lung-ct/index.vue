@@ -17,7 +17,7 @@
           <el-icon><Cpu /></el-icon>
           {{ analyzing ? 'CT分析中...' : '启动CT值智能分析' }}
         </el-button>
-        <el-button type="success" :disabled="!analysisDone" @click="saveToDatabase">
+        <el-button type="success" :disabled="!analysisDone" @click="saveDiagnosis" :loading="saving">
           <el-icon><DocumentChecked /></el-icon>
           保存诊断结果
         </el-button>
@@ -177,6 +177,17 @@
                 <el-icon><ArrowRight /></el-icon>
               </el-button>
               <span class="nav-filename" v-if="uploadedFileName">{{ uploadedFileName }}</span>
+            </div>
+
+            <!-- 保存当前切片为检测结果 -->
+            <div class="save-slice-bar" v-if="totalSlices > 0 && analysisDone">
+              <el-button type="primary" @click="saveCurrentLungSlice" :loading="savingSlice" size="small">
+                <el-icon><PictureFilled /></el-icon>
+                保存当前切片为检测结果
+              </el-button>
+              <span v-if="savedSliceImageUrl" class="saved-tip">
+                <el-icon color="#67C23A"><CircleCheck /></el-icon> 已保存，将随诊断结果一起提交
+              </span>
             </div>
           </div>
         </div>
@@ -366,11 +377,13 @@ import { ElMessage } from 'element-plus'
 import {
   ArrowLeft, ArrowRight, Cpu, DocumentChecked, Picture, ZoomIn, ZoomOut,
   RefreshRight, Upload, Switch, Loading, DataAnalysis, EditPen, Clock,
-  CircleCheckFilled, SuccessFilled
+  CircleCheckFilled, SuccessFilled, PictureFilled, CircleCheck
 } from '@element-plus/icons-vue'
 import { analyzeLungCt, saveCtSlices, getSlicesByApplyId } from '@/api/hisexam/lungCtAnalysis'
 import { listTechnology } from '@/api/hisexam/technology'
 import { getApply, updateApply, listApplyRegisterOptions } from '@/api/hisexam/apply'
+import { listResult, addResult, updateResult } from '@/api/hisexam/result'
+import { uploadFile } from '@/api/system/file'
 
 const route = useRoute()
 const router = useRouter()
@@ -525,6 +538,9 @@ const loadingText = ref('正在上传CT文件...')
 const analyzing = ref(false)
 const analysisDone = ref(false)
 const analysisResult = ref(null)
+const saving = ref(false)
+const savingSlice = ref(false)
+const savedSliceImageUrl = ref('')
 const currentStage = ref(0)
 const stage1Done = ref(false)
 const stage2Done = ref(false)
@@ -728,83 +744,109 @@ const diagnosisForm = reactive({
   remark: ''
 })
 
-// ============ 保存切片到数据库（检验医生：存影像，不存诊断结论） ============
-const saveToDatabase = async () => {
+// ============ 保存当前切片为检测图像 ============
+function dataUrlToFile(dataUrl, fileName) {
+  const [header, body] = dataUrl.split(',')
+  const mime = header.match(/data:(.*?);base64/)?.[1] || 'image/png'
+  const binary = atob(body)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new File([bytes], fileName, { type: mime })
+}
+
+async function saveCurrentLungSlice() {
+  const image = ctImageDisplay.value
+  if (!image || !image.startsWith('data:image')) {
+    ElMessage.warning('当前切片无可保存的图像')
+    return
+  }
+  savingSlice.value = true
+  try {
+    const fileName = `lung_ct_${currentApplyId.value || 'apply'}_slice${currentSlice.value}_${Date.now()}.png`
+    const file = dataUrlToFile(image, fileName)
+    const res = await uploadFile(file)
+    savedSliceImageUrl.value = res.data?.url || res.url || ''
+    if (savedSliceImageUrl.value) {
+      ElMessage.success('当前切片已保存为检测结果图像')
+    }
+  } catch (e) {
+    console.warn('切片上传失败:', e)
+    ElMessage.error('切片上传失败，请重试')
+  } finally {
+    savingSlice.value = false
+  }
+}
+
+function buildDiagnosisPayload() {
+  const candidates = allCandidates.value || []
+  return JSON.stringify({
+    checkType: 'LUNG_CT',
+    findings: diagnosisForm.findings,
+    impression: diagnosisForm.impression,
+    conclusion: diagnosisForm.conclusion,
+    remark: diagnosisForm.remark,
+    stats: {
+      solidNodules: stats.value.solidNodules,
+      ggoNodules: stats.value.ggoNodules,
+      calcifiedNodules: stats.value.calcifiedNodules
+    },
+    detectionResult: candidates.length > 0 ? candidates.map(c => ({
+      type: c.type, diameter_mm: c.diameter_mm, sliceZ: c.slice_z,
+      malignancyRisk: c.malignancyRisk
+    })) : null,
+    malignancyAssessment: analysisResult.value?.malignancyAssessment || null
+  })
+}
+
+async function saveOrUpdateExamResult(payload) {
+  const res = await listResult({ applyId: payload.applyId, sort: 1, pageNum: 1, pageSize: 1 })
+  const exists = res.rows?.[0]
+  if (exists?.resultId) return updateResult({ ...exists, ...payload, resultId: exists.resultId })
+  return addResult(payload)
+}
+
+// ============ 保存诊断结果到检查检验结果表 ============
+const saveDiagnosis = async () => {
   if (!currentApplyId.value) {
     ElMessage.warning('缺少申请单ID，不能保存检查结果')
     return
   }
-  if (!selectedTechId.value) {
-    ElMessage.warning('请先选择医技项目')
-    return
-  }
-
+  saving.value = true
   try {
-    const slices = (analysisResult.value?.rawSlices || []).map((rawB64, i) => {
-      const annotatedB64 = analysisResult.value?.slices?.[i] || ''
-      const huStat = analysisResult.value?.sliceHuStats?.[i] || {}
-      return {
-        sliceZ: analysisResult.value?.sliceIndices?.[i] ?? i,
-        rawImage: rawB64,
-        sliceImage: annotatedB64,
-        huMin: huStat.hu_min,
-        huMax: huStat.hu_max,
-        huMean: huStat.hu_mean,
-        sliceThickness: analysisResult.value?.sliceThickness,
-        pixelSpacingX: analysisResult.value?.pixelSpacingX,
-        pixelSpacingY: analysisResult.value?.pixelSpacingY
-      }
-    })
-
-    const detectionResult = allCandidates.value.length > 0
-      ? JSON.stringify(allCandidates.value.map(c => ({
-          type: c.type,
-          diameter_mm: c.diameter_mm,
-          centroid: [c.centroid_y, c.centroid_x],
-          hu_mean: c.hu_mean,
-          hu_range: [c.hu_min, c.hu_max],
-          sliceZ: c.slice_z,
-          circularity: c.circularity,
-          malignancyProbability: c.malignancyProbability,
-          malignancyRisk: c.malignancyRisk,
-          malignancyLabel: c.malignancyLabel,
-          cancerSuspicion: c.cancerSuspicion
-        })))
-      : null
-
-    const saveData = {
-      applyId: currentApplyId.value,
-      checkType: 'LUNG_CT',
-      patientId: patientInfo.patientId,
-      doctorId: patientInfo.doctorId,
-      techId: selectedTechId.value,
-      fileName: uploadedFileName.value,
-      slices: slices,
-      remark: diagnosisForm.remark || '',
-      detectionResult: detectionResult,
-      segmentationData: analysisResult.value?.segmentationData
-        ? JSON.stringify(analysisResult.value.segmentationData) : null
+    // 优先使用已保存的切片图像URL，否则自动上传当前切片
+    let imageUrlSaved = savedSliceImageUrl.value
+    if (!imageUrlSaved && ctImageDisplay.value && ctImageDisplay.value.startsWith('data:image')) {
+      const fileName = `lung_ct_${currentApplyId.value}_slice${currentSlice.value}_${Date.now()}.png`
+      const file = dataUrlToFile(ctImageDisplay.value, fileName)
+      const res = await uploadFile(file)
+      imageUrlSaved = res.data?.url || res.url || null
     }
-
-    await saveCtSlices(saveData)
+    // 更新申请单状态
     await updateApply({
       applyId: currentApplyId.value,
-      examResult: JSON.stringify({
-        checkType: 'LUNG_CT',
-        findings: diagnosisForm.findings,
-        remark: diagnosisForm.remark,
-        detectionResult: detectionResult,
-        malignancyAssessment: analysisResult.value?.malignancyAssessment || null,
-        mockMode: analysisResult.value?.mockMode || false
-      }),
-      imageUrl: uploadedFileName.value || null,
+      examResult: buildDiagnosisPayload(),
+      imageUrl: imageUrlSaved,
       examTime: formatDateTime(),
       applyStatus: '已完成'
     })
-    ElMessage.success(`CT影像已保存！共 ${slices.length} 层切片写入数据库，诊断结论请由门诊医生出具`)
+    // 保存到检查检验结果表
+    await saveOrUpdateExamResult({
+      applyId: currentApplyId.value,
+      imageUrl: imageUrlSaved,
+      imageFind: diagnosisForm.findings || null,
+      diagnosisOpinion: diagnosisForm.impression || null,
+      diagnosisResult: diagnosisForm.conclusion || null,
+      sort: 1,
+      status: '1',
+      reportTime: formatDateTime()
+    })
+    savedSliceImageUrl.value = ''
+    ElMessage.success('诊断结果已保存到检查检验结果表')
   } catch (error) {
     console.error('保存失败:', error)
     ElMessage.error('保存失败: ' + (error.response?.data?.msg || error.message || '未知错误'))
+  } finally {
+    saving.value = false
   }
 }
 
@@ -968,6 +1010,10 @@ onMounted(() => {
           .nav-slider { margin-top: 2px; }
         }
         .nav-filename { overflow: hidden; max-width: 180px; color: #64748B; font-size: 11px; font-family: ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+      }
+      .save-slice-bar {
+        display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #F0FDF4; border-top: 1px solid #BBF7D0;
+        .saved-tip { display: flex; align-items: center; gap: 4px; color: #16A34A; font-size: 12px; }
       }
     }
 

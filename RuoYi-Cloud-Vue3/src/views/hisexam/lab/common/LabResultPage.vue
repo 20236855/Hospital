@@ -20,7 +20,7 @@
           <el-icon><Cpu /></el-icon>
           AI 辅助审核
         </el-button>
-        <el-button type="success" @click="saveReport">
+        <el-button type="success" :loading="saveLoading" @click="saveReport">
           <el-icon><DocumentChecked /></el-icon>
           保存报告
         </el-button>
@@ -151,6 +151,7 @@ import { ElMessage } from 'element-plus'
 import { ArrowLeft, Cpu, DataLine, DocumentChecked } from '@element-plus/icons-vue'
 import { getApply, updateApply } from '@/api/hisexam/apply'
 import { labAiAssist } from '@/api/hisexam/labAnalysis'
+import { saveResultReport } from '@/api/hisexam/result'
 
 const props = defineProps({
   config: {
@@ -164,6 +165,7 @@ const router = useRouter()
 const applyInfo = reactive({})
 const testRows = ref([])
 const aiLoading = ref(false)
+const saveLoading = ref(false)
 const aiReply = ref('')
 const aiRisk = ref('normal')
 
@@ -227,6 +229,35 @@ function flagType(row) {
   if (flag === '偏高' || flag === '偏低') return 'warning'
   if (flag === '待测') return 'info'
   return 'success'
+}
+
+function abnormalFlag(row) {
+  const value = Number(row.value)
+  if (!Number.isFinite(value)) return null
+  if (row.criticalLow != null && value < row.criticalLow) return '2'
+  if (row.criticalHigh != null && value > row.criticalHigh) return '1'
+  if (row.low != null && value < row.low) return '2'
+  if (row.high != null && value > row.high) return '1'
+  return '0'
+}
+
+function buildExamResultRows(reportTime) {
+  return testRows.value
+    .filter(row => row.value !== '' && row.value != null)
+    .map((row, index) => ({
+      applyId: applyInfo.applyId,
+      itemCode: row.code,
+      itemName: row.name,
+      resultValue: String(row.value),
+      resultUnit: row.unit,
+      referenceRange: row.range,
+      abnormalFlag: abnormalFlag(row),
+      diagnosisOpinion: aiReply.value || null,
+      sort: index + 1,
+      status: '1',
+      reportTime,
+      remark: report.remark || null
+    }))
 }
 
 function loadInstrumentResult() {
@@ -304,6 +335,12 @@ async function saveReport() {
     ElMessage.warning('缺少申请单ID')
     return
   }
+  const reportTime = nowDateTime()
+  const examResults = buildExamResultRows(reportTime)
+  if (!examResults.length) {
+    ElMessage.warning('请先录入或载入检验结果')
+    return
+  }
   const payload = {
     labType: props.config.title,
     sample: { ...sample },
@@ -312,19 +349,23 @@ async function saveReport() {
     aiReply: aiReply.value,
     aiRisk: aiRisk.value,
     remark: report.remark,
-    savedAt: nowDateTime()
+    savedAt: reportTime
   }
+  saveLoading.value = true
   try {
+    await saveResultReport(examResults)
     await updateApply({
       applyId: applyInfo.applyId,
       examResult: JSON.stringify(payload),
-      examTime: nowDateTime(),
+      examTime: reportTime,
       applyStatus: '已完成'
     })
     sample.status = '已签发'
-    ElMessage.success('检验报告已保存到申请单')
+    ElMessage.success('检验报告已保存到检查检验结果表')
   } catch (e) {
     ElMessage.error('保存失败：' + (e.response?.data?.msg || e.message || '未知错误'))
+  } finally {
+    saveLoading.value = false
   }
 }
 
