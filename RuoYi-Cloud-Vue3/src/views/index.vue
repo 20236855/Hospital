@@ -2,7 +2,7 @@
   <div class="his-home">
     <!-- 固定视频背景 -->
     <video class="home-video-bg" autoplay loop muted playsinline>
-      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260514_135830_bb6491d1-9b66-4aec-9722-13b4dfe3fb46.mp4" type="video/mp4" />
+      <source src="/running.mp4" type="video/mp4" />
     </video>
     <div class="home-video-overlay"></div>
 
@@ -265,12 +265,12 @@ const goToCompleteInfo = () => {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   height: calc(100vh - 50px);
-  padding: 70px 32px 32px 32px;
+  padding: 40px 32px 32px 32px;
 }
 
-.hero-content { display: flex; flex-direction: column; align-items: flex-start; max-width: 720px; }
+.hero-content { display: flex; flex-direction: column; align-items: flex-start; max-width: 720px; margin-top: 20px; }
 
 .hero-heading {
   display: flex; flex-wrap: wrap; gap: 0.25em;

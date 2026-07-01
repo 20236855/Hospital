@@ -29,6 +29,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <!-- 展示用JOIN字段 -->
         <result property="registerNo"   column="register_no"   />
         <result property="patientName"  column="patient_name"  />
+        <result property="gender"       column="gender"        />
+        <result property="age"          column="age"           />
         <result property="doctorName"   column="doctor_name"   />
         <result property="deptName"     column="dept_name"     />
         <result property="techName"     column="tech_name"     />
@@ -40,7 +42,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                ea.operator_id, ea.inputer_id, ea.apply_time, ea.exam_time,
                ea.exam_result, ea.image_url, ea.apply_status, ea.pay_status,
                ea.remark, ea.create_time, ea.update_time,
-               r.register_no, p.name as patient_name, d.doctor_name,
+               r.register_no, p.name as patient_name, p.gender, p.age, d.doctor_name,
                sd.dept_name, mt.tech_name
         from exam_apply ea
         left join register r on ea.register_id = r.register_id
@@ -58,12 +60,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="patientId != null "> and ea.patient_id = #{patientId}</if>
             <if test="doctorId != null "> and ea.doctor_id = #{doctorId}</if>
             <if test="deptId != null "> and ea.dept_id = #{deptId}</if>
-            <if test="applyType != null  and applyType != ''">
-                <choose>
-                    <when test="applyType == 'LAB'"> and ea.apply_type in ('LAB', 'INSPEC')</when>
-                    <otherwise> and ea.apply_type = #{applyType}</otherwise>
-                </choose>
-            </if>
+            <if test="applyType != null  and applyType != ''"> and ea.apply_type = #{applyType}</if>
             <if test="techId != null "> and ea.tech_id = #{techId}</if>
             <if test="applyInfo != null  and applyInfo != ''"> and ea.apply_info = #{applyInfo}</if>
             <if test="applyPosition != null  and applyPosition != ''"> and ea.apply_position = #{applyPosition}</if>
@@ -80,10 +77,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <select id="selectExamApplyByApplyId" parameterType="Long" resultMap="ExamApplyResult">
         <include refid="selectExamApplyVo"/>
-        where apply_id = #{applyId}
+        where ea.apply_id = #{applyId}
     </select>
 
-    <select id="selectExamRegisterOptions" resultType="java.util.HashMap">
+    <select id="selectExamRegisterOptions" resultType="java.util.Map">
         select r.register_id as registerId,
                r.register_no as registerNo,
                e.encounter_id as encounterId,
@@ -97,49 +94,38 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                sd.dept_name as deptName,
                r.register_time as registerTime
         from register r
-        inner join (
-            select register_id, max(encounter_id) as encounter_id
-            from encounter
-            group by register_id
-        ) latest on latest.register_id = r.register_id
-        inner join encounter e on e.encounter_id = latest.encounter_id
-        left join patient p on r.patient_id = p.patient_id
-        left join doctor d on r.doctor_id = d.doctor_id
-        left join sys_dept sd on r.dept_id = sd.dept_id
+        inner join encounter e on e.register_id = r.register_id
+        left join patient p on p.patient_id = r.patient_id
+        left join doctor d on d.doctor_id = r.doctor_id
+        left join sys_dept sd on sd.dept_id = r.dept_id
         <where>
+            r.register_status = 'registered'
             <if test="doctorId != null"> and r.doctor_id = #{doctorId}</if>
             <if test="keyword != null and keyword != ''">
-                and (r.register_no like concat('%', #{keyword}, '%')
-                     or p.name like concat('%', #{keyword}, '%'))
+                and (r.register_no like concat('%', #{keyword}, '%') or p.name like concat('%', #{keyword}, '%'))
             </if>
         </where>
-        order by r.register_time desc, r.register_id desc
+        order by r.register_time desc
     </select>
 
-    <select id="selectExamRegisterContext" resultType="java.util.HashMap">
+    <select id="selectExamRegisterContext" resultType="java.util.Map">
         select r.register_id as registerId,
                r.register_no as registerNo,
                e.encounter_id as encounterId,
                r.patient_id as patientId,
                p.name as patientName,
-               p.gender as gender,
-               p.age as age,
                r.doctor_id as doctorId,
                d.doctor_name as doctorName,
                r.dept_id as deptId,
-               sd.dept_name as deptName,
-               r.register_time as registerTime
+               sd.dept_name as deptName
         from register r
-        left join (
-            select register_id, max(encounter_id) as encounter_id
-            from encounter
-            group by register_id
-        ) latest on latest.register_id = r.register_id
-        left join encounter e on e.encounter_id = latest.encounter_id
-        left join patient p on r.patient_id = p.patient_id
-        left join doctor d on r.doctor_id = d.doctor_id
-        left join sys_dept sd on r.dept_id = sd.dept_id
+        inner join encounter e on e.register_id = r.register_id
+        left join patient p on p.patient_id = r.patient_id
+        left join doctor d on d.doctor_id = r.doctor_id
+        left join sys_dept sd on sd.dept_id = r.dept_id
         where r.register_id = #{registerId}
+        order by e.encounter_id desc
+        limit 1
     </select>
 
     <insert id="insertExamApply" parameterType="ExamApply" useGeneratedKeys="true" keyProperty="applyId">

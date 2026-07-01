@@ -40,8 +40,8 @@ public class ExamApply extends BaseEntity
     @Excel(name = "开单科室ID")
     private Long deptId;
 
-    /** 类型：CHECK检查/LAB检验/DISPOSAL处置 */
-    @Excel(name = "类型：CHECK检查/LAB检验/DISPOSAL处置")
+    /** 类型：CHECK检查/INSPEC检验/DISPOSAL处置 */
+    @Excel(name = "类型：CHECK检查/INSPEC检验/DISPOSAL处置")
     private String applyType;
 
     /** 医技项目ID */
@@ -279,6 +279,8 @@ public class ExamApply extends BaseEntity
             .append("encounterId", getEncounterId())
             .append("patientId", getPatientId())
             .append("patientName", getPatientName())
+            .append("gender", getGender())
+            .append("age", getAge())
             .append("doctorId", getDoctorId())
             .append("doctorName", getDoctorName())
             .append("deptId", getDeptId())
@@ -305,6 +307,8 @@ public class ExamApply extends BaseEntity
     // ============ 展示用扩展字段（不入库） ============
     private String registerNo;
     private String patientName;
+    private String gender;
+    private Integer age;
     private String doctorName;
     private String deptName;
     private String techName;
@@ -313,6 +317,10 @@ public class ExamApply extends BaseEntity
     public void setRegisterNo(String registerNo) { this.registerNo = registerNo; }
     public String getPatientName() { return patientName; }
     public void setPatientName(String patientName) { this.patientName = patientName; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
     public String getDoctorName() { return doctorName; }
     public void setDoctorName(String doctorName) { this.doctorName = doctorName; }
     public String getDeptName() { return deptName; }
