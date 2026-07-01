@@ -35,6 +35,7 @@
           remote
           :remote-method="searchRegisters"
           :loading="registerLoading"
+          :disabled="!!currentApplyId"
           placeholder="搜索挂号编号/患者姓名"
           clearable
           class="full-select"
@@ -65,10 +66,6 @@
         </el-select>
       </div>
       <!-- 挂号编号(只读) -->
-      <div class="patient-item">
-        <span class="label">申请单号</span>
-        <span class="value">{{ patientInfo.applyId || '--' }}</span>
-      </div>
       <div class="patient-item">
         <span class="label">挂号编号</span>
         <span class="value">{{ patientInfo.registerNo || '--' }}</span>
@@ -241,6 +238,13 @@
                 </template>
               </el-table-column>
               <el-table-column prop="diameter_mm" label="直径(mm)" width="90" sortable />
+              <el-table-column label="恶性风险" width="105" sortable prop="malignancyProbability">
+                <template #default="{ row }">
+                  <el-tag :type="getRiskTag(row.malignancyRisk)" size="small">
+                    {{ row.malignancyRisk || '低风险' }} {{ Math.round((row.malignancyProbability || 0) * 100) }}%
+                  </el-tag>
+                </template>
+              </el-table-column>
               <el-table-column prop="area_mm2" label="面积(mm²)" width="90" sortable />
               <el-table-column label="位置(Y,X)" width="110">
                 <template #default="{ row }">{{ row.centroid_y.toFixed(0) }}, {{ row.centroid_x.toFixed(0) }}</template>
@@ -317,6 +321,11 @@
                   <el-icon v-else-if="analyzing && currentStage === 1" class="run"><Loading /></el-icon>
                   <el-icon v-else class="wait"><Clock /></el-icon>
                 </div>
+                <div class="stage-status">
+                  <el-icon v-if="stage1Done" class="done"><CircleCheckFilled /></el-icon>
+                  <el-icon v-else-if="analyzing && currentStage === 1" class="run"><Loading /></el-icon>
+                  <el-icon v-else class="wait"><Clock /></el-icon>
+                </div>
               </div>
               <!-- Stage 02: 结节分割（CT值算法 - 已实现） -->
               <div class="stage-card" :class="{ active: currentStage === 2, done: stage2Done, running: analyzing && currentStage === 2 }">
@@ -340,6 +349,11 @@
                   <div class="stage-model">HU-Morphology Risk / AutoDL DenseNet-121接口预留</div>
                   <div class="stage-desc">综合结节大小、密度、圆度、离心率和HU离散度，输出恶性风险概率与随访建议</div>
                   <div class="stage-desc risk-line" v-if="analysisDone">{{ malignancySummary.conclusion }}</div>
+                </div>
+                <div class="stage-status">
+                  <el-icon v-if="stage3Done" class="done"><CircleCheckFilled /></el-icon>
+                  <el-icon v-else-if="analyzing && currentStage === 3" class="run"><Loading /></el-icon>
+                  <el-icon v-else class="wait"><Clock /></el-icon>
                 </div>
                 <div class="stage-status">
                   <el-icon v-if="stage3Done" class="done"><CircleCheckFilled /></el-icon>
@@ -393,7 +407,6 @@ import {
   CircleCheckFilled, SuccessFilled, PictureFilled, CircleCheck
 } from '@element-plus/icons-vue'
 import { analyzeLungCt, saveCtSlices, getSlicesByApplyId } from '@/api/hisexam/lungCtAnalysis'
-import { listRegister, getRegister } from '@/api/register/register'
 import { listTechnology } from '@/api/hisexam/technology'
 import { getApply, updateApply, listApplyRegisterOptions } from '@/api/hisexam/apply'
 import { listResult, addResult, updateResult } from '@/api/hisexam/result'
@@ -401,53 +414,63 @@ import { uploadFile } from '@/api/system/file'
 
 const route = useRoute()
 const router = useRouter()
+const currentApplyId = ref(null)
 
 // ============ 挂号下拉框 ============
-const currentApplyId = ref(null)
 const selectedRegisterId = ref(null)
 const registerList = ref([])
 const registerLoading = ref(false)
 
 const searchRegisters = (keyword) => {
   registerLoading.value = true
-  listRegister({ registerNo: keyword || undefined, pageNum: 1, pageSize: 30 })
+  listApplyRegisterOptions({ keyword })
     .then(res => {
-      const data = res.rows || (res.data && res.data.rows) || res.data || []
+      const data = res.data || []
       registerList.value = data
     })
     .catch(err => { console.error('搜索挂号单失败:', err) })
     .finally(() => { registerLoading.value = false })
 }
 
-const onRegisterChange = async (registerId) => {
+const fillPatientFromApply = (data) => {
+  selectedRegisterId.value = data.registerId || null
+  selectedTechId.value = data.techId || null
+  Object.assign(patientInfo, {
+    registerId: data.registerId || '',
+    registerNo: data.registerNo || '',
+    patientId: data.patientId || '',
+    patientName: data.patientName || '--',
+    gender: data.gender || '--',
+    age: data.age || 0,
+    doctorId: data.doctorId || '',
+    doctorName: data.doctorName || '--',
+    deptId: data.deptId || '',
+    deptName: data.deptName || '--',
+    encounterId: data.encounterId || ''
+  })
+  if (data.registerId && !registerList.value.some(item => item.registerId === data.registerId)) {
+    registerList.value.unshift({
+      registerId: data.registerId,
+      registerNo: data.registerNo,
+      patientName: data.patientName,
+      gender: data.gender,
+      age: data.age
+    })
+  }
+}
+
+const onRegisterChange = (registerId) => {
   if (!registerId) {
     resetPatientInfo()
     return
   }
-  try {
-    const res = await getRegister(registerId)
-    const data = res.data || res
-    if (data) {
-      patientInfo.registerId = data.registerId
-      patientInfo.registerNo = data.registerNo || ''
-      patientInfo.patientId = data.patientId || ''
-      patientInfo.patientName = data.patientName || '--'
-      patientInfo.gender = data.gender || '--'
-      patientInfo.age = data.age || 0
-      patientInfo.doctorId = data.doctorId || ''
-      patientInfo.doctorName = data.doctorName || '--'
-      patientInfo.deptId = data.deptId || ''
-      patientInfo.deptName = data.deptName || '--'
-      patientInfo.encounterId = '' // 接诊ID由门诊流程产生，此处暂空
-    }
-  } catch (e) {
-    console.error('获取挂号详情失败:', e)
-  }
+  const data = registerList.value.find(item => item.registerId === registerId)
+  if (data) fillPatientFromApply(data)
 }
 
 const resetPatientInfo = () => {
   Object.assign(patientInfo, {
-    applyId: '', registerId: '', registerNo: '', patientId: '', patientName: '--',
+    registerId: '', registerNo: '', patientId: '', patientName: '--',
     gender: '--', age: 0, doctorId: '', doctorName: '--',
     deptId: '', deptName: '--', encounterId: ''
   })
@@ -455,7 +478,6 @@ const resetPatientInfo = () => {
 
 // ============ 患者信息 ============
 const patientInfo = reactive({
-  applyId: '',
   registerId: '',
   registerNo: '',
   patientId: '',
@@ -483,40 +505,6 @@ const loadTechList = () => {
     .catch(err => {
       console.error('加载医技项目失败:', err)
     })
-}
-
-const loadApplyInfo = async (applyId) => {
-  if (!applyId) {
-    ElMessage.warning('请先从申请单列表选择对应申请单再执行检查')
-    return
-  }
-  try {
-    const res = await getApply(applyId)
-    const data = res.data || res
-    if (!data) {
-      ElMessage.error('申请单加载失败，无法执行检查')
-      return
-    }
-    currentApplyId.value = data.applyId || applyId
-    selectedRegisterId.value = data.registerId || null
-    selectedTechId.value = data.techId || null
-    patientInfo.applyId = data.applyId || applyId
-    patientInfo.registerId = data.registerId || ''
-    patientInfo.registerNo = data.registerNo || data.registerId || ''
-    patientInfo.patientId = data.patientId || ''
-    patientInfo.patientName = data.patientName || '--'
-    patientInfo.gender = data.gender || '--'
-    patientInfo.age = data.age || 0
-    patientInfo.doctorId = data.doctorId || ''
-    patientInfo.doctorName = data.doctorName || data.doctorId || '--'
-    patientInfo.deptId = data.deptId || ''
-    patientInfo.deptName = data.deptName || data.deptId || '--'
-    patientInfo.encounterId = data.encounterId || ''
-    await loadSavedSlices(currentApplyId.value)
-  } catch (e) {
-    console.error('申请单加载失败:', e)
-    ElMessage.error('申请单加载失败，无法执行检查')
-  }
 }
 
 // ============ CT文件上传与影像 ============
@@ -628,7 +616,7 @@ const getHuClass = (huMean) => {
   return 'hu-low'
 }
 
-const riskTag = (risk) => {
+const getRiskTag = (risk) => {
   if (risk === '高风险') return 'danger'
   if (risk === '中风险') return 'warning'
   return 'success'
@@ -1025,21 +1013,38 @@ function restoreSavedAnalysis(rows) {
 // ============ 导航与生命周期 ============
 const goBack = () => router.back()
 
+function formatDateTime(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+async function loadApplyDetail() {
+  const applyId = route.query.applyId
+  if (!applyId) {
+    ElMessage.warning('请先从申请单列表选择对应申请单再执行检查')
+    router.back()
+    return
+  }
+  currentApplyId.value = applyId
+  try {
+    const res = await getApply(applyId)
+    fillPatientFromApply(res.data || {})
+    await loadSavedSlices(applyId)
+  } catch (e) {
+    ElMessage.error('申请单加载失败，无法执行检查')
+    router.back()
+  }
+}
+
 onMounted(() => {
   // 预加载挂号列表
   searchRegisters('')
   // 加载医技项目列表
   loadTechList()
+  loadApplyDetail()
 
-  const applyId = route.query.applyId
-  if (applyId) {
-    loadApplyInfo(applyId)
-  } else {
-    ElMessage.warning('请先从申请单列表选择对应申请单再执行检查')
-  }
-
-  // 兼容旧URL参数自动填充医技项目
-  const { techName } = route.query
+  // 从URL参数自动填充：如果是卡片进入，自动匹配医技项目
+  const { techName, registerId } = route.query
   if (techName && techList.value.length === 0) {
     // techList还未加载完毕，等加载完再匹配
     const checkAndMatch = setInterval(() => {
