@@ -13,7 +13,7 @@
         <el-button type="primary" @click="openAiDialog" :disabled="!imageUrl" style="margin-right:8px">
           <el-icon><ChatDotRound /></el-icon> AI 辅助诊断
         </el-button>
-        <el-button type="success" @click="saveDiagnosis" :disabled="!result">
+        <el-button type="success" @click="saveDiagnosis" :disabled="!result" :loading="saving">
           <el-icon><Check /></el-icon> 保存诊断
         </el-button>
       </div>
@@ -104,6 +104,16 @@
                 <p>请先上传皮肤图片，再点击 AI 识别分析</p>
               </div>
             </template>
+            <!-- 保存标注图像为检测结果 -->
+            <div class="save-annotated-bar" v-if="result && result.annotatedImage">
+              <el-button type="success" @click="saveCurrentSkinImage" :loading="savingSlice" size="small">
+                <el-icon><PictureFilled /></el-icon>
+                保存标注结果为检测图像
+              </el-button>
+              <span v-if="savedSliceImageUrl" class="saved-tip">
+                <el-icon color="#67C23A"><CircleCheck /></el-icon> 已保存，将随诊断结果一起提交
+              </span>
+            </div>
           </div>
         </div>
       </el-col>
@@ -225,8 +235,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { analyzeSkin, skinAiDiagnosis } from '@/api/hisexam/skinAnalysis'
 import { getApply, updateApply } from '@/api/hisexam/apply'
+import { listResult, addResult, updateResult } from '@/api/hisexam/result'
+import { uploadFile } from '@/api/system/file'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ChatDotRound, Check, Search, Upload, Promotion, Loading, Picture } from '@element-plus/icons-vue'
+import { ArrowLeft, ChatDotRound, Check, Search, Upload, Promotion, Loading, Picture, PictureFilled, CircleCheck } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -243,6 +255,10 @@ const aiReply = ref('')
 const aiLoading = ref(false)
 const chatMessages = ref([])
 const currentApplyId = ref(null)
+
+const saving = ref(false)
+const savingSlice = ref(false)
+const savedSliceImageUrl = ref('')
 
 const diagnosisForm = ref({
   imageFindings: '',
@@ -367,28 +383,102 @@ function formatDateTime(date = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
+function dataUrlToFile(dataUrl, fileName) {
+  const [header, body] = dataUrl.split(',')
+  const mime = header.match(/data:(.*?);base64/)?.[1] || 'image/png'
+  const binary = atob(body)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return new File([bytes], fileName, { type: mime })
+}
+
+async function saveCurrentSkinImage() {
+  if (!result.value || !result.value.annotatedImage) {
+    ElMessage.warning('请先完成AI识别分析，获取标注图像')
+    return
+  }
+  savingSlice.value = true
+  try {
+    const annotatedBase64 = 'data:image/png;base64,' + result.value.annotatedImage
+    const fileName = `skin_annotated_${currentApplyId.value || 'apply'}_${Date.now()}.png`
+    const file = dataUrlToFile(annotatedBase64, fileName)
+    const res = await uploadFile(file)
+    savedSliceImageUrl.value = res.data?.url || res.url || ''
+    if (savedSliceImageUrl.value) {
+      ElMessage.success('标注图像已保存为检测结果')
+    }
+  } catch (e) {
+    console.warn('标注图像上传失败:', e)
+    ElMessage.error('图片上传失败，请重试')
+  } finally {
+    savingSlice.value = false
+  }
+}
+
+function buildSuggestionText() {
+  return Array.isArray(diagnosisForm.value.suggestions)
+    ? diagnosisForm.value.suggestions.join('；')
+    : diagnosisForm.value.suggestions || ''
+}
+
+async function saveOrUpdateExamResult(payload) {
+  const res = await listResult({
+    applyId: payload.applyId,
+    sort: 1,
+    pageNum: 1,
+    pageSize: 1
+  })
+  const exists = res.rows?.[0]
+  if (exists?.resultId) {
+    return updateResult({ ...exists, ...payload, resultId: exists.resultId })
+  }
+  return addResult(payload)
+}
+
 async function saveDiagnosis() {
   if (!currentApplyId.value) {
     ElMessage.warning('缺少申请单ID，不能保存检查结果')
     return
   }
-  const report = {
-    ...diagnosisForm.value,
-    patientId: patientInfo.value?.patientId,
-    applyId: currentApplyId.value,
-    resultSummary: result.value
-  }
+  saving.value = true
   try {
+    // 优先使用已保存的标注图像URL，否则自动上传标注图像
+    let imageUrlSaved = savedSliceImageUrl.value
+    if (!imageUrlSaved && result.value && result.value.annotatedImage) {
+      const annotatedBase64 = 'data:image/png;base64,' + result.value.annotatedImage
+      const fileName = `skin_annotated_${currentApplyId.value}_${Date.now()}.png`
+      const file = dataUrlToFile(annotatedBase64, fileName)
+      const res = await uploadFile(file)
+      imageUrlSaved = res.data?.url || res.url || null
+    }
+    // 更新申请单状态
     await updateApply({
       applyId: currentApplyId.value,
-      examResult: JSON.stringify(report),
-      imageUrl: imageUrl.value || null,
+      examResult: null,
+      imageUrl: imageUrlSaved,
       examTime: formatDateTime(),
       applyStatus: '已完成'
     })
-    ElMessage.success('诊断报告已保存到申请单')
+    // 保存到检查检验结果表
+    await saveOrUpdateExamResult({
+      applyId: currentApplyId.value,
+      imageUrl: imageUrlSaved,
+      imageFind: diagnosisForm.value.imageFindings || null,
+      diagnosisOpinion: diagnosisForm.value.opinion || null,
+      diagnosisResult: diagnosisForm.value.conclusion || null,
+      suggestion: buildSuggestionText() || null,
+      sort: 1,
+      status: '1',
+      reportTime: formatDateTime()
+    })
+    savedSliceImageUrl.value = ''
+    ElMessage.success('诊断结果已保存到检查检验结果表')
   } catch (e) {
     ElMessage.error('保存失败：' + (e.response?.data?.msg || e.message || '未知错误'))
+  } finally {
+    saving.value = false
   }
 }
 
@@ -541,6 +631,10 @@ onMounted(async () => {
 .annotated-placeholder {
   text-align: center; padding: 40px 16px; color: #909399;
   p { margin-top: 10px; font-size: 13px; }
+}
+.save-annotated-bar {
+  margin-top: 12px; display: flex; align-items: center; gap: 10px; justify-content: center;
+  .saved-tip { display: flex; align-items: center; gap: 4px; color: #16A34A; font-size: 12px; }
 }
 
 .diagnosis-panel {

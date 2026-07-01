@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.hisexam.mapper.ExamResultMapper">
+
+    <resultMap type="ExamResult" id="ExamResultResult">
+        <result property="resultId" column="result_id" />
+        <result property="applyId" column="apply_id" />
+        <result property="resultType" column="result_type" />
+        <result property="itemType" column="item_type" />
+        <result property="itemCode" column="item_code" />
+        <result property="itemName" column="item_name" />
+        <result property="resultValue" column="result_value" />
+        <result property="resultUnit" column="result_unit" />
+        <result property="referenceRange" column="reference_range" />
+        <result property="abnormalFlag" column="abnormal_flag" />
+        <result property="imageUrl" column="image_url" />
+        <result property="imageFind" column="image_find" />
+        <result property="diagnosisOpinion" column="diagnosis_opinion" />
+        <result property="diagnosisResult" column="diagnosis_result" />
+        <result property="suggestion" column="suggestion" />
+        <result property="sort" column="sort" />
+        <result property="status" column="status" />
+        <result property="doctorId" column="doctor_id" />
+        <result property="reportTime" column="report_time" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+        <result property="remark" column="remark" />
+    </resultMap>
+
+    <sql id="selectExamResultVo">
+        select result_id, apply_id, result_type, item_type, item_code, item_name,
+               result_value, result_unit, reference_range, abnormal_flag,
+               image_url, image_find, diagnosis_opinion, diagnosis_result, suggestion,
+               sort, status, doctor_id, report_time, create_by, create_time,
+               update_by, update_time, remark
+        from exam_result
+    </sql>
+
+    <sql id="selectExamApplyOptionVo">
+        select ea.apply_id as applyId,
+               ea.apply_type as applyType,
+               ea.tech_id as techId,
+               ea.patient_id as patientId,
+               ea.doctor_id as doctorId,
+               p.name as patientName,
+               mt.tech_code as techCode,
+               mt.tech_name as techName,
+               ea.apply_status as applyStatus,
+               ea.pay_status as payStatus,
+               ea.apply_time as applyTime
+        from exam_apply ea
+        left join patient p on ea.patient_id = p.patient_id
+        left join medical_technology mt on ea.tech_id = mt.id
+    </sql>
+
+    <select id="selectExamApplyOptions" resultType="java.util.Map">
+        <include refid="selectExamApplyOptionVo"/>
+        where ea.apply_type in ('CHECK', 'INSPEC', 'LAB')
+        order by ea.apply_time desc, ea.apply_id desc
+    </select>
+
+    <select id="selectExamApplyOptionByApplyId" parameterType="Long" resultType="java.util.Map">
+        <include refid="selectExamApplyOptionVo"/>
+        where ea.apply_id = #{applyId}
+    </select>
+
+    <select id="selectExamResultList" parameterType="ExamResult" resultMap="ExamResultResult">
+        <include refid="selectExamResultVo"/>
+        <where>
+            <if test="applyId != null"> and apply_id = #{applyId}</if>
+            <if test="resultType != null and resultType != ''"> and result_type = #{resultType}</if>
+            <if test="itemType != null and itemType != ''"> and item_type = #{itemType}</if>
+            <if test="itemCode != null and itemCode != ''"> and item_code = #{itemCode}</if>
+            <if test="itemName != null and itemName != ''"> and item_name like concat('%', #{itemName}, '%')</if>
+            <if test="resultValue != null and resultValue != ''"> and result_value = #{resultValue}</if>
+            <if test="resultUnit != null and resultUnit != ''"> and result_unit = #{resultUnit}</if>
+            <if test="referenceRange != null and referenceRange != ''"> and reference_range = #{referenceRange}</if>
+            <if test="abnormalFlag != null and abnormalFlag != ''"> and abnormal_flag = #{abnormalFlag}</if>
+            <if test="imageUrl != null and imageUrl != ''"> and image_url = #{imageUrl}</if>
+            <if test="imageFind != null and imageFind != ''"> and image_find like concat('%', #{imageFind}, '%')</if>
+            <if test="diagnosisOpinion != null and diagnosisOpinion != ''"> and diagnosis_opinion like concat('%', #{diagnosisOpinion}, '%')</if>
+            <if test="diagnosisResult != null and diagnosisResult != ''"> and diagnosis_result = #{diagnosisResult}</if>
+            <if test="suggestion != null and suggestion != ''"> and suggestion like concat('%', #{suggestion}, '%')</if>
+            <if test="sort != null"> and sort = #{sort}</if>
+            <if test="status != null and status != ''"> and status = #{status}</if>
+            <if test="doctorId != null"> and doctor_id = #{doctorId}</if>
+            <if test="reportTime != null"> and report_time = #{reportTime}</if>
+            <if test="params.applyDoctorId != null">
+                and exists (
+                    select 1 from exam_apply ea_scope
+                    where ea_scope.apply_id = exam_result.apply_id
+                      and ea_scope.doctor_id = #{params.applyDoctorId}
+                )
+            </if>
+            <if test="params.applyPatientId != null">
+                and exists (
+                    select 1 from exam_apply ea_scope
+                    where ea_scope.apply_id = exam_result.apply_id
+                      and ea_scope.patient_id = #{params.applyPatientId}
+                )
+            </if>
+        </where>
+        order by apply_id desc, sort asc, result_id asc
+    </select>
+
+    <select id="selectExamResultByResultId" parameterType="Long" resultMap="ExamResultResult">
+        <include refid="selectExamResultVo"/>
+        where result_id = #{resultId}
+    </select>
+
+    <insert id="insertExamResult" parameterType="ExamResult" useGeneratedKeys="true" keyProperty="resultId">
+        insert into exam_result
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="applyId != null">apply_id,</if>
+            <if test="resultType != null">result_type,</if>
+            <if test="itemType != null">item_type,</if>
+            <if test="itemCode != null">item_code,</if>
+            <if test="itemName != null">item_name,</if>
+            <if test="resultValue != null">result_value,</if>
+            <if test="resultUnit != null">result_unit,</if>
+            <if test="referenceRange != null">reference_range,</if>
+            <if test="abnormalFlag != null">abnormal_flag,</if>
+            <if test="imageUrl != null">image_url,</if>
+            <if test="imageFind != null">image_find,</if>
+            <if test="diagnosisOpinion != null">diagnosis_opinion,</if>
+            <if test="diagnosisResult != null">diagnosis_result,</if>
+            <if test="suggestion != null">suggestion,</if>
+            <if test="sort != null">sort,</if>
+            <if test="status != null">status,</if>
+            <if test="doctorId != null">doctor_id,</if>
+            <if test="reportTime != null">report_time,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="applyId != null">#{applyId},</if>
+            <if test="resultType != null">#{resultType},</if>
+            <if test="itemType != null">#{itemType},</if>
+            <if test="itemCode != null">#{itemCode},</if>
+            <if test="itemName != null">#{itemName},</if>
+            <if test="resultValue != null">#{resultValue},</if>
+            <if test="resultUnit != null">#{resultUnit},</if>
+            <if test="referenceRange != null">#{referenceRange},</if>
+            <if test="abnormalFlag != null">#{abnormalFlag},</if>
+            <if test="imageUrl != null">#{imageUrl},</if>
+            <if test="imageFind != null">#{imageFind},</if>
+            <if test="diagnosisOpinion != null">#{diagnosisOpinion},</if>
+            <if test="diagnosisResult != null">#{diagnosisResult},</if>
+            <if test="suggestion != null">#{suggestion},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="status != null">#{status},</if>
+            <if test="doctorId != null">#{doctorId},</if>
+            <if test="reportTime != null">#{reportTime},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+        </trim>
+    </insert>
+
+    <update id="updateExamResult" parameterType="ExamResult">
+        update exam_result
+        set apply_id = #{applyId},
+            result_type = #{resultType},
+            item_type = #{itemType},
+            item_code = #{itemCode},
+            item_name = #{itemName},
+            result_value = #{resultValue},
+            result_unit = #{resultUnit},
+            reference_range = #{referenceRange},
+            abnormal_flag = #{abnormalFlag},
+            image_url = #{imageUrl},
+            image_find = #{imageFind},
+            diagnosis_opinion = #{diagnosisOpinion},
+            diagnosis_result = #{diagnosisResult},
+            suggestion = #{suggestion},
+            sort = #{sort},
+            status = #{status},
+            doctor_id = #{doctorId},
+            report_time = #{reportTime},
+            update_by = #{updateBy},
+            update_time = #{updateTime},
+            remark = #{remark}
+        where result_id = #{resultId}
+    </update>
+
+    <delete id="deleteExamResultByResultId" parameterType="Long">
+        delete from exam_result where result_id = #{resultId}
+    </delete>
+
+    <delete id="deleteExamResultByApplyId" parameterType="Long">
+        delete from exam_result where apply_id = #{applyId}
+    </delete>
+
+    <delete id="deleteExamResultByResultIds" parameterType="String">
+        delete from exam_result where result_id in
+        <foreach item="resultId" collection="array" open="(" separator="," close=")">
+            #{resultId}
+        </foreach>
+    </delete>
+</mapper>

@@ -17,7 +17,7 @@
           <el-icon><Cpu /></el-icon>
           {{ analyzing ? 'AI分析中...' : 'AI辅助诊断' }}
         </el-button>
-        <el-button type="success" @click="saveDiagnosis">
+        <el-button type="success" :loading="saving" @click="saveDiagnosis">
           <el-icon><DocumentChecked /></el-icon>
           保存诊断结果
         </el-button>
@@ -140,6 +140,17 @@
                 <el-icon><ArrowRight /></el-icon>
               </el-button>
               <span class="nav-filename" v-if="uploadedFileName">{{ uploadedFileName }}</span>
+            </div>
+
+            <!-- 保存当前切片为检测结果 -->
+            <div class="save-slice-bar" v-if="ctImageUrl || uploadedFileName">
+              <el-button type="primary" @click="saveCurrentSlice" :loading="savingSlice" size="small">
+                <el-icon><PictureFilled /></el-icon>
+                保存当前切片为检测结果
+              </el-button>
+              <span v-if="savedSliceImageUrl" class="saved-tip">
+                <el-icon color="#67C23A"><CircleCheck /></el-icon> 已保存，将随诊断结果一起提交
+              </span>
             </div>
           </div>
         </div>
@@ -493,10 +504,13 @@ import { ElMessage } from 'element-plus'
 import { 
   ArrowLeft, Cpu, DocumentChecked, Picture, ZoomIn, ZoomOut, 
   RefreshRight, Sunny, Upload, ArrowRight, Warning, InfoFilled,
-  MagicStick, EditPen, Loading, DataAnalysis, FirstAidKit
+  MagicStick, EditPen, Loading, DataAnalysis, FirstAidKit,
+  PictureFilled, CircleCheck
 } from '@element-plus/icons-vue'
 import { detectArtifact, aiDiagnosis } from '@/api/hisexam/ctAnalysis'
 import { getApply, updateApply } from '@/api/hisexam/apply'
+import { listResult, addResult, updateResult } from '@/api/hisexam/result'
+import { uploadFile } from '@/api/system/file'
 
 const route = useRoute()
 const router = useRouter()
@@ -667,6 +681,9 @@ const handleFileSelect = async (uploadFile) => {
 // ============ AI诊断 ============
 const analyzing = ref(false)
 const aiResult = ref(null)
+const saving = ref(false)
+const savingSlice = ref(false)
+const savedSliceImageUrl = ref('')
 const selectedFinding = ref(0)
 const aiDetections = ref([])
 const aiDialogVisible = ref(false)
@@ -898,6 +915,87 @@ function formatDateTime(date = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
+function dataUrlToFile(dataUrl, fileName) {
+  const [header, body] = dataUrl.split(',')
+  const mime = header.match(/data:(.*?);base64/)?.[1] || 'image/png'
+  const binary = atob(body)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return new File([bytes], fileName, { type: mime })
+}
+
+function getCurrentCtImage() {
+  if (ctImageUrl.value) return ctImageUrl.value
+  if (selectedAiSlice.value?.imageUrl) return selectedAiSlice.value.imageUrl
+  return ''
+}
+
+async function saveCurrentSlice() {
+  const image = getCurrentCtImage()
+  if (!image || !image.startsWith('data:image')) {
+    ElMessage.warning('当前切片无可保存的图像')
+    return
+  }
+  savingSlice.value = true
+  try {
+    const fileName = `brain_ct_${patientInfo.applyId || 'apply'}_slice${currentSlice.value}_${Date.now()}.png`
+    const file = dataUrlToFile(image, fileName)
+    const res = await uploadFile(file)
+    savedSliceImageUrl.value = res.data?.url || res.url || ''
+    if (savedSliceImageUrl.value) {
+      ElMessage.success('当前切片已保存为检测结果图像')
+    }
+  } catch (e) {
+    console.warn('切片上传失败:', e)
+    ElMessage.error('切片上传失败，请重试')
+  } finally {
+    savingSlice.value = false
+  }
+}
+
+async function uploadCurrentCtImage() {
+  const image = getCurrentCtImage()
+  if (!image) return null
+  if (!image.startsWith('data:image')) return image
+
+  try {
+    const fileName = `brain_ct_${patientInfo.applyId || 'apply'}_${Date.now()}.png`
+    const file = dataUrlToFile(image, fileName)
+    const res = await uploadFile(file)
+    return res.data?.url || res.url || null
+  } catch (e) {
+    console.warn('Upload CT image failed.', e)
+    ElMessage.warning('图片上传到文件服务失败，本次只保存诊断文本')
+    return null
+  }
+}
+
+function buildSuggestionText() {
+  return Array.isArray(diagnosisForm.recommendations)
+    ? diagnosisForm.recommendations.join('；')
+    : diagnosisForm.recommendations || ''
+}
+
+async function saveOrUpdateExamResult(payload) {
+  const res = await listResult({
+    applyId: payload.applyId,
+    sort: 1,
+    pageNum: 1,
+    pageSize: 1
+  })
+  const exists = res.rows?.[0]
+  if (exists?.resultId) {
+    return updateResult({
+      ...exists,
+      ...payload,
+      resultId: exists.resultId
+    })
+  }
+  return addResult(payload)
+}
+
 async function loadApplyDetail() {
   const applyId = route.query.applyId
   if (!applyId) {
@@ -935,6 +1033,7 @@ const saveDiagnosis = async () => {
     ElMessage.warning('缺少申请单ID，不能保存检查结果')
     return
   }
+  saving.value = true
   const diagnosisData = {
     checkType: 'BRAIN_CT',
     diagnosis: diagnosisForm,
@@ -943,16 +1042,36 @@ const saveDiagnosis = async () => {
     fileName: uploadedFileName.value
   }
   try {
+    // 优先使用已保存的切片图像，否则自动上传当前CT图像
+    let imageUrl = savedSliceImageUrl.value
+    if (!imageUrl) {
+      imageUrl = await uploadCurrentCtImage()
+    }
     await updateApply({
       applyId: patientInfo.applyId,
       examResult: JSON.stringify(diagnosisData),
-      imageUrl: uploadedFileName.value || null,
+      imageUrl,
       examTime: formatDateTime(),
       applyStatus: '已完成'
     })
-    ElMessage.success('诊断结果已保存到申请单')
+    await saveOrUpdateExamResult({
+      applyId: patientInfo.applyId,
+      imageUrl,
+      imageFind: diagnosisForm.findings || null,
+      diagnosisOpinion: diagnosisForm.impression || null,
+      diagnosisResult: diagnosisForm.conclusion || null,
+      suggestion: buildSuggestionText() || null,
+      remark: diagnosisForm.remark || null,
+      sort: 1,
+      status: '1',
+      reportTime: formatDateTime()
+    })
+    savedSliceImageUrl.value = ''
+    ElMessage.success('诊断结果已保存到检查检验结果表')
   } catch (e) {
     ElMessage.error('保存失败：' + (e.response?.data?.msg || e.message || '未知错误'))
+  } finally {
+    saving.value = false
   }
 }
 
@@ -1362,6 +1481,23 @@ onMounted(loadApplyDetail)
           text-overflow: ellipsis;
           white-space: nowrap;
         }
+      }
+    }
+
+    .save-slice-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #F0FDF4;
+      border-top: 1px solid #BBF7D0;
+
+      .saved-tip {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #16A34A;
+        font-size: 12px;
       }
     }
 
