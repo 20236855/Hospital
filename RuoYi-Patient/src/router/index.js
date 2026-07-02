@@ -86,6 +86,12 @@ const routes = [
     name: 'MyPayment',
     component: () => import('@/views/MyPayment.vue'),
     meta: { title: '我的缴费', requiresAuth: true }
+  },
+  {
+    path: '/my-exam',
+    name: 'MyExam',
+    component: () => import('@/views/MyExam.vue'),
+    meta: { title: '我的检查', requiresAuth: true }
   }
 ]
 

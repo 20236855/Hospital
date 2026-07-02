@@ -39,6 +39,30 @@ public interface ExamApplyMapper
     public List<Map<String, Object>> selectExamRegisterOptions(@Param("keyword") String keyword, @Param("doctorId") Long doctorId);
 
     /**
+     * 查询患者端检查检验缴费项。
+     *
+     * @param patientId 患者ID
+     * @return 检查检验申请及项目费用
+     */
+    public List<Map<String, Object>> selectPatientExamPaymentItems(@Param("patientId") Long patientId);
+
+    /**
+     * 查询某挂号单未缴费检查检验项目。
+     *
+     * @param registerId 挂号ID
+     * @return 检查检验费用项
+     */
+    public List<Map<String, Object>> selectUnpaidExamPaymentItemsByRegisterId(@Param("registerId") Long registerId);
+
+    /**
+     * 标记某挂号单下未缴费检查检验申请为已缴费。
+     *
+     * @param registerId 挂号ID
+     * @return 更新行数
+     */
+    public int markRegisterExamPaid(@Param("registerId") Long registerId);
+
+    /**
      * 根据挂号ID查询开单上下文。
      *
      * @param registerId 挂号ID

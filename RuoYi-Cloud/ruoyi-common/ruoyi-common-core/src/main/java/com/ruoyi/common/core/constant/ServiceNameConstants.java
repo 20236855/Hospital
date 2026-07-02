@@ -36,4 +36,9 @@ public class ServiceNameConstants
      * his-doctor serviceid
      */
     public static final String DOCTOR_SERVICE = "his-doctor";
+
+    /**
+     * his-exam serviceid
+     */
+    public static final String EXAM_SERVICE = "his-exam";
 }

@@ -108,6 +108,74 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by r.register_time desc
     </select>
 
+    <select id="selectPatientExamPaymentItems" resultType="java.util.Map">
+        select min(t.applyId) as applyId,
+               t.registerId as registerId,
+               t.registerNo as registerNo,
+               min(t.applyTime) as applyTime,
+               max(t.examTime) as examTime,
+               t.payStatus as payStatus,
+               case when t.payStatus = 'paid' then '已缴费' else '待缴费' end as applyStatus,
+               t.doctorName as doctorName,
+               t.deptName as deptName,
+               count(*) as itemCount,
+               group_concat(t.techName order by t.applyId separator '、') as techName,
+               sum(coalesce(t.techPrice, 0)) as techPrice
+        from (
+            select ea.apply_id as applyId,
+                   ea.register_id as registerId,
+                   r.register_no as registerNo,
+                   ea.apply_time as applyTime,
+                   ea.exam_time as examTime,
+                   case when lower(coalesce(ea.pay_status, 'unpaid')) in ('paid', '1', '已支付', '已缴费') then 'paid' else 'unpaid' end as payStatus,
+                   d.doctor_name as doctorName,
+                   sd.dept_name as deptName,
+                   mt.tech_name as techName,
+                   mt.tech_price as techPrice
+            from exam_apply ea
+            left join register r on ea.register_id = r.register_id
+            left join doctor d on ea.doctor_id = d.doctor_id
+            left join sys_dept sd on ea.dept_id = sd.dept_id
+            left join medical_technology mt on ea.tech_id = mt.id
+            where ea.patient_id = #{patientId}
+              and ea.apply_type in ('CHECK', 'INSPEC', 'LAB')
+        ) t
+        group by t.registerId, t.registerNo, t.doctorName, t.deptName, t.payStatus
+        order by min(t.applyTime) desc, t.registerId desc
+    </select>
+
+    <select id="selectUnpaidExamPaymentItemsByRegisterId" resultType="java.util.Map">
+        select ea.apply_id as applyId,
+               ea.register_id as registerId,
+               ea.patient_id as patientId,
+               ea.apply_type as applyType,
+               ea.apply_info as applyInfo,
+               ea.apply_position as applyPosition,
+               ea.apply_time as applyTime,
+               ea.apply_status as applyStatus,
+               ea.pay_status as payStatus,
+               mt.id as techId,
+               mt.tech_code as techCode,
+               mt.tech_name as techName,
+               mt.tech_price as techPrice
+        from exam_apply ea
+        left join medical_technology mt on ea.tech_id = mt.id
+        where ea.register_id = #{registerId}
+          and ea.apply_type in ('CHECK', 'INSPEC', 'LAB')
+          and lower(coalesce(ea.pay_status, 'unpaid')) not in ('paid', '1', '已支付', '已缴费')
+        order by ea.apply_id asc
+    </select>
+
+    <update id="markRegisterExamPaid">
+        update exam_apply
+        set pay_status = 'paid',
+            apply_status = 'paid',
+            update_time = sysdate()
+        where register_id = #{registerId}
+          and apply_type in ('CHECK', 'INSPEC', 'LAB')
+          and lower(coalesce(pay_status, 'unpaid')) not in ('paid', '1', '已支付', '已缴费')
+    </update>
+
     <select id="selectExamRegisterContext" resultType="java.util.Map">
         select r.register_id as registerId,
                r.register_no as registerNo,

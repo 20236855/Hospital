@@ -20,6 +20,14 @@ public interface IExamResultService
     public List<Map<String, Object>> selectExamApplyOptions();
 
     /**
+     * 查询当前患者的检查检验报告。
+     *
+     * @param patientId 患者ID
+     * @return 按申请单聚合的检查检验报告
+     */
+    public List<Map<String, Object>> selectPatientExamReports(Long patientId);
+
+    /**
      * 查询检查检验结果
      *
      * @param resultId 检查检验结果主键

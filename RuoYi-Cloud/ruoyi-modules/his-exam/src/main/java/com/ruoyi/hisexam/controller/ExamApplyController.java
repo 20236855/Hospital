@@ -78,6 +78,33 @@ public class ExamApplyController extends BaseController
     }
 
     /**
+     * 患者端查询本人检查检验费用项。
+     */
+    @GetMapping("/patient/payments")
+    public AjaxResult patientPayments()
+    {
+        return success(examApplyService.selectPatientExamPaymentItems(getCurrentPatientId()));
+    }
+
+    /**
+     * 内部接口：按挂号单查询待缴费检查检验项目。
+     */
+    @GetMapping("/inner/pay-info/register/{registerId}")
+    public R<Map<String, Object>> innerPayInfo(@PathVariable("registerId") Long registerId)
+    {
+        return R.ok(examApplyService.selectExamPayInfoByRegisterId(registerId));
+    }
+
+    /**
+     * 内部接口：标记挂号单下检查检验申请已缴费。
+     */
+    @PutMapping("/inner/pay/register/{registerId}")
+    public R<Boolean> innerMarkPaid(@PathVariable("registerId") Long registerId)
+    {
+        return R.ok(examApplyService.markRegisterExamPaid(registerId));
+    }
+
+    /**
      * 导出检查/检验/处置申请单列表
      */
     @RequiresPermissions("hisexam:apply:export")

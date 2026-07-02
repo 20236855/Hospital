@@ -559,6 +559,10 @@ const goToPayment = () => {
   router.push('/my-payment')
 }
 
+const goToMyExam = () => {
+  router.push('/my-exam')
+}
+
 const goToHealthNews = () => {
   router.push('/health-news')
 }
@@ -621,7 +625,7 @@ const serviceItems = [
   { title: '医院资源', icon: 'manager-o', action: goToDoctors },
   { title: '我的缴费', icon: 'balance-list-o', action: goToPayment },
   { title: '我的预约', icon: 'calendar-o', action: goToMyAppointments },
-  { title: '检查预约', icon: 'records-o', action: () => showToast('检查预约功能建设中') },
+  { title: '我的检查', icon: 'records-o', action: goToMyExam },
   { title: '在线问诊', icon: 'chat-o', action: goToChat },
   { title: '健康资讯', icon: 'newspaper-o', action: () => router.push('/health-news') },
   { title: '个人中心', icon: 'user-circle-o', action: () => router.push('/profile') }

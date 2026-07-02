@@ -55,6 +55,8 @@ public class AiChatServiceImpl implements IAiChatService
 
     private static final int LONG_MEMORY_LIMIT = 10;
 
+    private static final int EXAM_CONTEXT_LIMIT = 30;
+
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
             .build();
@@ -146,10 +148,12 @@ public class AiChatServiceImpl implements IAiChatService
         // 关键词拦截：判断是否需要查询病历
         List<MedicalRecord> medicalRecords = new java.util.ArrayList<>();
         List<EncounterVo> encounters = new java.util.ArrayList<>();
+        List<Map<String, Object>> examResults = new java.util.ArrayList<>();
         
         if (shouldQueryMedicalRecord(request.getMessage())) {
             System.out.println("命中关键词，查询病历...");
             medicalRecords = selectPatientMedicalRecords(patientId);
+            examResults = aiChatRecordMapper.selectRecentExamResults(patientId, EXAM_CONTEXT_LIMIT);
             // encounters = selectPatientEncounters(patientId); // 暂时不查询就诊记录，避免日期转换错误
             
             // 只取最新的两条病历
@@ -158,6 +162,7 @@ public class AiChatServiceImpl implements IAiChatService
             }
             
             System.out.println("查询到病历数量: " + (medicalRecords != null ? medicalRecords.size() : 0));
+            System.out.println("查询到检查检验结果数量: " + (examResults != null ? examResults.size() : 0));
             // System.out.println("查询到就诊记录数量: " + (encounters != null ? encounters.size() : 0));
         } else {
             System.out.println("未命中关键词，跳过病历查询");
@@ -165,7 +170,7 @@ public class AiChatServiceImpl implements IAiChatService
 
         String mode = StringUtils.isBlank(request.getMode()) ? "patient" : request.getMode();
         System.out.println("当前模式: " + mode);
-        String reply = callDeepSeek(buildMessages(patient, medicalRecords, encounters, longMemories, recentRecords, request.getMessage(), mode));
+        String reply = callDeepSeek(buildMessages(patient, medicalRecords, encounters, examResults, longMemories, recentRecords, request.getMessage(), mode));
 
         // 保存聊天记录
         System.out.println("保存聊天记录");
@@ -215,6 +220,7 @@ public class AiChatServiceImpl implements IAiChatService
     private JSONArray buildMessages(Map<String, Object> patient,
                                     List<MedicalRecord> medicalRecords,
                                     List<EncounterVo> encounters,
+                                    List<Map<String, Object>> examResults,
                                     List<AiChatRecord> longMemories,
                                     List<AiChatRecord> recentRecords,
                                     String message,
@@ -222,7 +228,7 @@ public class AiChatServiceImpl implements IAiChatService
     {
         String systemPrompt = "doctor".equals(mode) ? DOCTOR_SYSTEM_PROMPT : PATIENT_SYSTEM_PROMPT;
         JSONArray messages = new JSONArray();
-        messages.add(chatMessage("system", systemPrompt + "\n\n" + buildPatientContext(patient, medicalRecords, encounters, longMemories)));
+        messages.add(chatMessage("system", systemPrompt + "\n\n" + buildPatientContext(patient, medicalRecords, encounters, examResults, longMemories)));
         for (AiChatRecord record : recentRecords)
         {
             if (StringUtils.isNotEmpty(record.getRole()) && StringUtils.isNotEmpty(record.getContent()))
@@ -237,6 +243,7 @@ public class AiChatServiceImpl implements IAiChatService
     private String buildPatientContext(Map<String, Object> patient,
                                        List<MedicalRecord> medicalRecords,
                                        List<EncounterVo> encounters,
+                                       List<Map<String, Object>> examResults,
                                        List<AiChatRecord> longMemories)
     {
         StringBuilder context = new StringBuilder();
@@ -294,6 +301,29 @@ public class AiChatServiceImpl implements IAiChatService
                         .append("状态:").append(emptyText(encounter.getEncounterStatus())).append(", ")
                         .append("科室ID:").append(encounter.getDeptId()).append("\n");
             }
+        }
+
+        if (examResults != null && !examResults.isEmpty())
+        {
+            context.append("\n检查检验结果:\n");
+            int index = 1;
+            for (Map<String, Object> result : examResults)
+            {
+                context.append(index++).append(". ")
+                        .append("申请ID:").append(emptyText(result.get("applyId"))).append(", ")
+                        .append("项目:").append(emptyText(result.get("techName"))).append(", ")
+                        .append("明细:").append(emptyText(result.get("itemName"))).append(", ")
+                        .append("结果:").append(emptyText(result.get("resultValue"))).append(emptyText(result.get("resultUnit"))).append(", ")
+                        .append("参考范围:").append(emptyText(result.get("referenceRange"))).append(", ")
+                        .append("异常标识:").append(resolveAbnormalText(result.get("abnormalFlag"))).append(", ")
+                        .append("诊断意见:").append(emptyText(result.get("diagnosisOpinion"))).append(", ")
+                        .append("建议:").append(emptyText(result.get("suggestion"))).append(", ")
+                        .append("报告时间:").append(formatDate(result.get("reportTime"))).append("\n");
+            }
+        }
+        else
+        {
+            context.append("\n检查检验结果: 暂无已发布检查检验结果。\n");
         }
 
         return limit(context.toString(), 8000);
@@ -549,9 +579,32 @@ public class AiChatServiceImpl implements IAiChatService
         }
     }
 
-    private String emptyText(String value)
+    private String emptyText(Object value)
     {
-        return StringUtils.isBlank(value) ? "无记录" : limit(value, 300);
+        String text = value == null ? null : String.valueOf(value);
+        return StringUtils.isBlank(text) ? "无记录" : limit(text, 300);
+    }
+
+    private String resolveAbnormalText(Object value)
+    {
+        String flag = value == null ? "0" : String.valueOf(value);
+        if ("1".equals(flag))
+        {
+            return "偏高";
+        }
+        if ("2".equals(flag))
+        {
+            return "偏低";
+        }
+        if ("3".equals(flag))
+        {
+            return "阳性";
+        }
+        if ("4".equals(flag))
+        {
+            return "阴性";
+        }
+        return "正常";
     }
 
     private String limit(String value, int maxLength)

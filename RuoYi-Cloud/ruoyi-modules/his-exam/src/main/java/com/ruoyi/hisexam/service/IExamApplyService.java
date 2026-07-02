@@ -38,6 +38,30 @@ public interface IExamApplyService
     public List<Map<String, Object>> selectExamRegisterOptions(String keyword, Long doctorId);
 
     /**
+     * 查询患者端检查检验缴费项。
+     *
+     * @param patientId 患者ID
+     * @return 检查检验申请及项目费用
+     */
+    public List<Map<String, Object>> selectPatientExamPaymentItems(Long patientId);
+
+    /**
+     * 查询某挂号单未缴费检查检验支付信息。
+     *
+     * @param registerId 挂号ID
+     * @return 支付信息
+     */
+    public Map<String, Object> selectExamPayInfoByRegisterId(Long registerId);
+
+    /**
+     * 标记某挂号单下检查检验申请为已缴费。
+     *
+     * @param registerId 挂号ID
+     * @return 是否成功
+     */
+    public boolean markRegisterExamPaid(Long registerId);
+
+    /**
      * 新增检查/检验/处置申请单
      * 
      * @param examApply 检查/检验/处置申请单

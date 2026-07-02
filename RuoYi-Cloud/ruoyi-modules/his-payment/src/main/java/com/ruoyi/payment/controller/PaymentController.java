@@ -123,6 +123,16 @@ public class PaymentController extends BaseController
     }
 
     /**
+     * 支付检查检验费用（患者端使用）。
+     */
+    @PostMapping("/exam/register/{registerId}/pay")
+    public AjaxResult payExamByRegister(@PathVariable Long registerId, @RequestBody(required = false) Payment payment)
+    {
+        String payType = payment != null ? payment.getPayType() : null;
+        return success(paymentService.payExamByRegister(registerId, payType));
+    }
+
+    /**
      * 修改收费
      */
     @RequiresPermissions("payment:payment:edit")

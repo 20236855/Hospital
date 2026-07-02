@@ -10,10 +10,13 @@ import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.utils.DateUtils;
 import com.ruoyi.common.core.utils.StringUtils;
+import com.ruoyi.his.api.RemoteExamService;
 import com.ruoyi.his.api.RemoteRegisterService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ruoyi.payment.domain.PaymentItem;
+import com.ruoyi.payment.mapper.PaymentItemMapper;
 import com.ruoyi.payment.mapper.PaymentMapper;
 import com.ruoyi.payment.domain.Payment;
 import com.ruoyi.payment.service.IPaymentService;
@@ -32,6 +35,12 @@ public class PaymentServiceImpl implements IPaymentService
 
     @Autowired
     private RemoteRegisterService remoteRegisterService;
+
+    @Autowired
+    private RemoteExamService remoteExamService;
+
+    @Autowired
+    private PaymentItemMapper paymentItemMapper;
 
     /**
      * 查询收费
@@ -161,6 +170,64 @@ public class PaymentServiceImpl implements IPaymentService
         if (paidResult == null || !R.isSuccess(paidResult) || Boolean.FALSE.equals(paidResult.getData()))
         {
             throw new ServiceException(paidResult != null && paidResult.getMsg() != null ? paidResult.getMsg() : "更新挂号支付状态失败");
+        }
+        return payment;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Payment payExamByRegister(Long registerId, String payType)
+    {
+        if (registerId == null)
+        {
+            throw new ServiceException("挂号单不能为空");
+        }
+
+        R<Map<String, Object>> examResult = remoteExamService.getExamPayInfo(registerId, SecurityConstants.INNER);
+        if (examResult == null || !R.isSuccess(examResult) || examResult.getData() == null)
+        {
+            throw new ServiceException(examResult != null && examResult.getMsg() != null ? examResult.getMsg() : "获取检查检验缴费信息失败");
+        }
+
+        Map<String, Object> examPayInfo = examResult.getData();
+        List<Map<String, Object>> items = (List<Map<String, Object>>) examPayInfo.get("items");
+        if (items == null || items.isEmpty())
+        {
+            throw new ServiceException("该挂号单暂无待缴费检查检验项目");
+        }
+
+        BigDecimal totalAmount = decimalValue(examPayInfo.get("totalAmount"));
+        Payment payment = new Payment();
+        payment.setPayNo(buildPayNo());
+        payment.setRegisterId(registerId);
+        payment.setPatientId(longValue(examPayInfo.get("patientId")));
+        payment.setTotalAmount(totalAmount);
+        payment.setPayType(StringUtils.isNotEmpty(payType) ? payType : "微信");
+        payment.setPayStatus("PAID");
+        payment.setPayTime(DateUtils.getNowDate());
+        payment.setCreateTime(DateUtils.getNowDate());
+        payment.setRemark("患者端支付检查检验费");
+        paymentMapper.insertPayment(payment);
+
+        for (Map<String, Object> itemMap : items)
+        {
+            BigDecimal price = decimalValue(itemMap.get("techPrice"));
+            PaymentItem item = new PaymentItem();
+            item.setPaymentId(payment.getPaymentId());
+            item.setBizType("EXAM");
+            item.setBizId(longValue(itemMap.get("applyId")));
+            item.setItemName(stringValue(itemMap.get("techName")));
+            item.setUnitPrice(price);
+            item.setQuantity(1L);
+            item.setSubtotal(price);
+            item.setCreateTime(DateUtils.getNowDate());
+            paymentItemMapper.insertPaymentItem(item);
+        }
+
+        R<Boolean> paidResult = remoteExamService.markRegisterExamPaid(registerId, SecurityConstants.INNER);
+        if (paidResult == null || !R.isSuccess(paidResult) || Boolean.FALSE.equals(paidResult.getData()))
+        {
+            throw new ServiceException(paidResult != null && paidResult.getMsg() != null ? paidResult.getMsg() : "更新检查检验支付状态失败");
         }
         return payment;
     }

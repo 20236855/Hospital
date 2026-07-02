@@ -1,6 +1,7 @@
 package com.ruoyi.emr.mapper;
 
 import java.util.List;
+import java.util.Map;
 import org.apache.ibatis.annotations.Param;
 import com.ruoyi.emr.domain.AiChatRecord;
 
@@ -19,4 +20,7 @@ public interface AiChatRecordMapper
                                                      @Param("limit") Integer limit);
     
     public List<String> selectDistinctSessionByPatientId(@Param("patientId") Long patientId);
+
+    public List<Map<String, Object>> selectRecentExamResults(@Param("patientId") Long patientId,
+                                                             @Param("limit") Integer limit);
 }

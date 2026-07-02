@@ -64,7 +64,8 @@ import { computed, defineComponent, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import { getRegisterList } from '@/api/register'
-import { payRegister } from '@/api/payment'
+import { payExamByRegister, payRegister } from '@/api/payment'
+import { getMyExamPayments } from '@/api/exam'
 
 const router = useRouter()
 const loading = ref(false)
@@ -76,7 +77,7 @@ const allPayments = computed(() => paymentRows.value)
 const unpaidPayments = computed(() => paymentRows.value.filter((item) => !isPaid(item.payStatus)))
 const paidPayments = computed(() => paymentRows.value.filter((item) => isPaid(item.payStatus)))
 const unpaidCount = computed(() => unpaidPayments.value.length)
-const unpaidAmount = computed(() => formatAmount(unpaidPayments.value.reduce((sum, item) => sum + toNumber(item.registerFee), 0)))
+const unpaidAmount = computed(() => formatAmount(unpaidPayments.value.reduce((sum, item) => sum + toNumber(item.amount), 0)))
 
 const PaymentList = defineComponent({
   name: 'PaymentList',
@@ -92,31 +93,32 @@ const PaymentList = defineComponent({
         ? h('div', { class: 'empty-state' }, [
           h('i', { class: 'van-badge__wrapper van-icon van-icon-balance-list-o' }),
           h('strong', props.emptyText),
-          h('span', '挂号后会在这里展示缴费历史')
+          h('span', '挂号或检查开单后会在这里展示缴费记录')
         ])
         : props.items.map((item) => {
           const paid = isPaid(item.payStatus)
-          return h('article', { class: ['payment-card', paid ? 'paid' : 'unpaid'], key: item.registerId }, [
+          const examPayment = item.paymentType === 'exam'
+          return h('article', { class: ['payment-card', paid ? 'paid' : 'unpaid'], key: item.paymentKey }, [
             h('div', { class: 'payment-card-head' }, [
               h('div', [
-                h('h3', item.deptName || '门诊挂号'),
-                h('p', `${item.doctorName || '接诊医生'} · ${item.levelName || '门诊号'}`)
+                h('h3', item.title || '门诊费用'),
+                h('p', item.subtitle || `${item.doctorName || '接诊医生'} · ${item.levelName || '门诊号'}`)
               ]),
               h('span', { class: ['status-tag', paid ? 'paid' : 'unpaid'] }, paid ? '已缴费' : '待缴费')
             ]),
             h('div', { class: 'payment-meta' }, [
-              h('span', `挂号单号：${item.registerNo || item.registerId || '-'}`),
-              h('span', `挂号时间：${formatDate(item.registerTime)}`)
+              h('span', `${examPayment ? '申请单号' : '挂号单号'}：${item.billNo || '-'}`),
+              h('span', `${examPayment ? '申请时间' : '挂号时间'}：${formatDate(item.billTime)}`)
             ]),
             h('div', { class: 'payment-card-foot' }, [
-              h('strong', { class: paid ? '' : 'danger' }, `¥${formatAmount(item.registerFee)}`),
+              h('strong', { class: paid ? '' : 'danger' }, `¥${formatAmount(item.amount)}`),
               paid
                 ? h('span', { class: 'paid-note' }, '费用已结清')
                 : h('button', {
                   type: 'button',
-                  disabled: props.payingId === item.registerId,
+                  disabled: props.payingId === item.paymentKey,
                   onClick: () => emit('pay', item)
-                }, props.payingId === item.registerId ? '缴费中...' : '立即缴费')
+                }, props.payingId === item.paymentKey ? '缴费中...' : '立即缴费')
             ])
           ])
         })
@@ -148,8 +150,31 @@ function formatDate(value) {
 async function loadPayments() {
   loading.value = true
   try {
-    const response = await getRegisterList({ pageNum: 1, pageSize: 100 })
-    paymentRows.value = response.rows || []
+    const [registerRes, examRes] = await Promise.all([
+      getRegisterList({ pageNum: 1, pageSize: 100 }),
+      getMyExamPayments()
+    ])
+    const registerPayments = (registerRes.rows || []).map((item) => ({
+      ...item,
+      paymentType: 'register',
+      paymentKey: `register-${item.registerId}`,
+      title: item.deptName || '门诊挂号',
+      subtitle: `${item.doctorName || '接诊医生'} · ${item.levelName || '门诊号'}`,
+      billNo: item.registerNo || item.registerId || '-',
+      billTime: item.registerTime,
+      amount: item.registerFee
+    }))
+    const examPayments = (examRes.data || []).map((item) => ({
+      ...item,
+      paymentType: 'exam',
+      paymentKey: `exam-${item.registerId}-${item.payStatus || item.applyId}`,
+      title: item.techName || '检查检验项目',
+      subtitle: `${item.deptName || '执行科室'} · ${item.itemCount || 1} 个项目`,
+      billNo: item.registerNo || item.registerId || '-',
+      billTime: item.applyTime,
+      amount: item.techPrice
+    }))
+    paymentRows.value = [...registerPayments, ...examPayments]
   } finally {
     loading.value = false
   }
@@ -160,12 +185,16 @@ async function handlePay(item) {
   try {
     await showConfirmDialog({
       title: '确认缴费',
-      message: `本次需缴纳 ¥${formatAmount(item.registerFee)}，是否继续？`,
+      message: `本次需缴纳 ¥${formatAmount(item.amount)}，是否继续？`,
       confirmButtonText: '立即缴费',
       confirmButtonColor: '#d35f45'
     })
-    payingId.value = item.registerId
-    await payRegister(item.registerId)
+    payingId.value = item.paymentKey
+    if (item.paymentType === 'exam') {
+      await payExamByRegister(item.registerId)
+    } else {
+      await payRegister(item.registerId)
+    }
     showToast('缴费成功')
     await loadPayments()
   } catch (error) {

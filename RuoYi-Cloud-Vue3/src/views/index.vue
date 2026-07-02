@@ -34,39 +34,55 @@
         <!-- 重点科室 -->
         <div class="res-card dept-card">
           <h3><i v-html="svgDept"></i>重点科室</h3>
-          <div class="dept-list">
-            <div class="dept-row" v-for="(d, idx) in departments" :key="d.name">
-              <svg class="dept-dot" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" :fill="deptColors[idx]"/></svg>
-              <span class="dept-name">{{ d.name }}</span>
-              <span class="dept-info">{{ d.doctors }}位专家 · {{ d.beds }}张床位</span>
-              <el-tag size="small" :type="d.load > 80 ? 'warning' : 'success'">{{ d.status }}</el-tag>
-            </div>
-          </div>
+          <el-carousel class="dept-carousel" height="286px" indicator-position="outside" arrow="hover" :interval="4200">
+            <el-carousel-item v-for="dept in departmentSlides" :key="dept.name">
+              <div class="dept-slide">
+                <img class="dept-image" :src="dept.image" :alt="dept.name" />
+                <div class="dept-shade"></div>
+                <div class="dept-content">
+                  <span class="dept-label">{{ dept.label }}</span>
+                  <h4>{{ dept.name }}</h4>
+                  <p>{{ dept.desc }}</p>
+                  <div class="dept-metrics">
+                    <span><strong>{{ dept.doctors }}</strong> 专家团队</span>
+                    <span><strong>{{ dept.beds }}</strong> 开放床位</span>
+                  </div>
+                </div>
+              </div>
+            </el-carousel-item>
+          </el-carousel>
         </div>
 
         <!-- 大型设备 -->
         <div class="res-card equip-card">
           <h3><i v-html="svgEquip"></i>大型设备</h3>
-          <div class="equip-grid">
-            <div class="equip-item" v-for="e in equipments" :key="e.name">
-              <strong>{{ e.count }}台</strong>
-              <span>{{ e.name }}</span>
-              <small>{{ e.model }}</small>
-            </div>
-          </div>
+          <el-carousel class="equip-carousel" height="286px" indicator-position="outside" arrow="hover" :interval="4800">
+            <el-carousel-item v-for="eq in equipmentSlides" :key="eq.name">
+              <div class="dept-slide">
+                <img class="dept-image" :src="eq.image" :alt="eq.name" />
+                <div class="dept-shade"></div>
+                <div class="dept-content">
+                  <span class="dept-label">{{ eq.label }}</span>
+                  <h4>{{ eq.name }}</h4>
+                  <p>{{ eq.desc }}</p>
+                </div>
+              </div>
+            </el-carousel-item>
+          </el-carousel>
         </div>
 
         <!-- 服务能力 -->
         <div class="res-card service-card">
           <h3><i v-html="svgService"></i>服务能力</h3>
-          <div class="service-list">
-            <div class="service-item" v-for="sv in services" :key="sv.name">
-              <div class="sv-left">
-                <span class="sv-name">{{ sv.name }}</span>
-                <span class="sv-desc">{{ sv.desc }}</span>
-              </div>
-              <strong class="sv-value">{{ sv.value }}</strong>
-            </div>
+          <div class="chart-wrap">
+            <svg class="bar-chart" viewBox="0 0 340 170" preserveAspectRatio="none">
+              <g v-for="(sv, i) in services" :key="sv.name">
+                <text :x="4" :y="38 + i * 42" font-size="13" fill="#2d5a4e" font-weight="700">{{ sv.name }}</text>
+                <text :x="4" :y="54 + i * 42" font-size="10" fill="#6f8790">{{ sv.desc }}</text>
+                <rect :y="33 + i * 42" x="120" :width="sv.pct * 190" height="22" rx="4" :fill="sv.color" opacity=".82" />
+                <text :x="315 + sv.pct * 190" :y="49 + i * 42" font-size="13" fill="#2d5a4e" font-weight="800" text-anchor="end">{{ sv.value }}</text>
+              </g>
+            </svg>
           </div>
         </div>
 
@@ -176,39 +192,61 @@ const svgEquip = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" st
 const svgService = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:6px"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'
 const svgQuality = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:6px"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
 
-const deptColors = ['#27ae80', '#2980b9', '#27ae80', '#e67e22', '#e74c3c', '#f39c12']
-
 // 核心统计数据
 const statsData = [
-  { label: '年门急诊量', value: '186 万', color: 'linear-gradient(135deg, #27ae80, #1abc6c)', delay: '0s', svg: svgHeart },
-  { label: '开放床位', value: '2,200', color: 'linear-gradient(135deg, #2980b9, #5dade2)', delay: '0.1s', svg: svgBuilding },
-  { label: '医护团队', value: '1,860 人', color: 'linear-gradient(135deg, #d35400, #e67e22)', delay: '0.2s', svg: svgUsers },
-  { label: '手术量/年', value: '4.8 万', color: 'linear-gradient(135deg, #c0392b, #e74c3c)', delay: '0.3s', svg: svgScalpel }
+  { label: '年门急诊量', value: '186 万', color: 'linear-gradient(135deg, #6ba3a0, #85bab8)', delay: '0s', svg: svgHeart },
+  { label: '开放床位', value: '2,200', color: 'linear-gradient(135deg, #6d8fad, #84a4be)', delay: '0.1s', svg: svgBuilding },
+  { label: '医护团队', value: '1,860 人', color: 'linear-gradient(135deg, #d4a878, #deb78c)', delay: '0.2s', svg: svgUsers },
+  { label: '手术量/年', value: '4.8 万', color: 'linear-gradient(135deg, #bb8f95, #cba2a8)', delay: '0.3s', svg: svgScalpel }
 ]
 
-const departments = [
-  { name: '心血管内科', doctors: 32, beds: 186, load: 88, status: '高负荷' },
-  { name: '神经外科', doctors: 24, beds: 142, load: 76, status: '正常' },
-  { name: '骨科中心', doctors: 28, beds: 168, load: 82, status: '高负荷' },
-  { name: '妇产科', doctors: 36, beds: 210, load: 65, status: '正常' },
-  { name: '肿瘤科', doctors: 30, beds: 196, load: 91, status: '满床' },
-  { name: '儿科中心', doctors: 22, beds: 130, load: 72, status: '正常' }
+const departmentSlides = [
+  {
+    name: '内科',
+    label: '综合诊疗',
+    image: '/内科.png',
+    desc: '覆盖常见病、慢病和多系统疾病管理，提供连续、规范的诊疗服务。',
+    doctors: '38 位',
+    beds: '220 张'
+  },
+  {
+    name: '神经外科',
+    label: '精准手术',
+    image: '/神经外科.png',
+    desc: '聚焦脑血管、颅脑创伤和神经系统肿瘤，推进显微与微创治疗。',
+    doctors: '24 位',
+    beds: '142 张'
+  },
+  {
+    name: '心血管内科',
+    label: '胸痛中心',
+    image: '/心血管内科.png',
+    desc: '建设急危重症绿色通道，完善介入、康复与长期随访一体化服务。',
+    doctors: '32 位',
+    beds: '186 张'
+  },
+  {
+    name: '骨科',
+    label: '运动修复',
+    image: '/骨科.png',
+    desc: '开展关节、脊柱、创伤和运动医学诊疗，重视术后康复管理。',
+    doctors: '28 位',
+    beds: '168 张'
+  }
 ]
 
-const equipments = [
-  { name: '3.0T MRI', count: 3, model: 'Siemens Vida' },
-  { name: '256排CT', count: 4, model: 'GE Revolution' },
-  { name: 'DSA', count: 3, model: 'Philips Azurion' },
-  { name: 'PET-CT', count: 1, model: 'uMI 780' },
-  { name: '达芬奇机器人', count: 2, model: 'Da Vinci Xi' },
-  { name: '直线加速器', count: 2, model: 'Varian TrueBeam' }
+const equipmentSlides = [
+  { name: '3.0T MRI', label: '磁共振', image: '/仪器1.png', desc: 'Siemens Vida · 3台 · 全身超导磁共振，支持高清弥散与波谱分析' },
+  { name: '256排CT', label: 'CT影像', image: '/仪器02.png', desc: 'GE Revolution · 4台 · 亚毫米精度成像，冠脉CTA与卒中快速分诊' },
+  { name: 'DSA', label: 'DSA', image: '/仪器03.png', desc: 'Philips Azurion · 3台 · 数字减影血管造影，介入诊疗一体化平台' },
+  { name: '达芬奇机器人', label: '手术机器人', image: '/仪器04.png', desc: 'Da Vinci Xi · 2台 · 微创精准操作，泌尿、妇科、普外科' }
 ]
 
 const services = [
-  { name: '日均门诊人次', desc: '含急诊与专科门诊', value: '5,200' },
-  { name: '日均手术台次', desc: '含择期与急诊手术', value: '132' },
-  { name: '日均检查量', desc: 'CT/MRI/超声/检验', value: '2,860' },
-  { name: '远程会诊/年', desc: '覆盖医联体单位', value: '3,400' }
+  { name: '日均门诊人次', desc: '含急诊与专科门诊', value: '5,200', pct: 1, color: '#6ba3a0' },
+  { name: '日均手术台次', desc: '含择期与急诊手术', value: '132', pct: 0.35, color: '#d4a878' },
+  { name: '日均检查量', desc: 'CT/MRI/超声/检验', value: '2,860', pct: 0.72, color: '#6d8fad' },
+  { name: '远程会诊/年', desc: '覆盖医联体单位', value: '3,400', pct: 0.82, color: '#bb8f95' }
 ]
 
 onMounted(() => {
@@ -325,44 +363,50 @@ const goToCompleteInfo = () => {
 .home-resources {
   position: relative;
   z-index: 1;
-  padding: 50px 32px 60px;
-  background: linear-gradient(180deg, rgba(80,150,130,.30) 0%, rgba(60,120,100,.48) 30%, rgba(40,90,75,.65) 100%);
-  backdrop-filter: blur(12px);
+  padding: 58px 32px 68px;
+  background:
+    linear-gradient(180deg, rgba(240, 249, 250, .78) 0%, rgba(220, 240, 244, .66) 42%, rgba(187, 219, 225, .56) 100%);
+  backdrop-filter: blur(18px);
 }
 
 /* 核心数据卡片 */
 .resources-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 14px;
   max-width: 1180px;
-  margin: 0 auto 40px;
+  margin: 0 auto 28px;
 }
 
 .stat-card {
   display: flex; align-items: center; gap: 14px;
-  padding: 20px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.22);
-  background: rgba(255,255,255,.14);
-  backdrop-filter: blur(12px);
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(45, 118, 132, .12);
+  background: rgba(255, 255, 255, .72);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 34px rgba(37, 89, 104, .12);
   opacity: 0; transform: translateY(24px);
   animation: cardSlideUp .6s ease forwards;
   animation-delay: var(--delay, 0s);
-  transition: transform .3s, background .3s;
-  &:hover { transform: translateY(-4px); background: rgba(255,255,255,.22); }
+  transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+  &:hover {
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, .86);
+    box-shadow: 0 18px 42px rgba(37, 89, 104, .18);
+  }
 }
 
 .stat-icon {
-  width: 48px; height: 48px; border-radius: 12px;
+  width: 46px; height: 46px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  color: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.2);
+  color: #fff; box-shadow: 0 10px 22px rgba(40, 105, 118, .2);
 }
 
 .stat-body {
-  strong { display: block; font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 2px; }
-  span { font-size: 12px; color: rgba(255,255,255,.65); }
+  strong { display: block; font-size: 23px; font-weight: 800; color: #173943; margin-bottom: 2px; }
+  span { font-size: 12px; color: #607f8c; }
 }
 
 @keyframes cardSlideUp {
@@ -373,61 +417,183 @@ const goToCompleteInfo = () => {
 .resources-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 18px;
+  gap: 16px;
   max-width: 1180px;
   margin: 0 auto;
 }
 
 .res-card {
+  position: relative;
+  overflow: hidden;
   padding: 22px;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.2);
-  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(35, 118, 134, .14);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .88), rgba(244, 251, 252, .70));
   backdrop-filter: blur(14px);
+  box-shadow: 0 18px 44px rgba(28, 79, 94, .14);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #1f9a8a, #4ea3d8);
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: rgba(35, 118, 134, .26);
+    box-shadow: 0 22px 52px rgba(28, 79, 94, .18);
+  }
+
   h3 {
     margin: 0 0 18px;
-    font-size: 15px; font-weight: 700; color: #9be5cf;
+    font-size: 16px; font-weight: 700; color: #173943;
     i { display: inline-flex; align-items: center; margin-right: 6px; }
     :deep(svg) { display: inline-block; }
   }
 }
 
-/* 科室列表 */
-.dept-list { display: flex; flex-direction: column; gap: 6px; }
-.dept-dot { width: 8px; height: 8px; flex-shrink: 0; }
-.dept-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: 10px;
-  background: rgba(255,255,255,.10);
-  .dept-name { width: 90px; font-size: 12px; font-weight: 600; color: #e0f2e9; flex-shrink: 0; }
-  .dept-info { flex: 1; font-size: 11px; color: rgba(255,255,255,.55); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dept-card::before { background: linear-gradient(90deg, #1f9a8a, #6bc7b4); }
+.equip-card::before { background: linear-gradient(90deg, #367fc4, #6fb7e6); }
+.service-card::before { background: linear-gradient(90deg, #7b68c8, #46b4c8); }
+.quality-card::before { background: linear-gradient(90deg, #1f9a8a, #f0a33a); }
+
+/* 重点科室轮播 */
+.dept-carousel {
+  --el-carousel-indicator-width: 18px;
 }
 
-/* 设备网格 */
-.equip-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-}
-.equip-item {
-  padding: 12px; border-radius: 10px; text-align: center;
-  background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.12);
-  strong { display: block; font-size: 20px; font-weight: 800; color: #8cdbc4; margin-bottom: 4px; }
-  span { display: block; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.8); }
-  small { display: block; font-size: 10px; color: rgba(255,255,255,.55); margin-top: 2px; }
+.dept-carousel :deep(.el-carousel__container) {
+  border-radius: 12px;
 }
 
-/* 服务列表 */
-.service-list { display: flex; flex-direction: column; gap: 6px; }
-.service-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.04);
-  .sv-left { .sv-name { display: block; font-size: 13px; font-weight: 600; color: #e0f2e9; }
-    .sv-desc { font-size: 11px; color: rgba(255,255,255,.45); }
-  }
-  .sv-value { font-size: 18px; font-weight: 800; color: #8cdbc4; }
+.dept-carousel :deep(.el-carousel__indicators--outside) {
+  margin-top: 8px;
 }
+
+.dept-carousel :deep(.el-carousel__button) {
+  width: 18px;
+  height: 4px;
+  border-radius: 999px;
+  background: #2f8990;
+  opacity: .34;
+}
+
+.dept-carousel :deep(.is-active .el-carousel__button),
+.equip-carousel :deep(.is-active .el-carousel__button) {
+  width: 28px;
+  opacity: .9;
+}
+
+.equip-carousel {
+  --el-carousel-indicator-width: 18px;
+}
+.equip-carousel :deep(.el-carousel__container) { border-radius: 12px; }
+.equip-carousel :deep(.el-carousel__indicators--outside) { margin-top: 8px; }
+.equip-carousel :deep(.el-carousel__button) {
+  width: 18px; height: 4px; border-radius: 999px; background: rgba(255,255,255,.7); opacity: .34;
+}
+
+.dept-slide {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #dcebee;
+}
+
+.dept-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  filter: brightness(1.15);
+}
+
+.dept-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 41, 48, .45) 0%, rgba(8, 41, 48, .22) 46%, rgba(8, 41, 48, .04) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, .04), rgba(0, 0, 0, .15));
+}
+
+.dept-content {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 20px;
+  color: #fff;
+}
+
+.dept-label {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .28);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dept-content h4 {
+  margin: 12px 0 8px;
+  color: #fff;
+  font-size: 25px;
+  line-height: 1.1;
+}
+
+.dept-content p {
+  max-width: 430px;
+  margin: 0;
+  color: rgba(255, 255, 255, .86);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.dept-metrics {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.dept-metrics span {
+  min-width: 104px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .16);
+  border: 1px solid rgba(255, 255, 255, .22);
+  color: rgba(255, 255, 255, .82);
+  font-size: 12px;
+}
+
+.dept-metrics strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #fff;
+  font-size: 18px;
+}
+
+
+
+/* 柱状图 */
+.chart-wrap { position: relative; }
+.bar-chart { width: 100%; height: auto; }
+.bar-chart rect { animation: barGrow 0.8s ease-out both; }
+.bar-chart :nth-child(2) rect { animation-delay: 0.1s; }
+.bar-chart :nth-child(3) rect { animation-delay: 0.2s; }
+.bar-chart :nth-child(4) rect { animation-delay: 0.3s; }
+.bar-chart :nth-child(5) rect { animation-delay: 0.4s; }
+@keyframes barGrow { from { transform: scaleX(0); transform-origin: left; } to { transform: scaleX(1); transform-origin: left; } }
 
 /* 质量折线图 */
-.chart-wrap { position: relative; }
 .line-chart { width: 100%; height: auto; display: block; }
 .line-path {
   stroke-width: 1.4;
@@ -445,7 +611,7 @@ const goToCompleteInfo = () => {
 }
 .chart-legend {
   display: flex; justify-content: center; gap: 16px; padding: 8px 0 12px;
-  font-size: 11px; color: rgba(255,255,255,.75);
+  font-size: 11px; color: #5e7881;
   i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
 }
 .quality-values {
@@ -454,7 +620,20 @@ const goToCompleteInfo = () => {
 .qv-item {
   text-align: center;
   strong { font-size: 22px; font-weight: 800; display: block; span { font-size: 14px; } }
-  font-size: 11px; color: rgba(255,255,255,.7);
+  font-size: 11px; color: #6b858d;
+}
+
+.quality-card :deep(.grid-lines line) {
+  stroke: rgba(48, 94, 108, .16);
+}
+
+.quality-card :deep(.grid-lines line:last-child) {
+  stroke: rgba(48, 94, 108, .24);
+}
+
+.quality-card :deep(.y-labels),
+.quality-card :deep(.x-labels) {
+  fill: #6f8790;
 }
 
 /* 完善信息 */
@@ -473,7 +652,6 @@ const goToCompleteInfo = () => {
   .home-resources { padding: 40px 18px 50px; }
   .resources-stats { grid-template-columns: repeat(2, 1fr); }
   .resources-grid { grid-template-columns: 1fr; }
-  .equip-grid { grid-template-columns: repeat(2, 1fr); }
   .quality-values { flex-direction: column; gap: 8px; }
 }
 </style>

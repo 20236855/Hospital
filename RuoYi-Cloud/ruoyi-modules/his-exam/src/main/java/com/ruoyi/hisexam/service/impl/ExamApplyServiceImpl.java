@@ -3,6 +3,8 @@ package com.ruoyi.hisexam.service.impl;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import com.ruoyi.common.core.utils.DateUtils;
 import com.ruoyi.common.core.exception.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +60,72 @@ public class ExamApplyServiceImpl implements IExamApplyService
     public List<Map<String, Object>> selectExamRegisterOptions(String keyword, Long doctorId)
     {
         return examApplyMapper.selectExamRegisterOptions(keyword, doctorId);
+    }
+
+    /**
+     * 查询患者端检查检验缴费项。
+     *
+     * @param patientId 患者ID
+     * @return 检查检验申请及项目费用
+     */
+    @Override
+    public List<Map<String, Object>> selectPatientExamPaymentItems(Long patientId)
+    {
+        return examApplyMapper.selectPatientExamPaymentItems(patientId);
+    }
+
+    /**
+     * 查询某挂号单未缴费检查检验支付信息。
+     *
+     * @param registerId 挂号ID
+     * @return 支付信息
+     */
+    @Override
+    public Map<String, Object> selectExamPayInfoByRegisterId(Long registerId)
+    {
+        if (registerId == null)
+        {
+            throw new ServiceException("挂号单不能为空");
+        }
+        List<Map<String, Object>> items = examApplyMapper.selectUnpaidExamPaymentItemsByRegisterId(registerId);
+        if (items == null || items.isEmpty())
+        {
+            throw new ServiceException("该挂号单暂无待缴费检查检验项目");
+        }
+
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        Long patientId = null;
+        for (Map<String, Object> item : items)
+        {
+            if (patientId == null)
+            {
+                patientId = toLong(item.get("patientId"));
+            }
+            totalAmount = totalAmount.add(toDecimal(item.get("techPrice")));
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("registerId", registerId);
+        result.put("patientId", patientId);
+        result.put("totalAmount", totalAmount);
+        result.put("items", items);
+        return result;
+    }
+
+    /**
+     * 标记某挂号单下检查检验申请为已缴费。
+     *
+     * @param registerId 挂号ID
+     * @return 是否成功
+     */
+    @Override
+    public boolean markRegisterExamPaid(Long registerId)
+    {
+        if (registerId == null)
+        {
+            throw new ServiceException("挂号单不能为空");
+        }
+        return examApplyMapper.markRegisterExamPaid(registerId) >= 0;
     }
 
     /**
@@ -160,5 +228,14 @@ public class ExamApplyServiceImpl implements IExamApplyService
             return null;
         }
         return value instanceof Number ? ((Number) value).longValue() : Long.valueOf(value.toString());
+    }
+
+    private BigDecimal toDecimal(Object value)
+    {
+        if (value == null)
+        {
+            return BigDecimal.ZERO;
+        }
+        return new BigDecimal(value.toString());
     }
 }

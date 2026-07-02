@@ -2,6 +2,7 @@ package com.ruoyi.hisexam.mapper;
 
 import java.util.List;
 import java.util.Map;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.hisexam.domain.ExamResult;
 
 /**
@@ -18,6 +19,14 @@ public interface ExamResultMapper
      * @return 申请单、患者、医技项目信息
      */
     public List<Map<String, Object>> selectExamApplyOptions();
+
+    /**
+     * 查询患者端检查检验报告明细行。
+     *
+     * @param patientId 患者ID
+     * @return 按申请单和结果明细展开的数据
+     */
+    public List<Map<String, Object>> selectPatientExamReportRows(@Param("patientId") Long patientId);
 
     /**
      * 查询单个申请单的结果录入上下文。

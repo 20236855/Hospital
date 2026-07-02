@@ -79,6 +79,15 @@ public class ExamResultController extends BaseController
     }
 
     /**
+     * 患者端查询本人检查检验报告。
+     */
+    @GetMapping("/patient/list")
+    public AjaxResult patientList()
+    {
+        return success(examResultService.selectPatientExamReports(getCurrentPatientId()));
+    }
+
+    /**
      * 查询检查检验结果列表
      */
     @RequiresPermissions("hisexam:result:list")

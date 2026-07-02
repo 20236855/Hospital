@@ -74,4 +74,28 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         GROUP BY session_id
         ORDER BY MAX(create_time) DESC
     </select>
+
+    <select id="selectRecentExamResults" resultType="java.util.Map">
+        select ea.apply_id as applyId,
+               ea.apply_type as applyType,
+               ea.apply_time as applyTime,
+               mt.tech_name as techName,
+               er.item_name as itemName,
+               er.result_value as resultValue,
+               er.result_unit as resultUnit,
+               er.reference_range as referenceRange,
+               er.abnormal_flag as abnormalFlag,
+               er.image_find as imageFind,
+               er.diagnosis_opinion as diagnosisOpinion,
+               er.diagnosis_result as diagnosisResult,
+               er.suggestion as suggestion,
+               er.report_time as reportTime
+        from exam_result er
+        inner join exam_apply ea on er.apply_id = ea.apply_id
+        left join medical_technology mt on ea.tech_id = mt.id
+        where ea.patient_id = #{patientId}
+          and er.status = '1'
+        order by er.report_time desc, ea.apply_id desc, er.sort asc, er.result_id asc
+        limit #{limit}
+    </select>
 </mapper>

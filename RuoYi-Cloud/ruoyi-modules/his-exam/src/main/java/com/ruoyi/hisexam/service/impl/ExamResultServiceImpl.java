@@ -2,6 +2,8 @@ package com.ruoyi.hisexam.service.impl;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.utils.DateUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -33,6 +35,96 @@ public class ExamResultServiceImpl implements IExamResultService
     public List<Map<String, Object>> selectExamApplyOptions()
     {
         return examResultMapper.selectExamApplyOptions();
+    }
+
+    /**
+     * 查询当前患者的检查检验报告，并按申请单聚合结果明细。
+     *
+     * @param patientId 患者ID
+     * @return 按申请单聚合的检查检验报告
+     */
+    @Override
+    public List<Map<String, Object>> selectPatientExamReports(Long patientId)
+    {
+        List<Map<String, Object>> rows = examResultMapper.selectPatientExamReportRows(patientId);
+        Map<Long, Map<String, Object>> grouped = new LinkedHashMap<>();
+
+        for (Map<String, Object> row : rows)
+        {
+            Long applyId = getLong(row, "applyId");
+            if (applyId == null)
+            {
+                continue;
+            }
+
+            Map<String, Object> report = grouped.get(applyId);
+            if (report == null)
+            {
+                report = new LinkedHashMap<>();
+                report.put("applyId", applyId);
+                report.put("registerId", row.get("registerId"));
+                report.put("registerNo", row.get("registerNo"));
+                report.put("applyType", row.get("applyType"));
+                report.put("applyTypeName", resolveApplyTypeName(getString(row, "applyType")));
+                report.put("applyInfo", row.get("applyInfo"));
+                report.put("applyPosition", row.get("applyPosition"));
+                report.put("applyTime", row.get("applyTime"));
+                report.put("examTime", row.get("examTime"));
+                report.put("applyStatus", row.get("applyStatus"));
+                report.put("payStatus", row.get("payStatus"));
+                report.put("doctorName", row.get("doctorName"));
+                report.put("deptName", row.get("deptName"));
+                report.put("techId", row.get("techId"));
+                report.put("techCode", row.get("techCode"));
+                report.put("techName", row.get("techName"));
+                report.put("techPrice", row.get("techPrice"));
+                report.put("reportTime", row.get("reportTime"));
+                report.put("abnormalCount", 0);
+                report.put("results", new ArrayList<Map<String, Object>>());
+                grouped.put(applyId, report);
+            }
+
+            if (report.get("reportTime") == null && row.get("reportTime") != null)
+            {
+                report.put("reportTime", row.get("reportTime"));
+            }
+
+            Long resultId = getLong(row, "resultId");
+            if (resultId == null)
+            {
+                continue;
+            }
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("resultId", resultId);
+            item.put("itemType", row.get("itemType"));
+            item.put("itemCode", row.get("itemCode"));
+            item.put("itemName", row.get("itemName"));
+            item.put("resultValue", row.get("resultValue"));
+            item.put("resultUnit", row.get("resultUnit"));
+            item.put("referenceRange", row.get("referenceRange"));
+            item.put("abnormalFlag", row.get("abnormalFlag"));
+            item.put("imageUrl", row.get("imageUrl"));
+            item.put("imageFind", row.get("imageFind"));
+            item.put("diagnosisOpinion", row.get("diagnosisOpinion"));
+            item.put("diagnosisResult", row.get("diagnosisResult"));
+            item.put("suggestion", row.get("suggestion"));
+            item.put("sort", row.get("sort"));
+            item.put("reportTime", row.get("reportTime"));
+            ((List<Map<String, Object>>) report.get("results")).add(item);
+
+            if (isAbnormal(getString(row, "abnormalFlag")))
+            {
+                report.put("abnormalCount", ((Integer) report.get("abnormalCount")) + 1);
+            }
+        }
+
+        for (Map<String, Object> report : grouped.values())
+        {
+            List<Map<String, Object>> results = (List<Map<String, Object>>) report.get("results");
+            report.put("resultCount", results.size());
+        }
+        return new ArrayList<>(grouped.values());
     }
 
     /**
@@ -240,5 +332,37 @@ public class ExamResultServiceImpl implements IExamResultService
     {
         Object value = source.get(key);
         return value == null ? null : String.valueOf(value);
+    }
+
+    private Long getLong(Map<String, Object> source, String key)
+    {
+        Object value = source.get(key);
+        if (value == null)
+        {
+            return null;
+        }
+        return value instanceof Number ? ((Number) value).longValue() : Long.valueOf(value.toString());
+    }
+
+    private boolean isAbnormal(String abnormalFlag)
+    {
+        return StringUtils.isNotBlank(abnormalFlag) && !"0".equals(abnormalFlag) && !"4".equals(abnormalFlag);
+    }
+
+    private String resolveApplyTypeName(String applyType)
+    {
+        if ("CHECK".equals(applyType))
+        {
+            return "检查";
+        }
+        if ("INSPEC".equals(applyType) || "LAB".equals(applyType))
+        {
+            return "检验";
+        }
+        if ("DISPOSAL".equals(applyType))
+        {
+            return "处置";
+        }
+        return "检查检验";
     }
 }

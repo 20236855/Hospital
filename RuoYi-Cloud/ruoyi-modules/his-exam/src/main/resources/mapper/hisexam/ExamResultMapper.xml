@@ -63,6 +63,52 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by ea.apply_time desc, ea.apply_id desc
     </select>
 
+    <select id="selectPatientExamReportRows" resultType="java.util.Map">
+        select ea.apply_id as applyId,
+               ea.register_id as registerId,
+               r.register_no as registerNo,
+               ea.apply_type as applyType,
+               ea.apply_info as applyInfo,
+               ea.apply_position as applyPosition,
+               ea.apply_time as applyTime,
+               ea.exam_time as examTime,
+               ea.apply_status as applyStatus,
+               ea.pay_status as payStatus,
+               d.doctor_name as doctorName,
+               sd.dept_name as deptName,
+               mt.id as techId,
+               mt.tech_code as techCode,
+               mt.tech_name as techName,
+               mt.tech_price as techPrice,
+               er.result_id as resultId,
+               er.item_type as itemType,
+               er.item_code as itemCode,
+               er.item_name as itemName,
+               er.result_value as resultValue,
+               er.result_unit as resultUnit,
+               er.reference_range as referenceRange,
+               er.abnormal_flag as abnormalFlag,
+               er.image_url as imageUrl,
+               er.image_find as imageFind,
+               er.diagnosis_opinion as diagnosisOpinion,
+               er.diagnosis_result as diagnosisResult,
+               er.suggestion as suggestion,
+               er.sort as sort,
+               er.report_time as reportTime
+        from exam_apply ea
+        left join exam_result er on ea.apply_id = er.apply_id and er.status = '1'
+        left join register r on ea.register_id = r.register_id
+        left join doctor d on ea.doctor_id = d.doctor_id
+        left join sys_dept sd on ea.dept_id = sd.dept_id
+        left join medical_technology mt on ea.tech_id = mt.id
+        where ea.patient_id = #{patientId}
+          and ea.apply_type in ('CHECK', 'INSPEC', 'LAB')
+        order by coalesce(er.report_time, ea.exam_time, ea.apply_time) desc,
+                 ea.apply_id desc,
+                 er.sort asc,
+                 er.result_id asc
+    </select>
+
     <select id="selectExamApplyOptionByApplyId" parameterType="Long" resultType="java.util.Map">
         <include refid="selectExamApplyOptionVo"/>
         where ea.apply_id = #{applyId}
