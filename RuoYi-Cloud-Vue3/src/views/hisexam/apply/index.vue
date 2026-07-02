@@ -93,8 +93,6 @@
                 </button>
               </div>
             </div>
-            <!-- 卡片 Hover 发光效果 -->
-            <div class="card-glow"></div>
           </div>
         </el-col>
       </el-row>
@@ -898,10 +896,6 @@ getList()
       transform: translateY(-6px);
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
 
-      .card-glow {
-        opacity: 1;
-      }
-
       .card-banner .banner-badge {
         transform: scale(1.05);
       }
@@ -910,17 +904,6 @@ getList()
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
       }
     }
-  }
-
-  .card-glow {
-    position: absolute;
-    inset: 0;
-    border-radius: 20px;
-    background: radial-gradient(circle at 50% 0%, var(--card-color) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    pointer-events: none;
-    z-index: 0;
   }
 
   /* 图片轮播 */
