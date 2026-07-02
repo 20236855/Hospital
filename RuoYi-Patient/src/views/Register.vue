@@ -10,9 +10,6 @@
         <van-icon name="arrow-left" />
       </div>
       <div class="header-title">
-        <span class="title-icon float-animation">
-          <span class="title-cross"></span>
-        </span>
         <h1>预约挂号</h1>
       </div>
     </div>
@@ -54,22 +51,35 @@
       <div v-if="step === 1" class="step-content slide-up-animation" style="animation-delay: 0.1s">
         <div class="form-card">
           <div class="card-header">
-            <div class="header-icon">🏥</div>
             <div class="header-text">
               <h3>选择就诊科室</h3>
-              <p>请选择您需要就诊的科室</p>
             </div>
           </div>
-          <div class="department-grid">
-            <div 
-              v-for="(dept, index) in departmentList" 
-              :key="dept.deptId"
-              class="dept-item"
-              :class="{ selected: form.department === dept.deptName }"
-              @click="selectDepartment(dept)"
-            >
-              <span class="dept-emoji">{{ getDeptEmoji(dept.deptName) }}</span>
-              <span class="dept-name">{{ dept.deptName }}</span>
+          <div class="department-selector">
+            <div class="department-column parent-column">
+              <div
+                v-for="dept in departmentList"
+                :key="dept.deptId"
+                class="dept-item parent-dept"
+                :class="{ selected: activeParentDeptId === dept.deptId }"
+                @click="selectParentDepartment(dept)"
+              >
+                <span class="dept-name">{{ dept.deptName }}</span>
+              </div>
+            </div>
+            <div class="department-column child-column">
+              <div
+                v-for="dept in subDepartmentList"
+                :key="dept.deptId"
+                class="dept-item child-dept"
+                :class="{ selected: form.deptId === dept.deptId }"
+                @click="selectDepartment(dept)"
+              >
+                <span class="dept-name">{{ dept.deptName }}</span>
+              </div>
+              <div v-if="!subDepartmentList.length" class="empty-sub-dept">
+                暂无可预约门诊
+              </div>
             </div>
           </div>
         </div>
@@ -84,59 +94,61 @@
       <div v-if="step === 2" class="step-content slide-up-animation" style="animation-delay: 0.1s">
         <div class="form-card">
           <div class="card-header">
-            <div class="header-icon">📅</div>
             <div class="header-text">
               <h3>选择就诊号源</h3>
-              <p>{{ form.department }}未来一周可预约医生</p>
             </div>
           </div>
-          <div class="schedule-week">
-            <section
-              v-for="day in scheduleDateGroups"
-              :key="day.date"
-              class="schedule-day"
-            >
-              <div class="schedule-day-header">
-                <div>
-                  <strong>{{ day.monthDay }}</strong>
-                  <span>{{ day.weekDay }}</span>
-                </div>
-                <em>{{ day.schedules.length ? `${day.schedules.length}位医生` : '暂无医生' }}</em>
-              </div>
-              <div v-if="day.schedules.length" class="schedule-list">
-                <div
-                  v-for="schedule in day.schedules"
-                  :key="`${day.date}-${schedule.doctorId}`"
-                  class="schedule-card"
-                  :class="{
-                    selected: form.doctorId === schedule.doctorId && form.selectedDate === day.date,
-                    disabled: !isScheduleSelectable(schedule),
-                    full: isScheduleFull(schedule),
-                    past: isSchedulePast(schedule)
-                  }"
-                  @click="selectDoctorSchedule(day.date, schedule)"
-                >
-                  <div class="schedule-main">
-                    <div class="schedule-doctor">
-                      <span class="doctor-avatar-mini">{{ getDoctorInitial(schedule) }}</span>
-                      <div>
-                        <strong>{{ schedule.doctorName || '医生' }}</strong>
-                        <span>{{ schedule.levelName || '普通号' }}</span>
-                      </div>
+          <div class="schedule-calendar">
+            <div v-if="availableScheduleDates.length" class="date-strip">
+              <button
+                v-for="day in availableScheduleDates"
+                :key="day.date"
+                type="button"
+                class="date-card"
+                :class="{ active: selectedScheduleDate === day.date }"
+                @click="selectScheduleDate(day.date)"
+              >
+                <span class="date-week">{{ day.weekDay }}</span>
+                <strong>{{ day.monthDay }}</strong>
+                <em>{{ day.schedules.length }}位医生</em>
+                <small>余号 {{ getDayAvailableCount(day) }}</small>
+              </button>
+            </div>
+            <div v-else class="empty-day">未来一周暂无可预约日期</div>
+
+            <div v-if="selectedDateSchedules.length" class="schedule-list">
+              <div
+                v-for="schedule in selectedDateSchedules"
+                :key="`${selectedScheduleDate}-${schedule.slotId || schedule.scheduleId || schedule.doctorId}`"
+                class="schedule-card"
+                :class="{
+                  selected: form.doctorId === schedule.doctorId && form.selectedDate === selectedScheduleDate,
+                  disabled: !isScheduleSelectable(schedule),
+                  full: isScheduleFull(schedule),
+                  past: isSchedulePast(schedule)
+                }"
+                @click="selectDoctorSchedule(selectedScheduleDate, schedule)"
+              >
+                <div class="schedule-main">
+                  <div class="schedule-doctor">
+                    <span class="doctor-avatar-mini">{{ getDoctorInitial(schedule) }}</span>
+                    <div>
+                      <strong>{{ schedule.doctorName || '医生' }}</strong>
+                      <span>{{ schedule.levelName || '普通号' }}</span>
                     </div>
-                    <div class="schedule-time">{{ schedule.startTime }}-{{ schedule.endTime }} 可约</div>
                   </div>
-                  <div class="schedule-meta">
-                    <strong>{{ formatMoney(schedule.fee) }}</strong>
-                    <span>{{ getScheduleAvailableText(schedule) }}</span>
-                  </div>
-                  <div v-if="form.doctorId === schedule.doctorId && form.selectedDate === day.date" class="select-mark">
-                    <div class="mark-circle">✓</div>
-                  </div>
+                  <div class="schedule-time">{{ schedule.startTime }}-{{ schedule.endTime }} 可约</div>
+                </div>
+                <div class="schedule-meta">
+                  <strong>{{ formatMoney(schedule.fee) }}</strong>
+                  <span>{{ getScheduleAvailableText(schedule) }}</span>
+                </div>
+                <div v-if="form.doctorId === schedule.doctorId && form.selectedDate === selectedScheduleDate" class="select-mark">
+                  <div class="mark-circle">✓</div>
                 </div>
               </div>
-              <div v-else class="empty-day">当天暂无可预约医生</div>
-            </section>
+            </div>
+            <div v-else-if="availableScheduleDates.length" class="empty-day">请选择上方日期查看医生号源</div>
           </div>
         </div>
         <div class="btn-group">
@@ -153,11 +165,14 @@
 
       <div v-if="step === 3" class="step-content slide-up-animation" style="animation-delay: 0.1s">
         <div class="form-card">
-          <div class="card-header">
-            <div class="header-icon">⏱</div>
+          <div class="card-header time-card-header">
             <div class="header-text">
               <h3>选择就诊时间</h3>
-              <p>{{ form.doctorName }} · {{ formatScheduleDate(form.selectedDate) }}</p>
+            </div>
+            <div class="appt-info-inline">
+              <div class="appt-info-row"><span class="appt-label">科室</span><span class="appt-value">{{ form.department }}</span></div>
+              <div class="appt-info-row"><span class="appt-label">医生</span><span class="appt-value">{{ form.doctorName }}<em v-if="selectedSlot?.levelName" class="appt-level">{{ selectedSlot.levelName }}</em></span></div>
+              <div class="appt-info-row"><span class="appt-label">日期</span><span class="appt-value">{{ formatScheduleDate(form.selectedDate) }}</span></div>
             </div>
           </div>
           <div class="slot-list">
@@ -173,11 +188,19 @@
               }"
               @click="selectTimeSlot(slot)"
             >
-              <div>
+              <div class="slot-field slot-time-field">
+                <span class="slot-label">就诊时间段</span>
                 <strong>{{ slot.startTime }}-{{ slot.endTime }}</strong>
-                <span>{{ slot.levelName || '普通号' }} · {{ getScheduleAvailableText(slot) }}</span>
               </div>
-              <em>{{ formatMoney(slot.fee) }}</em>
+              <div class="slot-field">
+                <span class="slot-label">余号数量</span>
+                <strong>余号 1</strong>
+              </div>
+              <div class="slot-field slot-fee-field">
+                <span class="slot-label">挂号费用</span>
+                <strong>{{ formatMoney(slot.fee) }}</strong>
+              </div>
+              <van-icon class="slot-arrow" name="arrow" />
             </div>
           </div>
           <div v-if="!slotList.length" class="empty-day">该医生当天暂无可预约时间片</div>
@@ -195,30 +218,46 @@
       </div>
 
       <div v-if="step === 4" class="step-content slide-up-animation" style="animation-delay: 0.1s">
-        <div class="form-card">
+        <div class="form-card confirm-card">
           <div class="card-header">
-            <div class="header-icon">✅</div>
             <div class="header-text">
               <h3>确认预约信息</h3>
-              <p>请核对以下预约信息</p>
             </div>
           </div>
+          <div class="confirm-summary">
+            <div>
+              <span>预约时间</span>
+              <strong>{{ formatScheduleDate(selectedSlot?.scheduleDate || form.selectedDate) }}</strong>
+              <em>{{ selectedSlot ? `${selectedSlot.startTime}-${selectedSlot.endTime}` : '-' }}</em>
+            </div>
+            <div class="confirm-status">待确认</div>
+          </div>
           <div class="confirm-info">
-            <div class="info-item">
-              <span class="info-label">就诊科室</span>
-              <span class="info-value">{{ form.department }}</span>
+            <div class="confirm-section">
+              <div class="section-title">就诊信息</div>
+              <div class="info-row">
+                <span class="info-label">就诊科室</span>
+                <span class="info-value">{{ form.department }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">就诊医生</span>
+                <span class="info-value">{{ form.doctorName }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">号别类型</span>
+                <span class="info-value">{{ selectedSlot?.levelName || '普通号' }}</span>
+              </div>
             </div>
-            <div class="info-item">
-              <span class="info-label">就诊医生</span>
-              <span class="info-value">{{ form.doctorName }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">就诊日期</span>
-              <span class="info-value">{{ formatScheduleDate(selectedSlot?.scheduleDate || form.selectedDate) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">就诊时段</span>
-              <span class="info-value">{{ selectedSlot ? `${selectedSlot.startTime}-${selectedSlot.endTime}` : '-' }}</span>
+            <div class="confirm-section">
+              <div class="section-title">费用信息</div>
+              <div class="info-row">
+                <span class="info-label">余号数量</span>
+                <span class="info-value">余号 1</span>
+              </div>
+              <div class="info-row fee-row">
+                <span class="info-label">挂号费用</span>
+                <span class="info-value fee-amount">{{ formatMoney(selectedSlot?.fee) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -321,27 +360,59 @@ const form = ref({
 })
 
 const departmentList = ref([])
+const allDepartmentList = ref([])
+const activeParentDeptId = ref(null)
 const doctorSlotList = ref([])
 const slotList = ref([])
+const selectedScheduleDate = ref('')
 
 const selectedSlot = computed(() => {
     return slotList.value.find(s => s.slotId === form.value.slotId)
 })
 
-const getDeptEmoji = (dept) => {
-    const emojiMap = {
-        '内科': '❤️',
-        '外科': '🔧',
-        '儿科': '👶',
-        '妇产科': '👩',
-        '眼科': '👁️',
-        '耳鼻喉科': '👂',
-        '口腔科': '😬',
-        '皮肤科': '🧴',
-        '骨科': '🦴'
-    }
-    return emojiMap[dept] || '🏥'
+const normalizeDept = (dept) => ({
+  ...dept,
+  deptId: Number(dept.deptId),
+  parentId: dept.parentId == null ? null : Number(dept.parentId)
+})
+
+const isHospitalRootDept = (dept) => {
+  const deptName = dept.deptName || ''
+  return dept.parentId === 0
+    || dept.deptId === 200
+    || deptName === '医院'
+    || deptName === '智慧医院'
+    || deptName === '智慧医院总部门'
 }
+
+const resetDepartmentSelection = () => {
+  form.value.department = ''
+  form.value.deptId = null
+  form.value.doctorId = null
+  form.value.doctorName = ''
+  form.value.selectedDate = ''
+  form.value.scheduleId = null
+  form.value.slotId = null
+  doctorSlotList.value = []
+  slotList.value = []
+  selectedScheduleDate.value = ''
+}
+
+const getChildDepartments = (parentId, visited = new Set()) => {
+  if (visited.has(parentId)) return []
+  visited.add(parentId)
+  return allDepartmentList.value
+    .filter(dept => dept.parentId === parentId)
+    .flatMap(dept => [dept, ...getChildDepartments(dept.deptId, visited)])
+}
+
+const subDepartmentList = computed(() => {
+  if (!activeParentDeptId.value) return []
+  const children = getChildDepartments(activeParentDeptId.value)
+  if (children.length) return children
+  const current = allDepartmentList.value.find(dept => dept.deptId === activeParentDeptId.value)
+  return current ? [current] : []
+})
 
 const formatScheduleDate = (dateStr) => {
     if (!dateStr) return ''
@@ -461,6 +532,21 @@ const scheduleDateGroups = computed(() => {
   })
 })
 
+const availableScheduleDates = computed(() => {
+  return scheduleDateGroups.value.filter(day => day.schedules.some(isScheduleSelectable))
+})
+
+const selectedDateSchedules = computed(() => {
+  return (availableScheduleDates.value.find(day => day.date === selectedScheduleDate.value)?.schedules || [])
+    .filter(isScheduleSelectable)
+})
+
+const getDayAvailableCount = (day) => {
+  return day.schedules.reduce((total, schedule) => {
+    return total + Number(schedule?.availableNumber ?? schedule?.available_number ?? 0)
+  }, 0)
+}
+
 const getScheduleReservedNumber = (schedule) => {
   const reserved = schedule?.reservedNumber ?? schedule?.reserved_number
   if (reserved != null) {
@@ -564,36 +650,35 @@ const normalizeSchedule = (schedule) => {
 }
 
 const loadDepartments = async () => {
+    const fallbackDepartments = [
+        { deptId: 201, parentId: 200, deptName: '内科' },
+        { deptId: 202, parentId: 200, deptName: '外科' },
+        { deptId: 203, parentId: 200, deptName: '儿科' },
+        { deptId: 204, parentId: 200, deptName: '妇产科' },
+        { deptId: 205, parentId: 200, deptName: '骨科' },
+        { deptId: 206, parentId: 200, deptName: '眼科' }
+    ]
+    const applyDepartments = (list) => {
+        const normalized = list.map(normalizeDept).filter(dept => !isHospitalRootDept(dept))
+        const allIds = new Set(normalized.map(dept => dept.deptId))
+        const parentCandidates = normalized.filter(dept => !allIds.has(dept.parentId))
+        allDepartmentList.value = normalized
+        departmentList.value = parentCandidates.length ? parentCandidates : normalized
+        activeParentDeptId.value = departmentList.value[0]?.deptId || null
+        resetDepartmentSelection()
+    }
+
     try {
         const res = await getDeptList()
         if (res.data && res.data.length > 0) {
-            departmentList.value = res.data.filter(dept => {
-                const isRootByParent = dept.parentId !== undefined && String(dept.parentId) === '0'
-                const isRootByName = dept.deptName === '智慧医院' || dept.deptName === '智慧医院总部门'
-                const isRootById = dept.deptId === 200
-                return !isRootByParent && !isRootByName && !isRootById
-            })
+            applyDepartments(res.data)
         }
         if (departmentList.value.length === 0) {
-            departmentList.value = [
-                { deptId: 201, deptName: '内科' },
-                { deptId: 202, deptName: '外科' },
-                { deptId: 203, deptName: '儿科' },
-                { deptId: 204, deptName: '妇产科' },
-                { deptId: 205, deptName: '骨科' },
-                { deptId: 206, deptName: '眼科' }
-            ]
+            applyDepartments(fallbackDepartments)
         }
     } catch (error) {
         console.error('加载科室失败', error)
-        departmentList.value = [
-            { deptId: 201, deptName: '内科' },
-            { deptId: 202, deptName: '外科' },
-            { deptId: 203, deptName: '儿科' },
-            { deptId: 204, deptName: '妇产科' },
-            { deptId: 205, deptName: '骨科' },
-            { deptId: 206, deptName: '眼科' }
-        ]
+        applyDepartments(fallbackDepartments)
     }
 }
 
@@ -620,9 +705,11 @@ const loadDoctorSlots = async () => {
                 if (dateDiff !== 0) return dateDiff
                 return Number(b.levelId || 0) - Number(a.levelId || 0)
             })
+        selectedScheduleDate.value = doctorSlotList.value.find(isScheduleSelectable)?.scheduleDate || ''
     } catch (error) {
         console.error('加载可预约医生失败', error)
         doctorSlotList.value = []
+        selectedScheduleDate.value = ''
     }
 }
 
@@ -648,6 +735,11 @@ const loadTimeSlots = async () => {
     }
 }
 
+const selectParentDepartment = (dept) => {
+    activeParentDeptId.value = dept.deptId
+    resetDepartmentSelection()
+}
+
 const selectDepartment = async (dept) => {
     form.value.department = dept.deptName
     form.value.deptId = dept.deptId
@@ -657,7 +749,19 @@ const selectDepartment = async (dept) => {
     form.value.scheduleId = null
     form.value.slotId = null
     slotList.value = []
+    selectedScheduleDate.value = ''
     await loadDoctorSlots()
+}
+
+const selectScheduleDate = (date) => {
+    if (selectedScheduleDate.value === date) return
+    selectedScheduleDate.value = date
+    form.value.doctorId = null
+    form.value.doctorName = ''
+    form.value.selectedDate = ''
+    form.value.scheduleId = null
+    form.value.slotId = null
+    slotList.value = []
 }
 
 const selectDoctorSchedule = (date, schedule) => {
@@ -911,7 +1015,7 @@ onMounted(() => {
   gap: 12px;
 
   h1 {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     color: #4f7380;
     margin: 0;
@@ -960,21 +1064,24 @@ onMounted(() => {
 }
 
 .content-section {
-  padding: 0 16px;
+  padding: 0 10px;
 }
 
 .step-indicator {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px 0 24px;
+  justify-content: space-between;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 4px 2px 16px;
 }
 
 .step-item {
   display: flex;
+  flex: 0 0 48px;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   opacity: 0.5;
   transition: all 0.3s ease;
 
@@ -985,8 +1092,8 @@ onMounted(() => {
 }
 
 .step-circle {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.5);
   display: flex;
@@ -1019,9 +1126,11 @@ onMounted(() => {
 }
 
 .step-label {
-  font-size: 13px;
+  font-size: 11px;
+  line-height: 1;
   color: #7e98a4;
   font-weight: 500;
+  white-space: nowrap;
 
   .step-item.active & {
     color: #5f7580;
@@ -1029,22 +1138,28 @@ onMounted(() => {
 }
 
 .step-line {
-  width: 40px;
+  flex: 1;
+  min-width: 12px;
+  max-width: 84px;
   height: 3px;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 2px;
-  margin: 0 8px 24px;
+  margin: 0 4px 24px;
   transition: all 0.3s ease;
 }
 
 .step-content {
-  margin-bottom: 20px;
+  width: 100%;
+  max-width: 720px;
+  min-height: 390px;
+  margin: 0 auto 24px;
 }
 
 .form-card {
   background: rgba(255, 255, 255, 0.74);
-  border-radius: 24px;
-  padding: 24px;
+  min-height: 360px;
+  border-radius: 0;
+  padding: 28px;
   border: 1px solid rgba(194, 228, 236, 0.72);
   box-shadow: var(--card-shadow);
   backdrop-filter: blur(8px);
@@ -1053,81 +1168,130 @@ onMounted(() => {
 .card-header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(213, 237, 243, 0.6);
-}
-
-.header-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #e6f6fb, #fffaf4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
 }
 
 .header-text {
   flex: 1;
 
   h3 {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 700;
     color: #4f7380;
     margin: 0 0 4px;
   }
 
   p {
-    font-size: 14px;
+    font-size: 12px;
     color: #8e9fa8;
     margin: 0;
   }
 }
 
-.department-grid {
+.department-selector {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(110px, 0.32fr) minmax(0, 0.68fr);
+  gap: 14px;
+  min-height: 260px;
+}
+
+.department-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.parent-column {
+  gap: 4px;
+}
+
+.child-column {
+  padding-left: 14px;
+  border-left: 1px solid rgba(213, 237, 243, 0.85);
 }
 
 .dept-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px 8px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 16px;
-  border: 2px solid transparent;
+  min-height: 54px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(213, 237, 243, 0.9);
+  border-left: 4px solid transparent;
+  border-radius: 0;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.8);
+    transform: translateX(2px);
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(104, 199, 169, 0.42);
+    border-left-color: rgba(104, 199, 169, 0.42);
   }
 
   &:active {
-    transform: translateY(0);
+    transform: translateX(0);
   }
 
   &.selected {
-    border-color: #68c7a9;
-    background: linear-gradient(135deg, rgba(104, 199, 169, 0.1), rgba(142, 214, 242, 0.1));
+    border-color: rgba(104, 199, 169, 0.75);
+    border-left-color: #68c7a9;
+    background: linear-gradient(135deg, rgba(104, 199, 169, 0.12), rgba(255, 255, 255, 0.92));
+    box-shadow: 0 8px 18px rgba(104, 199, 169, 0.12);
   }
 }
 
-.dept-emoji {
-  font-size: 28px;
+.parent-dept {
+  background: transparent;
+  border: none;
+  border-left: 4px solid transparent;
+  min-height: auto;
+  padding: 8px 12px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: transparent;
+    border-left-color: rgba(104, 199, 169, 0.42);
+  }
+
+  &.selected {
+    border-color: transparent;
+    border-left-color: #68c7a9;
+    background: rgba(104, 199, 169, 0.08);
+    box-shadow: none;
+  }
 }
 
 .dept-name {
-  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.4;
   font-weight: 600;
-  color: #5f7580;
+  color: #4f7380;
+}
+
+.parent-column .dept-name {
+  font-size: 13px;
+}
+
+.child-dept {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.empty-sub-dept {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  border: 1px dashed rgba(126, 152, 164, 0.36);
+  color: #8e9fa8;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.38);
 }
 
 .doctor-list {
@@ -1233,43 +1397,68 @@ onMounted(() => {
   font-weight: 700;
 }
 
-.schedule-week {
+.schedule-calendar {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.schedule-day {
+.date-strip {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
 }
 
-.schedule-day-header {
+.date-card {
+  min-width: 72px;
+  min-height: 68px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 2px;
-
-  div {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-  }
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 8px;
+  border: 1px solid rgba(213, 237, 243, 0.9);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.62);
+  color: #5f7580;
+  cursor: pointer;
+  transition: all 0.25s ease;
 
   strong {
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 700;
     color: #4f7380;
   }
 
-  span,
   em {
-    font-size: 13px;
+    font-size: 12px;
     color: #8e9fa8;
     font-style: normal;
   }
+
+  small {
+    font-size: 12px;
+    color: #68a895;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(104, 199, 169, 0.45);
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  &.active {
+    border-color: rgba(104, 199, 169, 0.82);
+    background: linear-gradient(135deg, rgba(104, 199, 169, 0.14), rgba(255, 255, 255, 0.94));
+    box-shadow: 0 8px 18px rgba(104, 199, 169, 0.14);
+  }
+}
+
+.date-week {
+  font-size: 13px;
+  color: #7e98a4;
 }
 
 .schedule-list {
@@ -1401,48 +1590,44 @@ onMounted(() => {
 }
 
 .slot-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .slot-card {
-  min-height: 86px;
-  padding: 14px;
-  border-radius: 16px;
-  border: 2px solid transparent;
-  background: rgba(255, 255, 255, 0.6);
+  min-height: 64px;
+  padding: 12px 14px;
+  border-radius: 0;
+  border: 1px solid rgba(213, 237, 243, 0.9);
+  border-left: 4px solid transparent;
+  background: rgba(255, 255, 255, 0.68);
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 
   strong {
     display: block;
-    font-size: 15px;
+    font-size: 14px;
     color: #4f7380;
-    margin-bottom: 4px;
+    margin: 0;
   }
 
-  span {
+  .slot-label {
     display: block;
     font-size: 12px;
     line-height: 1.35;
     color: #8e9fa8;
-  }
-
-  em {
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 700;
-    color: #f05391;
+    margin-bottom: 3px;
   }
 
   &.selected {
-    border-color: #68c7a9;
-    background: linear-gradient(135deg, rgba(104, 199, 169, 0.1), rgba(142, 214, 242, 0.1));
+    border-color: rgba(104, 199, 169, 0.78);
+    border-left-color: #68c7a9;
+    background: linear-gradient(135deg, rgba(104, 199, 169, 0.12), rgba(255, 255, 255, 0.92));
+    box-shadow: 0 8px 18px rgba(104, 199, 169, 0.12);
   }
 
   &.disabled,
@@ -1451,6 +1636,29 @@ onMounted(() => {
     opacity: 0.5;
     cursor: not-allowed;
   }
+}
+
+.slot-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.slot-time-field {
+  flex: 1.25;
+}
+
+.slot-fee-field {
+  flex: 0.9;
+
+  strong {
+    color: #f05391;
+  }
+}
+
+.slot-arrow {
+  flex-shrink: 0;
+  color: #68a895;
+  font-size: 18px;
 }
 
 .schedule-date {
@@ -1493,6 +1701,90 @@ onMounted(() => {
   }
 }
 
+.confirm-card {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.confirm-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(194, 228, 236, 0.88);
+  border-left: 4px solid #68c7a9;
+  background: linear-gradient(135deg, rgba(230, 246, 251, 0.82), rgba(255, 255, 255, 0.92));
+
+  span {
+    display: block;
+    font-size: 13px;
+    color: #7e98a4;
+    margin-bottom: 6px;
+  }
+
+  strong {
+    display: block;
+    font-size: 20px;
+    line-height: 1.25;
+    color: #4f7380;
+    margin-bottom: 4px;
+  }
+
+  em {
+    font-size: 14px;
+    font-style: normal;
+    color: #68a895;
+    font-weight: 700;
+  }
+}
+
+.confirm-status {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border: 1px solid rgba(104, 199, 169, 0.34);
+  background: rgba(104, 199, 169, 0.12);
+  color: #4a9f87;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.confirm-info {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.confirm-section {
+  border: 1px solid rgba(213, 237, 243, 0.88);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.section-title {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(213, 237, 243, 0.76);
+  color: #4f7380;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(213, 237, 243, 0.52);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.fee-row {
+  background: rgba(240, 83, 145, 0.05);
+}
+
 .info-label {
   font-size: 14px;
   color: #8e9fa8;
@@ -1502,6 +1794,12 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   color: #4f7380;
+  text-align: right;
+}
+
+.fee-amount {
+  color: #f05391;
+  font-size: 18px;
 }
 
 .btn-group {
@@ -1619,5 +1917,120 @@ onMounted(() => {
 .fee-value {
   color: #f05391;
   font-weight: 700;
+}
+
+.time-card-header {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.appt-info-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: center;
+}
+
+.appt-info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.appt-label {
+  font-size: 12px;
+  color: #8e9fa8;
+  font-weight: 500;
+}
+
+.appt-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4f7380;
+}
+
+.appt-level {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+  color: #68c7a9;
+  background: rgba(104, 199, 169, 0.12);
+  border-radius: 6px;
+}
+
+.fee-text {
+  color: #f05391;
+}
+
+@media (max-width: 420px) {
+  .content-section {
+    padding: 0 8px;
+  }
+
+  .form-card {
+    padding: 22px 16px;
+  }
+
+  .department-selector {
+    grid-template-columns: minmax(90px, 0.3fr) minmax(0, 0.7fr);
+    gap: 10px;
+  }
+
+  .child-column {
+    padding-left: 10px;
+  }
+
+  .dept-item {
+    min-height: 50px;
+    padding: 12px;
+  }
+
+  .dept-name {
+    font-size: 14px;
+  }
+
+  .date-card {
+    min-width: 82px;
+    min-height: 88px;
+    padding: 9px 7px;
+  }
+
+  .slot-card {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .slot-time-field {
+    flex: 1.1;
+  }
+
+  .slot-card strong {
+    font-size: 13px;
+  }
+
+  .slot-card .slot-label {
+    font-size: 11px;
+  }
+
+  .confirm-summary {
+    padding: 15px 14px;
+    gap: 10px;
+
+    strong {
+      font-size: 18px;
+    }
+  }
+
+  .info-row {
+    padding: 12px;
+  }
+
+  .section-title {
+    padding: 11px 12px;
+  }
 }
 </style>

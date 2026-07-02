@@ -10,9 +10,6 @@
         <van-icon name="arrow-left" />
       </div>
       <div class="header-title">
-        <span class="title-icon float-animation">
-          <span class="title-cross"></span>
-        </span>
         <h1>电子病历</h1>
       </div>
     </div>
