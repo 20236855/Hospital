@@ -121,12 +121,6 @@
               <el-tooltip content="放大"><el-button link @click="zoomIn"><el-icon><ZoomIn /></el-icon></el-button></el-tooltip>
               <el-tooltip content="缩小"><el-button link @click="zoomOut"><el-icon><ZoomOut /></el-icon></el-button></el-tooltip>
               <el-tooltip content="重置"><el-button link @click="resetZoom"><el-icon><RefreshRight /></el-icon></el-button></el-tooltip>
-              <el-divider direction="vertical" />
-              <el-tooltip content="原始/标注切换">
-                <el-button link @click="showAnnotated = !showAnnotated">
-                  <el-icon><Switch /></el-icon>
-                </el-button>
-              </el-tooltip>
             </div>
           </div>
           <div class="panel-body ct-viewer">
@@ -157,23 +151,34 @@
               </div>
               <!-- CT影像展示 -->
               <img v-if="ctImageDisplay && !loading" :src="ctImageDisplay" class="ct-image" :style="imageStyle" />
+              <div class="representative-ribbon" v-if="ctImageDisplay && !loading">
+                服务端代表切片
+              </div>
             </div>
 
-            <!-- 切片导航 -->
-            <div class="series-nav" v-if="totalSlices > 0">
+            <!-- 序列导航 -->
+            <div class="series-nav" v-if="ctImageDisplay || uploadedFileName || totalSlices > 0">
               <el-button text circle @click="prevSlice" :disabled="currentSlice <= 1">
                 <el-icon><ArrowLeft /></el-icon>
               </el-button>
               <div class="nav-center">
                 <span class="nav-slice-label">
-                  切片 <strong>{{ currentSlice }}</strong> / {{ totalSlices }}
+                  原始切片 <strong>{{ currentSlice }}</strong> / {{ totalSlices || 1 }}
+                  <el-tag v-if="isRepresentativeSlice" size="small" type="success" effect="plain">代表切片</el-tag>
                 </span>
                 <span class="nav-z-info" v-if="analysisResult">
-                  Z层 {{ currentSliceZ }} / {{ analysisResult.totalSlicesOrig || totalSlices }}
+                  Z层 {{ currentSliceZ }} / 原始 {{ analysisResult.totalSlicesOrig || totalSlices }} 层
                 </span>
-                <el-slider v-model="currentSlice" :min="1" :max="totalSlices" :show-tooltip="false" class="nav-slider" />
+                <el-slider
+                  v-model="currentSlice"
+                  :min="1"
+                  :max="Math.max(totalSlices || 1, 1)"
+                  :disabled="(totalSlices || 1) <= 1"
+                  :show-tooltip="false"
+                  class="nav-slider"
+                />
               </div>
-              <el-button text circle @click="nextSlice" :disabled="currentSlice >= totalSlices">
+              <el-button text circle @click="nextSlice" :disabled="currentSlice >= (totalSlices || 1)">
                 <el-icon><ArrowRight /></el-icon>
               </el-button>
               <span class="nav-filename" v-if="uploadedFileName">{{ uploadedFileName }}</span>
@@ -188,6 +193,91 @@
               <span v-if="savedSliceImageUrl" class="saved-tip">
                 <el-icon color="#67C23A"><CircleCheck /></el-icon> 已保存，将随诊断结果一起提交
               </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== 三阶段图像工具区 ==================== -->
+        <div class="stage-image-section" v-if="fileSelected || analysisResult || analyzing">
+          <div
+            v-for="item in stagePanelItems"
+            :key="item.no"
+            class="stage-image-panel"
+            :class="{ running: item.running, done: item.done, waiting: item.waiting }"
+          >
+            <div class="stage-image-head">
+              <div>
+                <div class="stage-step">第 {{ item.no }} 步</div>
+                <h3>{{ item.title }}</h3>
+              </div>
+              <el-tag :type="item.tag" size="small" effect="plain">{{ item.status }}</el-tag>
+            </div>
+            <p class="stage-note">{{ item.note }}</p>
+            <div class="stage-image-slot">
+              <div v-if="item.visible && item.imageSrc" class="stage-slice-view">
+                <img :src="item.imageSrc" :alt="item.title" />
+                <svg
+                  v-if="item.overlayItems.length"
+                  class="stage-overlay"
+                  :viewBox="imageViewBox"
+                  preserveAspectRatio="xMidYMid meet"
+                >
+                  <template v-for="(det, idx) in item.overlayItems" :key="idx">
+                    <rect
+                      v-if="item.key !== 'segmentation'"
+                      :x="det.bbox_x1"
+                      :y="det.bbox_y1"
+                      :width="Math.max(1, det.bbox_x2 - det.bbox_x1)"
+                      :height="Math.max(1, det.bbox_y2 - det.bbox_y1)"
+                      :class="['stage-box', item.key, riskClass(det)]"
+                    />
+                    <polygon
+                      v-if="item.key === 'segmentation' && contourPoints(det)"
+                      :points="contourPoints(det)"
+                      class="stage-contour-fill"
+                    />
+                    <polyline
+                      v-if="item.key === 'segmentation' && contourPoints(det)"
+                      :points="contourPoints(det)"
+                      class="stage-contour-line"
+                    />
+                    <text
+                      :x="det.bbox_x1"
+                      :y="Math.max(12, det.bbox_y1 - 5)"
+                      :class="['stage-label', item.key, riskClass(det)]"
+                    >
+                      {{ overlayLabel(item.key, det) }}
+                    </text>
+                  </template>
+                </svg>
+              </div>
+              <div v-else-if="item.running" class="stage-slot-state">
+                <el-icon class="is-loading"><Loading /></el-icon>
+                <span>{{ item.runningText }}</span>
+              </div>
+              <div v-else class="stage-slot-state muted">
+                <el-icon><Picture /></el-icon>
+                <span>{{ item.waitingText }}</span>
+              </div>
+            </div>
+            <div class="stage-slice-nav" v-if="item.visible && item.totalSlices > 1">
+              <el-button text circle @click="prevStageSlice(item.key)" :disabled="item.slice <= 1">
+                <el-icon><ArrowLeft /></el-icon>
+              </el-button>
+              <div class="stage-nav-center">
+                <span>切片 <strong>{{ item.slice }}</strong> / {{ item.totalSlices }}</span>
+                <span class="stage-z">Z层 {{ item.zIndex }}</span>
+                <el-slider
+                  v-model="stageSlice[item.key]"
+                  :min="1"
+                  :max="item.totalSlices"
+                  :show-tooltip="false"
+                  class="stage-slider"
+                />
+              </div>
+              <el-button text circle @click="nextStageSlice(item.key)" :disabled="item.slice >= item.totalSlices">
+                <el-icon><ArrowRight /></el-icon>
+              </el-button>
             </div>
           </div>
         </div>
@@ -281,7 +371,7 @@
               :page-size="5"
               layout="prev, pager, next"
               :total="allCandidates.length"
-              small
+              size="small"
               class="nodule-pagination"
             />
           </div>
@@ -309,26 +399,21 @@
             <div class="pipeline-flow">
               <div class="flow-line"></div>
               <!-- Stage 01: 肺结节检测与分类 -->
-              <div class="stage-card" :class="{ active: currentStage === 1, done: stage1Done, running: analyzing && currentStage === 1 }">
+              <div class="stage-card" :class="{ active: currentStage === 1, done: stage1Done, running: pipelineRevealing && currentStage === 1 && !stage1Done }">
                 <div class="stage-num">01</div>
                 <div class="stage-info">
-                  <div class="stage-name">肺结节检测与分类 <el-tag size="small" type="success" effect="plain">CT值算法</el-tag></div>
+                  <div class="stage-name">候选筛选与结节分类 <el-tag size="small" type="success" effect="plain">CT值算法</el-tag></div>
                   <div class="stage-model">HU-Morphology Detector / AutoDL YOLOv8接口预留</div>
-                  <div class="stage-desc">基于真实CT体数据，自动检测肺结节位置，并按大小、密度和形态进行分类</div>
+                  <div class="stage-desc">先检测候选区域，再按大小、圆度、离心率和密度筛选可信结节并分类</div>
                 </div>
                 <div class="stage-status">
                   <el-icon v-if="stage1Done" class="done"><CircleCheckFilled /></el-icon>
-                  <el-icon v-else-if="analyzing && currentStage === 1" class="run"><Loading /></el-icon>
-                  <el-icon v-else class="wait"><Clock /></el-icon>
-                </div>
-                <div class="stage-status">
-                  <el-icon v-if="stage1Done" class="done"><CircleCheckFilled /></el-icon>
-                  <el-icon v-else-if="analyzing && currentStage === 1" class="run"><Loading /></el-icon>
+                  <el-icon v-else-if="pipelineRevealing && currentStage === 1" class="run"><Loading /></el-icon>
                   <el-icon v-else class="wait"><Clock /></el-icon>
                 </div>
               </div>
               <!-- Stage 02: 结节分割（CT值算法 - 已实现） -->
-              <div class="stage-card" :class="{ active: currentStage === 2, done: stage2Done, running: analyzing && currentStage === 2 }">
+              <div class="stage-card" :class="{ active: currentStage === 2, done: stage2Done, running: pipelineRevealing && currentStage === 2 && !stage2Done }">
                 <div class="stage-num">02</div>
                 <div class="stage-info">
                   <div class="stage-name">结节精确分割 <el-tag size="small" type="success" effect="plain">CT值算法</el-tag></div>
@@ -337,12 +422,12 @@
                 </div>
                 <div class="stage-status">
                   <el-icon v-if="stage2Done" class="done"><CircleCheckFilled /></el-icon>
-                  <el-icon v-else-if="analyzing && currentStage === 2" class="run"><Loading /></el-icon>
+                  <el-icon v-else-if="pipelineRevealing && currentStage === 2" class="run"><Loading /></el-icon>
                   <el-icon v-else class="wait"><Clock /></el-icon>
                 </div>
               </div>
               <!-- Stage 03: 良恶性诊断 -->
-              <div class="stage-card" :class="{ active: currentStage === 3, done: stage3Done, running: analyzing && currentStage === 3 }">
+              <div class="stage-card" :class="{ active: currentStage === 3, done: stage3Done, running: pipelineRevealing && currentStage === 3 && !stage3Done }">
                 <div class="stage-num">03</div>
                 <div class="stage-info">
                   <div class="stage-name">良恶性鉴别诊断 <el-tag size="small" type="warning" effect="plain">{{ malignancySummary.overallRisk }}</el-tag></div>
@@ -352,12 +437,7 @@
                 </div>
                 <div class="stage-status">
                   <el-icon v-if="stage3Done" class="done"><CircleCheckFilled /></el-icon>
-                  <el-icon v-else-if="analyzing && currentStage === 3" class="run"><Loading /></el-icon>
-                  <el-icon v-else class="wait"><Clock /></el-icon>
-                </div>
-                <div class="stage-status">
-                  <el-icon v-if="stage3Done" class="done"><CircleCheckFilled /></el-icon>
-                  <el-icon v-else-if="analyzing && currentStage === 3" class="run"><Loading /></el-icon>
+                  <el-icon v-else-if="pipelineRevealing && currentStage === 3" class="run"><Loading /></el-icon>
                   <el-icon v-else class="wait"><Clock /></el-icon>
                 </div>
               </div>
@@ -372,7 +452,7 @@
               <el-icon><EditPen /></el-icon>
               初步观察 & 备注
             </span>
-            <el-tag type="info" size="small">诊断结论由门诊医生出具</el-tag>
+            <el-tag type="success" size="small">结果写入检查检验表</el-tag>
           </div>
           <div class="panel-body">
             <el-form :model="diagnosisForm" label-position="top">
@@ -398,12 +478,12 @@
 </template>
 
 <script setup name="LungCTCheck">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   ArrowLeft, ArrowRight, Cpu, DocumentChecked, Picture, ZoomIn, ZoomOut,
-  RefreshRight, Upload, Switch, Loading, DataAnalysis, EditPen, Clock,
+  RefreshRight, Upload, Loading, DataAnalysis, EditPen, Clock,
   CircleCheckFilled, SuccessFilled, PictureFilled, CircleCheck
 } from '@element-plus/icons-vue'
 import { analyzeLungCt, saveCtSlices, getSlicesByApplyId } from '@/api/hisexam/lungCtAnalysis'
@@ -512,51 +592,255 @@ const ctContainer = ref(null)
 const uploadedFileName = ref('')
 const fileSelected = ref(false)
 const currentSlice = ref(1)
+const stageSlice = reactive({
+  detection: 1,
+  segmentation: 1,
+  malignancy: 1
+})
 const totalSlices = ref(0)
 const zoom = ref(1)
-const showAnnotated = ref(true)
 
 const imageStyle = computed(() => ({ transform: `scale(${zoom.value})` }))
 
-// 当前显示的CT图像：支持Base64（实时分析）和URL（加载已保存切片）
-const ctImageDisplay = computed(() => {
-  if (!analysisResult.value) return ''
-  // 情况1：从数据库加载的已保存切片 → 使用 imagePath
-  if (savedSlicesLoaded.value && savedSlices.value.length > 0) {
-    const idx = currentSlice.value - 1
-    if (idx >= 0 && idx < savedSlices.value.length) {
-      const slice = savedSlices.value[idx]
-      const path = showAnnotated.value ? slice.imagePath : (slice.rawImagePath || slice.imagePath)
-      return path || ''
+const sliceCountFromResult = (data) => {
+  const browseLen = Array.isArray(data?.sliceImages) && data.sliceImages.length
+    ? data.sliceImages.length
+    : (Array.isArray(data?.rawSlices) && data.rawSlices.length
+        ? data.rawSlices.length
+        : (Array.isArray(data?.slices) ? data.slices.length : 0))
+  const total = Number(browseLen || data?.totalSlices || data?.totalSlicesOrig || 1)
+  return Number.isFinite(total) && total > 0 ? total : 1
+}
+
+const stripDataUrlPrefix = (src) => {
+  if (!src) return ''
+  if (src.startsWith('data:image')) return src.split(',')[1] || ''
+  return src
+}
+
+const normalizeImageSrc = (src) => {
+  if (!src) return ''
+  if (src.startsWith('/') || src.startsWith('http') || src.startsWith('data:image')) return src
+  return 'data:image/png;base64,' + src
+}
+
+const looksLikeImageString = (value) => {
+  if (typeof value !== 'string') return false
+  const text = value.trim()
+  if (!text) return false
+  if (text.startsWith('data:image') || text.startsWith('http') || text.startsWith('/')) return true
+  return text.length > 100 && /^[A-Za-z0-9+/=\r\n]+$/.test(text)
+}
+
+const imageFromValue = (value, depth = 0) => {
+  if (!value || depth > 4) return ''
+  if (looksLikeImageString(value)) return value
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const image = imageFromValue(item, depth + 1)
+      if (image) return image
     }
     return ''
   }
-  // 情况2：实时分析返回的Base64 → data:image/png;base64,...
-  const slices = showAnnotated.value
-    ? (analysisResult.value.slices || [])
-    : (analysisResult.value.rawSlices || [])
-  if (!slices.length) return ''
-  const idx = currentSlice.value - 1
-  if (idx < 0 || idx >= slices.length) return ''
-  const src = slices[idx]
-  // 判断是URL还是Base64
-  if (src.startsWith('/') || src.startsWith('http')) return src
-  return 'data:image/png;base64,' + src
+  if (typeof value === 'object') {
+    const preferredKeys = [
+      'image', 'imageData', 'imageBase64', 'base64', 'src', 'url',
+      'sliceImage', 'rawImage', 'annotatedImage', 'annotated',
+      'previewImage', 'detectionImage', 'segmentationImage', 'malignancyImage'
+    ]
+    for (const key of preferredKeys) {
+      const image = imageFromValue(value[key], depth + 1)
+      if (image) return image
+    }
+    for (const key of Object.keys(value)) {
+      if (/image|slice|png|base64|preview|detect|segment|risk|malign/i.test(key)) {
+        const image = imageFromValue(value[key], depth + 1)
+        if (image) return image
+      }
+    }
+  }
+  return ''
+}
+
+const imageFromArrayAt = (value, index = 0) => {
+  if (!Array.isArray(value) || value.length === 0) return imageFromValue(value)
+  const safeIndex = Math.min(Math.max(Number(index) || 0, 0), value.length - 1)
+  return imageFromValue(value[safeIndex]) || imageFromValue(value)
+}
+
+const getByPath = (source, path) => {
+  return path.split('.').reduce((obj, key) => (obj && obj[key] !== undefined ? obj[key] : undefined), source)
+}
+
+const pickImageByKeys = (source, keys) => {
+  if (!source) return ''
+  for (const key of keys) {
+    const direct = source[key]
+    const nested = key.includes('.') ? getByPath(source, key) : direct
+    const image = imageFromValue(nested)
+    if (image) return image
+  }
+  return ''
+}
+
+const pickStageImage = (stageOutputs, stage, fallback = '') => {
+  const aliases = {
+    detection: [
+      'detectionImage', 'detection_image', 'detection', 'detectImage', 'detect_image',
+      'classificationImage', 'classification_image', 'noduleDetectionImage',
+      'nodule_detection_image', 'stage1Image', 'stage01Image', 'step1Image', 'step01Image',
+      'stage1.image', 'stage01.image', 'step1.image', 'step01.image'
+    ],
+    segmentation: [
+      'segmentationImage', 'segmentation_image', 'segmentation', 'segmentImage', 'segment_image',
+      'maskImage', 'mask_image', 'segmentedImage', 'segmented_image',
+      'stage2Image', 'stage02Image', 'step2Image', 'step02Image',
+      'stage2.image', 'stage02.image', 'step2.image', 'step02.image'
+    ],
+    malignancy: [
+      'malignancyImage', 'malignancy_image', 'malignancy', 'riskImage', 'risk_image',
+      'riskAssessmentImage', 'risk_assessment_image', 'diagnosisImage', 'diagnosis_image',
+      'stage3Image', 'stage03Image', 'step3Image', 'step03Image',
+      'stage3.image', 'stage03.image', 'step3.image', 'step03.image'
+    ]
+  }
+  const byAlias = pickImageByKeys(stageOutputs, aliases[stage] || [])
+  if (byAlias) return byAlias
+  if (Array.isArray(stageOutputs)) {
+    const pattern = stage === 'detection'
+      ? /detect|class|01|1/i
+      : stage === 'segmentation'
+        ? /segment|mask|02|2/i
+        : /risk|malign|diagnos|03|3/i
+    const match = stageOutputs.find(item => pattern.test(String(item?.stage || item?.type || item?.name || item?.title || item?.key || '')))
+    const image = imageFromValue(match)
+    if (image) return image
+  }
+  return fallback || ''
+}
+
+const pickPreviewImage = (result, stageOutputs) => {
+  const direct = pickImageByKeys(result, [
+    'previewImage', 'preview_image', 'representativeImage', 'representative_image',
+    'representativeSliceImage', 'representative_slice_image', 'mainPreviewImage',
+    'main_preview_image', 'preview', 'image'
+  ])
+  if (direct) return direct
+  const sliceIndex = stageOutputs?.sliceIndex ?? stageOutputs?.slice_index ?? result.previewSliceIndex ?? result.preview_slice_index ?? 0
+  const fromSliceImages = imageFromArrayAt(result.sliceImages || result.slice_images, sliceIndex)
+  if (fromSliceImages) return fromSliceImages
+  return imageFromArrayAt(result.slices || result.annotatedSlices || result.annotated_slices || result.rawSlices || result.raw_slices, sliceIndex)
+}
+
+const unwrapAnalyzePayload = (res) => {
+  const root = res?.data ?? res
+  if (root && typeof root === 'object' && ('code' in root || 'msg' in root) && root.data && typeof root.data === 'object') {
+    return root.data
+  }
+  return root && typeof root === 'object' ? root : {}
+}
+
+const normalizeAnalyzeResult = (data) => {
+  const result = { ...(data || {}) }
+  const stageOutputs = result.stageOutputs || result.stage_outputs || {}
+  const previewImage = pickPreviewImage(result, stageOutputs)
+  result.previewImage = previewImage
+  result.previewSliceIndex = result.previewSliceIndex ?? result.preview_slice_index ?? 0
+  result.previewSliceZ = result.previewSliceZ ?? result.preview_slice_z ?? 0
+  result.totalSlices = result.totalSlices ?? result.total_slices ?? 0
+  result.totalSlicesOrig = result.totalSlicesOrig ?? result.total_slices_orig ?? result.totalSlices ?? 0
+  result.imageShape = result.imageShape || result.image_shape || []
+  result.sliceIndices = result.sliceIndices || result.slice_indices || []
+  result.rawSlices = result.rawSlices || result.raw_slices || []
+  result.slices = result.slices || result.annotatedSlices || result.annotated_slices || []
+  result.sliceImages = result.sliceImages || result.slice_images || []
+  result.stageOutputs = {
+    detectionImage: pickStageImage(stageOutputs, 'detection', previewImage),
+    segmentationImage: pickStageImage(stageOutputs, 'segmentation', previewImage),
+    malignancyImage: pickStageImage(stageOutputs, 'malignancy', previewImage),
+    sliceIndex: stageOutputs.sliceIndex ?? stageOutputs.slice_index ?? result.previewSliceIndex ?? 0,
+    sliceZ: stageOutputs.sliceZ ?? stageOutputs.slice_z ?? result.previewSliceZ ?? 0,
+    candidateCount: stageOutputs.candidateCount ?? stageOutputs.candidate_count ?? 0
+  }
+  return result
+}
+
+const logLungCtDebug = (label, payload) => {
+  try {
+    console.log(`[LUNG-CT] ${label}`, payload)
+  } catch (e) {
+    console.log(`[LUNG-CT] ${label}`)
+  }
+}
+
+const realtimeBrowseSlices = computed(() => {
+  if (!analysisResult.value) return []
+  const source = analysisResult.value.sliceImages?.length
+    ? analysisResult.value.sliceImages
+    : (analysisResult.value.rawSlices?.length ? analysisResult.value.rawSlices : analysisResult.value.slices)
+  return Array.isArray(source) ? source : []
 })
+
+const imageViewBox = computed(() => {
+  const shape = analysisResult.value?.imageShape || []
+  const height = Number(shape[0]) || 512
+  const width = Number(shape[1]) || 512
+  return `0 0 ${width} ${height}`
+})
+
+const isRepresentativeSlice = computed(() => {
+  if (!analysisResult.value) return false
+  return currentSlice.value === Math.min(Math.max((analysisResult.value.previewSliceIndex ?? 0) + 1, 1), totalSlices.value || 1)
+})
+
+// 当前显示的CT图像：默认定位代表切片，同时支持用滑条浏览返回的原始切片。
+const ctImageDisplay = computed(() => {
+  if (!analysisResult.value) return ''
+  if (savedSlicesLoaded.value && savedSlices.value.length > 0) {
+    const idx = Math.min(Math.max(currentSlice.value - 1, 0), savedSlices.value.length - 1)
+    const slice = savedSlices.value[idx]
+    return slice.imagePath || slice.rawImagePath || ''
+  }
+  const slices = realtimeBrowseSlices.value
+  if (slices.length) {
+    const idx = Math.min(Math.max(currentSlice.value - 1, 0), slices.length - 1)
+    return normalizeImageSrc(imageFromValue(slices[idx]))
+  }
+  return normalizeImageSrc(analysisResult.value.previewImage)
+})
+
+const stageOutputSrc = (stage) => {
+  if (stage === 'detection' && stageDetectionSrc.value) return stageDetectionSrc.value
+  if (stage === 'segmentation' && stageSegmentationSrc.value) return stageSegmentationSrc.value
+  if (stage === 'malignancy' && stageMalignancySrc.value) return stageMalignancySrc.value
+  if (!analysisResult.value) return ''
+  const keyMap = {
+    detection: 'detectionImage',
+    segmentation: 'segmentationImage',
+    malignancy: 'malignancyImage'
+  }
+  return normalizeImageSrc((analysisResult.value.stageOutputs || {})[keyMap[stage]] || analysisResult.value.previewImage)
+}
 
 // 当前Z层
 const currentSliceZ = computed(() => {
-  if (!analysisResult.value || !analysisResult.value.sliceIndices) return currentSlice.value
+  if (!analysisResult.value) return currentSlice.value
+  if (!analysisResult.value.sliceIndices || !analysisResult.value.sliceIndices.length) {
+    return analysisResult.value.previewSliceZ ?? currentSlice.value
+  }
   const idx = currentSlice.value - 1
   return idx >= 0 && idx < analysisResult.value.sliceIndices.length
-    ? analysisResult.value.sliceIndices[idx] : currentSlice.value
+    ? analysisResult.value.sliceIndices[idx]
+    : (analysisResult.value.previewSliceZ ?? currentSlice.value)
 })
 
 const zoomIn = () => { zoom.value = Math.min(zoom.value + 0.2, 3) }
 const zoomOut = () => { zoom.value = Math.max(zoom.value - 0.2, 0.5) }
 const resetZoom = () => { zoom.value = 1 }
 const prevSlice = () => { if (currentSlice.value > 1) currentSlice.value-- }
-const nextSlice = () => { if (currentSlice.value < totalSlices.value) currentSlice.value++ }
+const nextSlice = () => { if (currentSlice.value < (totalSlices.value || 1)) currentSlice.value++ }
+const prevStageSlice = (key) => { if (stageSlice[key] > 1) stageSlice[key]-- }
+const nextStageSlice = (key) => { if (stageSlice[key] < (totalSlices.value || 1)) stageSlice[key]++ }
 
 // ============ 分析状态 ============
 const loading = ref(false)
@@ -565,19 +849,139 @@ const loadingText = ref('正在上传CT文件...')
 const analyzing = ref(false)
 const analysisDone = ref(false)
 const analysisResult = ref(null)
+const pipelineRevealing = ref(false)
 const saving = ref(false)
 const savingSlice = ref(false)
 const savedSliceImageUrl = ref('')
 const currentStage = ref(0)
+const pipelineStageIndex = ref(0)
 const stage1Done = ref(false)
 const stage2Done = ref(false)
 const stage3Done = ref(false)
+const stageDetectionSrc = ref('')
+const stageSegmentationSrc = ref('')
+const stageMalignancySrc = ref('')
 
 const pipelineStatus = computed(() => {
+  if (pipelineRevealing.value) {
+    return currentStage.value > 0
+      ? { tag: 'warning', text: `第 ${String(currentStage.value).padStart(2, '0')} 步出图中...` }
+      : { tag: 'warning', text: '准备出图...' }
+  }
   if (analyzing.value) return { tag: 'warning', text: '分析中...' }
   if (analysisDone.value) return { tag: 'success', text: '已完成' }
   if (fileSelected.value) return { tag: 'info', text: '待分析' }
   return { tag: '', text: '未开始' }
+})
+
+const normalizeCandidate = (c = {}) => {
+  const bbox = c.bbox || []
+  return {
+    ...c,
+    slice_index: Number(c.slice_index ?? c.sliceIndex ?? 0),
+    slice_z: c.slice_z ?? c.sliceZ ?? c.zIndex ?? c.slice_index ?? c.sliceIndex ?? 0,
+    bbox_y1: Number(c.bbox_y1 ?? bbox[0] ?? 0),
+    bbox_x1: Number(c.bbox_x1 ?? bbox[1] ?? 0),
+    bbox_y2: Number(c.bbox_y2 ?? bbox[2] ?? 0),
+    bbox_x2: Number(c.bbox_x2 ?? bbox[3] ?? 0),
+    centroid_y: Number(c.centroid_y ?? c.centroidY ?? 0),
+    centroid_x: Number(c.centroid_x ?? c.centroidX ?? 0),
+    diameter_mm: Number(c.diameter_mm ?? c.diameterMm ?? 0),
+    area_mm2: Number(c.area_mm2 ?? c.areaMm2 ?? 0),
+    hu_mean: Number(c.hu_mean ?? c.huMean ?? 0)
+  }
+}
+
+const stageSliceImage = (sliceNo) => {
+  const slices = realtimeBrowseSlices.value
+  if (!slices.length) return normalizeImageSrc(analysisResult.value?.previewImage || '')
+  const idx = Math.min(Math.max(sliceNo - 1, 0), slices.length - 1)
+  return normalizeImageSrc(imageFromValue(slices[idx]))
+}
+
+const candidatesForSlice = (sliceNo) => {
+  const idx = sliceNo - 1
+  return allCandidates.value
+    .map(normalizeCandidate)
+    .filter(c => Number(c.slice_index) === idx)
+}
+
+const contourPoints = (det) => {
+  const contour = det?.segmentation?.contour || []
+  if (!Array.isArray(contour) || contour.length < 3) return ''
+  return contour
+    .map(p => Array.isArray(p) ? `${Number(p[1])},${Number(p[0])}` : '')
+    .filter(Boolean)
+    .join(' ')
+}
+
+const riskClass = (det) => {
+  if (det?.malignancyRisk === '高风险') return 'high'
+  if (det?.malignancyRisk === '中风险') return 'medium'
+  return 'low'
+}
+
+const overlayLabel = (stage, det) => {
+  if (stage === 'segmentation') return 'SEG'
+  if (stage === 'malignancy') return `${det.malignancyRisk || '低风险'} ${Math.round((det.malignancyProbability || 0) * 100)}%`
+  const typeLabel = det.type === 'solid' ? '实性' : det.type === 'ggo' ? '磨玻璃' : det.type === 'calcified' ? '钙化' : '候选'
+  return `${typeLabel} ${det.diameter_mm || 0}mm`
+}
+
+const stagePanelItems = computed(() => {
+  const stageMeta = [
+    {
+      no: '01',
+      index: 1,
+      key: 'detection',
+      title: '肺结节候选筛选与分类',
+      note: '先找候选区域，再过滤血管/纹理等假阳性，输出可信结节框、类型和大小分类。',
+      runningText: '正在筛选可信肺结节...',
+      waitingText: '等待第 01 步输出检测/分类图'
+    },
+    {
+      no: '02',
+      index: 2,
+      key: 'segmentation',
+      title: '结节精确分割',
+      note: '输出红色结节轮廓和掩码区域；前一步检测图会继续保留。',
+      runningText: '正在生成红色分割结果...',
+      waitingText: '等待第 01 步完成后输出红色分割图'
+    },
+    {
+      no: '03',
+      index: 3,
+      key: 'malignancy',
+      title: '良恶性鉴别诊断',
+      note: '输出风险等级与概率标注图；前三个阶段图最终同时保留。',
+      runningText: '正在计算良恶性风险...',
+      waitingText: '等待第 02 步完成后输出风险评估图'
+    }
+  ]
+  const doneMap = { 1: stage1Done.value, 2: stage2Done.value, 3: stage3Done.value }
+  return stageMeta.map(item => {
+    const src = stageOutputSrc(item.key)
+    const slice = Math.min(Math.max(stageSlice[item.key] || 1, 1), totalSlices.value || 1)
+    const overlayItems = candidatesForSlice(slice)
+    const visible = pipelineStageIndex.value >= item.index && !!src
+    const running = pipelineRevealing.value && currentStage.value === item.index && !visible
+    const done = Boolean(doneMap[item.index] || visible)
+    return {
+      ...item,
+      src,
+      imageSrc: stageSliceImage(slice),
+      overlayItems,
+      slice,
+      totalSlices: totalSlices.value || 1,
+      zIndex: analysisResult.value?.sliceIndices?.[slice - 1] ?? slice - 1,
+      visible,
+      running,
+      done,
+      waiting: !running && !done,
+      status: done ? '已出图' : (running ? '运行中' : '等待中'),
+      tag: done ? 'success' : (running ? 'warning' : 'info')
+    }
+  })
 })
 
 // ============ 结节数据 ============
@@ -621,6 +1025,122 @@ const getRiskTag = (risk) => {
   if (risk === '中风险') return 'warning'
   return 'success'
 }
+const riskTag = getRiskTag
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+const waitForImageReady = (src, timeout = 1800) => {
+  if (!src) return Promise.resolve(false)
+  return new Promise(resolve => {
+    const image = new Image()
+    const timer = setTimeout(() => resolve(false), timeout)
+    image.onload = () => {
+      clearTimeout(timer)
+      resolve(true)
+    }
+    image.onerror = () => {
+      clearTimeout(timer)
+      resolve(false)
+    }
+    image.src = src
+  })
+}
+
+async function revealPipelineOutputs(data) {
+  const outputs = data.stageOutputs || {}
+  const detectionSrc = normalizeImageSrc(outputs.detectionImage || data.previewImage)
+  const segmentationSrc = normalizeImageSrc(outputs.segmentationImage || outputs.detectionImage || data.previewImage)
+  const malignancySrc = normalizeImageSrc(outputs.malignancyImage || outputs.segmentationImage || outputs.detectionImage || data.previewImage)
+
+  pipelineRevealing.value = true
+  analysisDone.value = false
+  currentStage.value = 0
+  pipelineStageIndex.value = 0
+  stage1Done.value = false
+  stage2Done.value = false
+  stage3Done.value = false
+  stageDetectionSrc.value = ''
+  stageSegmentationSrc.value = ''
+  stageMalignancySrc.value = ''
+
+  logLungCtDebug('pipeline.start', {
+    pipelineStageIndex: pipelineStageIndex.value,
+    currentStage: currentStage.value,
+    stageOutputKeys: Object.keys(outputs || {}),
+    hasDetection: !!outputs.detectionImage,
+    hasSegmentation: !!outputs.segmentationImage,
+    hasMalignancy: !!outputs.malignancyImage,
+    previewImage: !!data.previewImage,
+    resolved: {
+      detection: !!detectionSrc,
+      segmentation: !!segmentationSrc,
+      malignancy: !!malignancySrc
+    }
+  })
+  await nextTick()
+
+  currentStage.value = 1
+  loadingText.value = '肺结节检测与分类完成，正在输出检测图...'
+  await nextTick()
+  await sleep(650)
+  stageDetectionSrc.value = detectionSrc
+  pipelineStageIndex.value = 1
+  await nextTick()
+  await waitForImageReady(stageDetectionSrc.value)
+  stage1Done.value = !!stageDetectionSrc.value
+  logLungCtDebug('pipeline.stage1', {
+    currentStage: currentStage.value,
+    pipelineStageIndex: pipelineStageIndex.value,
+    stage1Done: stage1Done.value,
+    visible: !!stageOutputSrc('detection')
+  })
+  await sleep(900)
+
+  currentStage.value = 2
+  loadingText.value = '结节精确分割完成，正在输出红色分割图...'
+  await nextTick()
+  await sleep(650)
+  stageSegmentationSrc.value = segmentationSrc
+  pipelineStageIndex.value = 2
+  await nextTick()
+  await waitForImageReady(stageSegmentationSrc.value)
+  stage2Done.value = !!stageSegmentationSrc.value
+  logLungCtDebug('pipeline.stage2', {
+    currentStage: currentStage.value,
+    pipelineStageIndex: pipelineStageIndex.value,
+    stage2Done: stage2Done.value,
+    visible: !!stageOutputSrc('segmentation')
+  })
+  await sleep(900)
+
+  currentStage.value = 3
+  loadingText.value = '良恶性风险评估完成，正在输出风险图...'
+  await nextTick()
+  await sleep(650)
+  stageMalignancySrc.value = malignancySrc
+  pipelineStageIndex.value = 3
+  await nextTick()
+  await waitForImageReady(stageMalignancySrc.value)
+  stage3Done.value = !!stageMalignancySrc.value
+  logLungCtDebug('pipeline.stage3', {
+    currentStage: currentStage.value,
+    pipelineStageIndex: pipelineStageIndex.value,
+    stage3Done: stage3Done.value,
+    visible: !!stageOutputSrc('malignancy')
+  })
+  await sleep(600)
+  analysisDone.value = true
+  pipelineRevealing.value = false
+  logLungCtDebug('pipeline.finish', {
+    analysisDone: analysisDone.value,
+    pipelineRevealing: pipelineRevealing.value,
+    currentStage: currentStage.value,
+    pipelineStageIndex: pipelineStageIndex.value,
+    stage1Done: stage1Done.value,
+    stage2Done: stage2Done.value,
+    stage3Done: stage3Done.value
+  })
+}
 
 // ============ 文件选择与分析 ============
 const handleFileSelect = async (uploadFile) => {
@@ -662,43 +1182,105 @@ const doAnalyze = async (file) => {
   loadingProgress.value = 0
   analysisResult.value = null
   analysisDone.value = false
+  pipelineRevealing.value = false
+  currentStage.value = 0
   stage1Done.value = false
   stage2Done.value = false
   stage3Done.value = false
+  pipelineStageIndex.value = 0
+  stageSlice.detection = 1
+  stageSlice.segmentation = 1
+  stageSlice.malignancy = 1
+  stageDetectionSrc.value = ''
+  stageSegmentationSrc.value = ''
+  stageMalignancySrc.value = ''
   allCandidates.value = []
+
+  logLungCtDebug('analyze.request', {
+    fileName: file.name,
+    fileSize: file.size,
+    params: { max_slices: 80, max_candidates: 80, enable_autodl: false, lightweight: true }
+  })
 
   // 模拟进度
   const progressTimer = setInterval(() => {
     if (loadingProgress.value < 90) {
       loadingProgress.value += Math.random() * 10
-      if (loadingProgress.value > 20) { currentStage.value = 1; loadingText.value = '正在读取真实CT体数据并检测结节...' }
-      if (loadingProgress.value > 48) { currentStage.value = 2; loadingText.value = '正在提取肺实质掩码并执行结节精确分割...' }
-      if (loadingProgress.value > 72) { currentStage.value = 3; loadingText.value = '正在计算良恶性风险概率...' }
+      if (loadingProgress.value > 20) loadingText.value = '正在读取真实CT体数据并检测结节...'
+      if (loadingProgress.value > 48) loadingText.value = '正在提取肺实质掩码并执行结节精确分割...'
+      if (loadingProgress.value > 72) loadingText.value = '正在计算良恶性风险概率...'
       if (loadingProgress.value > 86) loadingText.value = '正在生成标注切片和结构化结果...'
     }
   }, 600)
 
   try {
-    currentStage.value = 1
-    const res = await analyzeLungCt(file, { max_slices: 80, enable_autodl: false })
+    const res = await analyzeLungCt(file, { max_slices: 80, max_candidates: 80, enable_autodl: false, lightweight: true })
 
     clearInterval(progressTimer)
     loadingProgress.value = 100
     loadingText.value = '分析完成！'
 
-    const data = res.data || res
-    if (data.success) {
-      analysisResult.value = data
-      totalSlices.value = data.rawSlices ? data.rawSlices.length : data.totalSlices
-      currentSlice.value = 1
-      stage1Done.value = data.pipeline?.noduleDetection === 'completed'
-      stage2Done.value = ['completed', 'completed_no_target'].includes(data.pipeline?.segmentation)
-      stage3Done.value = ['completed', 'completed_no_target'].includes(data.pipeline?.malignancyClassification)
-      analysisDone.value = true
+    const data = unwrapAnalyzePayload(res)
+    logLungCtDebug('analyze.response.raw', {
+      keys: Object.keys(res || {}),
+      dataKeys: Object.keys((res && res.data) || {})
+    })
+    logLungCtDebug('analyze.response.unwrapped', {
+      keys: Object.keys(data || {}),
+      keysText: Object.keys(data || {}).join(','),
+      success: data?.success,
+      previewImage: !!data?.previewImage,
+      previewSliceIndex: data?.previewSliceIndex,
+      previewSliceZ: data?.previewSliceZ,
+      stageOutputKeys: Object.keys(data?.stageOutputs || {}),
+      stageOutputFlags: {
+        detection: !!data?.stageOutputs?.detectionImage,
+        segmentation: !!data?.stageOutputs?.segmentationImage,
+        malignancy: !!data?.stageOutputs?.malignancyImage
+      },
+      totalSlices: data?.totalSlices,
+      totalSlicesOrig: data?.totalSlicesOrig,
+      candidateCount: Array.isArray(data?.candidates) ? data.candidates.length : 0,
+      rawSlicesLen: Array.isArray(data?.rawSlices) ? data.rawSlices.length : -1,
+      slicesLen: Array.isArray(data?.slices) ? data.slices.length : -1
+    })
+    const normalized = normalizeAnalyzeResult(data)
+    logLungCtDebug('analyze.response.normalized', {
+      keys: Object.keys(normalized || {}),
+      keysText: Object.keys(normalized || {}).join(','),
+      previewImage: !!normalized.previewImage,
+      previewSliceIndex: normalized.previewSliceIndex,
+      previewSliceZ: normalized.previewSliceZ,
+      stageOutputKeys: Object.keys(normalized.stageOutputs || {}),
+      stageOutputFlags: {
+        detection: !!normalized.stageOutputs?.detectionImage,
+        segmentation: !!normalized.stageOutputs?.segmentationImage,
+        malignancy: !!normalized.stageOutputs?.malignancyImage
+      },
+      totalSlices: normalized.totalSlices,
+      totalSlicesOrig: normalized.totalSlicesOrig,
+      rawSlicesLen: Array.isArray(normalized.rawSlices) ? normalized.rawSlices.length : -1,
+      slicesLen: Array.isArray(normalized.slices) ? normalized.slices.length : -1
+    })
+    if (normalized.success) {
+      analysisResult.value = normalized
+      totalSlices.value = sliceCountFromResult(normalized)
+      currentSlice.value = Math.min(Math.max((normalized.previewSliceIndex ?? 0) + 1, 1), totalSlices.value)
+      stageSlice.detection = currentSlice.value
+      stageSlice.segmentation = currentSlice.value
+      stageSlice.malignancy = currentSlice.value
+      loading.value = false
+      logLungCtDebug('analyze.state.applied', {
+        totalSlices: totalSlices.value,
+        currentSlice: currentSlice.value,
+        currentSliceZ: normalized.previewSliceZ ?? null,
+        pipelineStageIndex: pipelineStageIndex.value,
+        analysisDone: analysisDone.value
+      })
 
       // 解析结节候选
-      if (data.candidates && Array.isArray(data.candidates)) {
-        allCandidates.value = data.candidates.map(c => ({
+      if (normalized.candidates && Array.isArray(normalized.candidates)) {
+        allCandidates.value = normalized.candidates.map(c => normalizeCandidate({
           ...c,
           _originalSliceIndex: c.slice_index
         }))
@@ -706,7 +1288,17 @@ const doAnalyze = async (file) => {
       }
 
       // 自动填充诊断表单
-      autoFillDiagnosis(data)
+      autoFillDiagnosis(normalized)
+      await revealPipelineOutputs(normalized)
+      logLungCtDebug('analyze.after.pipeline', {
+        pipelineStageIndex: pipelineStageIndex.value,
+        stage1Done: stage1Done.value,
+        stage2Done: stage2Done.value,
+        stage3Done: stage3Done.value,
+        stageDetectionSrc: !!stageDetectionSrc.value,
+        stageSegmentationSrc: !!stageSegmentationSrc.value,
+        stageMalignancySrc: !!stageMalignancySrc.value
+      })
 
       const noduleCount = allCandidates.value.length
       ElMessage.success(`肺部CT全流程完成：检测/分割/良恶性评估已执行，检出 ${noduleCount} 个结节候选，共 ${totalSlices.value} 层切片`)
@@ -715,6 +1307,8 @@ const doAnalyze = async (file) => {
     }
   } catch (error) {
     clearInterval(progressTimer)
+    pipelineRevealing.value = false
+    currentStage.value = 0
     console.error('CT分析失败:', error)
     const msg = error.response?.data?.msg || error.message || ''
     if (msg.includes('ResourceAccess') || msg.includes('Network Error') || msg.includes('timeout')) {
@@ -728,7 +1322,7 @@ const doAnalyze = async (file) => {
     clearInterval(progressTimer)
     loading.value = false
     analyzing.value = false
-    currentStage.value = 0
+    pipelineRevealing.value = false
     loadingProgress.value = 0
   }
 }
@@ -822,6 +1416,7 @@ function buildDiagnosisPayload() {
     detectionClassification: analysisResult.value?.detectionClassification || null,
     segmentationAssessment: analysisResult.value?.segmentationAssessment || null,
     segmentationData: analysisResult.value?.segmentationData || null,
+    stageOutputs: analysisResult.value?.stageOutputs || null,
     detectionResult: candidates.length > 0 ? candidates.map(c => ({
       type: c.type, diameter_mm: c.diameter_mm, sliceZ: c.slice_z,
       classification: c.classification,
@@ -837,9 +1432,54 @@ function buildDiagnosisPayload() {
 function buildSliceSavePayload(imageUrlSaved) {
   const result = analysisResult.value
   if (!result || savedSlicesLoaded.value) return null
-  const slices = result.slices || []
-  const rawSlices = result.rawSlices || []
-  if (!slices.length) return null
+  const slices = Array.isArray(result.slices) ? result.slices : []
+  const rawSlices = Array.isArray(result.rawSlices) ? result.rawSlices : []
+  const previewBase64 = stripDataUrlPrefix(
+    result.previewImage
+    || result.stageOutputs?.segmentationImage
+    || result.stageOutputs?.detectionImage
+    || result.stageOutputs?.malignancyImage
+  )
+  const representativeIndex = Math.max(0, result.previewSliceIndex ?? 0)
+  const representativeStat = result.sliceHuStats?.[representativeIndex] || result.sliceHuStats?.[0] || {}
+
+  if (!slices.length) {
+    if (!previewBase64) return null
+    return {
+      applyId: currentApplyId.value,
+      techId: selectedTechId.value,
+      checkType: 'LUNG_CT',
+      patientId: patientInfo.patientId || null,
+      doctorId: patientInfo.doctorId || null,
+      fileName: uploadedFileName.value || 'lung_ct',
+      remark: diagnosisForm.remark,
+      segmentationData: JSON.stringify({
+        segmentationData: result.segmentationData || {},
+        segmentationAssessment: result.segmentationAssessment || null
+      }),
+      detectionResult: JSON.stringify({
+        detectionClassification: result.detectionClassification || null,
+        candidates: allCandidates.value || [],
+        malignancyAssessment: result.malignancyAssessment || null,
+        stageOutputs: result.stageOutputs || null,
+        pipeline: result.pipeline || null,
+        representativeImageUrl: imageUrlSaved || null,
+        representativeImageSource: result.previewImage || null,
+        lightweight: true
+      }),
+      slices: [{
+        sliceImage: previewBase64,
+        rawImage: previewBase64,
+        sliceZ: result.previewSliceZ ?? result.sliceIndices?.[representativeIndex] ?? representativeIndex,
+        huMin: representativeStat.hu_min,
+        huMax: representativeStat.hu_max,
+        huMean: representativeStat.hu_mean,
+        sliceThickness: result.sliceThickness,
+        pixelSpacingX: result.pixelSpacingX,
+        pixelSpacingY: result.pixelSpacingY
+      }]
+    }
+  }
   return {
     applyId: currentApplyId.value,
     techId: selectedTechId.value,
@@ -856,6 +1496,7 @@ function buildSliceSavePayload(imageUrlSaved) {
       detectionClassification: result.detectionClassification || null,
       candidates: allCandidates.value || [],
       malignancyAssessment: result.malignancyAssessment || null,
+      stageOutputs: result.stageOutputs || null,
       pipeline: result.pipeline || null,
       representativeImageUrl: imageUrlSaved || null
     }),
@@ -863,7 +1504,7 @@ function buildSliceSavePayload(imageUrlSaved) {
       const stat = result.sliceHuStats?.[index] || {}
       return {
         sliceImage,
-        rawImage: rawSlices[index],
+        rawImage: rawSlices[index] || sliceImage,
         sliceZ: result.sliceIndices?.[index] ?? index,
         huMin: stat.hu_min,
         huMax: stat.hu_max,
@@ -893,11 +1534,15 @@ const saveDiagnosis = async () => {
   try {
     // 优先使用已保存的切片图像URL，否则自动上传当前切片
     let imageUrlSaved = savedSliceImageUrl.value
-    if (!imageUrlSaved && ctImageDisplay.value && ctImageDisplay.value.startsWith('data:image')) {
-      const fileName = `lung_ct_${currentApplyId.value}_slice${currentSlice.value}_${Date.now()}.png`
-      const file = dataUrlToFile(ctImageDisplay.value, fileName)
-      const res = await uploadFile(file)
-      imageUrlSaved = res.data?.url || res.url || null
+    if (!imageUrlSaved && ctImageDisplay.value) {
+      if (ctImageDisplay.value.startsWith('data:image')) {
+        const fileName = `lung_ct_${currentApplyId.value}_slice${currentSlice.value}_${Date.now()}.png`
+        const file = dataUrlToFile(ctImageDisplay.value, fileName)
+        const res = await uploadFile(file)
+        imageUrlSaved = res.data?.url || res.url || null
+      } else if (ctImageDisplay.value.startsWith('/') || ctImageDisplay.value.startsWith('http')) {
+        imageUrlSaved = ctImageDisplay.value
+      }
     }
     const slicePayload = buildSliceSavePayload(imageUrlSaved)
     if (slicePayload) {
@@ -938,13 +1583,26 @@ const savedSlicesLoaded = ref(false)
 
 const loadSavedSlices = async (applyId) => {
   try {
+    stage1Done.value = false
+    stage2Done.value = false
+    stage3Done.value = false
+    stageDetectionSrc.value = ''
+    stageSegmentationSrc.value = ''
+    stageMalignancySrc.value = ''
     const res = await getSlicesByApplyId(applyId)
     const data = res.data || res
+    logLungCtDebug('savedSlices.response', {
+      applyId,
+      isArray: Array.isArray(data),
+      len: Array.isArray(data) ? data.length : -1,
+      keys: data && !Array.isArray(data) ? Object.keys(data) : []
+    })
     if (Array.isArray(data)) {
       savedSlices.value = data
       savedSlicesLoaded.value = data.length > 0
       totalSlices.value = data.length
       currentSlice.value = 1
+      pipelineStageIndex.value = 0
       if (data.length > 0) {
         restoreSavedAnalysis(data)
         analysisDone.value = true
@@ -965,6 +1623,14 @@ function restoreSavedAnalysis(rows) {
   const detection = safeJsonParse(first.detectionResult, {})
   const segmentation = safeJsonParse(first.segmentationData, {})
   const candidates = detection.candidates || detection.detectionClassification?.items || []
+  logLungCtDebug('savedSlices.restore', {
+    rowCount: rows.length,
+    detectionKeys: Object.keys(detection || {}),
+    segmentationKeys: Object.keys(segmentation || {}),
+    candidateCount: candidates.length,
+    hasStageOutputs: !!detection.stageOutputs,
+    stageOutputKeys: Object.keys(detection.stageOutputs || {})
+  })
   allCandidates.value = candidates.map(c => ({
     ...c,
     slice_z: c.slice_z ?? c.sliceZ,
@@ -978,6 +1644,9 @@ function restoreSavedAnalysis(rows) {
     totalSlices: rows.length,
     totalSlicesOrig: rows.length,
     sliceIndices: rows.map((row, index) => row.sliceZ ?? index),
+    previewImage: rows[0]?.imagePath || rows[0]?.rawImagePath || '',
+    previewSliceIndex: 0,
+    previewSliceZ: rows[0]?.sliceZ ?? 0,
     slices: rows.map(row => row.imagePath).filter(Boolean),
     rawSlices: rows.map(row => row.rawImagePath || row.imagePath).filter(Boolean),
     sliceHuStats: rows.map(row => ({
@@ -998,12 +1667,23 @@ function restoreSavedAnalysis(rows) {
     segmentationData: segmentation.segmentationData || {},
     segmentationAssessment: segmentation.segmentationAssessment || null,
     malignancyAssessment: detection.malignancyAssessment || null,
+    stageOutputs: detection.stageOutputs || null,
     pipeline: detection.pipeline || {
       noduleDetection: 'completed',
       segmentation: 'completed',
       malignancyClassification: 'completed'
     }
   }
+  stageDetectionSrc.value = normalizeImageSrc(detection.stageOutputs?.detectionImage || rows[0]?.imagePath || rows[0]?.rawImagePath || '')
+  stageSegmentationSrc.value = normalizeImageSrc(detection.stageOutputs?.segmentationImage || detection.stageOutputs?.detectionImage || rows[0]?.imagePath || rows[0]?.rawImagePath || '')
+  stageMalignancySrc.value = normalizeImageSrc(detection.stageOutputs?.malignancyImage || detection.stageOutputs?.segmentationImage || detection.stageOutputs?.detectionImage || rows[0]?.imagePath || rows[0]?.rawImagePath || '')
+  pipelineStageIndex.value = 3
+  logLungCtDebug('savedSlices.restore.src', {
+    detection: !!stageDetectionSrc.value,
+    segmentation: !!stageSegmentationSrc.value,
+    malignancy: !!stageMalignancySrc.value,
+    pipelineStageIndex: pipelineStageIndex.value
+  })
   stage1Done.value = true
   stage2Done.value = true
   stage3Done.value = true
@@ -1139,12 +1819,25 @@ onMounted(() => {
           .sub { margin-top: 8px; color: #94A3B8; font-size: 12px; }
         }
         .ct-image { max-width: 100%; max-height: 100%; transition: transform .2s ease; }
+        .representative-ribbon {
+          position: absolute;
+          left: 12px;
+          top: 12px;
+          padding: 5px 9px;
+          color: #D1FAE5;
+          font-size: 12px;
+          font-weight: 700;
+          background: rgba(15,23,42,.72);
+          border: 1px solid rgba(52,211,153,.46);
+          border-radius: 6px;
+          backdrop-filter: blur(6px);
+        }
       }
       .series-nav {
         display: grid; grid-template-columns: auto minmax(0,1fr) auto minmax(110px,auto); align-items: center;
         gap: 10px; padding: 12px 14px; background: #F8FAFC; border-top: 1px solid #E2E8F0;
         .nav-center { display: flex; min-width: 0; flex-direction: column; gap: 2px;
-          .nav-slice-label { color: #475569; font-size: 12px; strong { color: #0F172A; font-family: ui-monospace, monospace; } }
+          .nav-slice-label { display: flex; align-items: center; gap: 8px; color: #475569; font-size: 12px; strong { color: #0F172A; font-family: ui-monospace, monospace; } }
           .nav-z-info { color: #94A3B8; font-size: 10px; }
           .nav-slider { margin-top: 2px; }
         }
@@ -1153,6 +1846,177 @@ onMounted(() => {
       .save-slice-bar {
         display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #F0FDF4; border-top: 1px solid #BBF7D0;
         .saved-tip { display: flex; align-items: center; gap: 4px; color: #16A34A; font-size: 12px; }
+      }
+    }
+
+    .stage-image-section {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+
+      .stage-image-panel {
+        display: flex;
+        min-width: 0;
+        min-height: 360px;
+        flex-direction: column;
+        overflow: hidden;
+        background: #FFFFFF;
+        border: 1px solid #DDE7EE;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(15,23,42,.05);
+        transition: border-color .2s, box-shadow .2s;
+
+        &.running { border-color: #F59E0B; box-shadow: 0 8px 24px rgba(245,158,11,.12); }
+        &.done { border-color: #A7F3D0; }
+
+        .stage-image-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 12px 12px 9px;
+          border-bottom: 1px solid #E2E8F0;
+          background: #F8FAFC;
+
+          .stage-step {
+            margin-bottom: 3px;
+            color: #16614D;
+            font-size: 12px;
+            font-weight: 800;
+            font-family: ui-monospace, monospace;
+          }
+          h3 {
+            margin: 0;
+            color: #0F172A;
+            font-size: 14px;
+            line-height: 1.3;
+          }
+        }
+
+        .stage-note {
+          min-height: 54px;
+          margin: 0;
+          padding: 10px 12px;
+          color: #64748B;
+          font-size: 12px;
+          line-height: 1.5;
+          background: #FFFFFF;
+        }
+
+        .stage-image-slot {
+          position: relative;
+          display: flex;
+          flex: 1;
+          min-height: 220px;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          background: radial-gradient(circle at center, #1F2937 0, #020617 78%);
+
+          .stage-slice-view {
+            position: relative;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            min-height: 260px;
+            align-items: center;
+            justify-content: center;
+
+            img {
+              display: block;
+              width: 100%;
+              height: 100%;
+              max-height: 300px;
+              object-fit: contain;
+            }
+
+            .stage-overlay {
+              position: absolute;
+              inset: 0;
+              width: 100%;
+              height: 100%;
+              pointer-events: none;
+            }
+
+            .stage-box {
+              fill: none;
+              stroke-width: 2.5;
+              vector-effect: non-scaling-stroke;
+              &.detection { stroke: #22C55E; }
+              &.malignancy.low { stroke: #22C55E; }
+              &.malignancy.medium { stroke: #F59E0B; }
+              &.malignancy.high { stroke: #EF4444; }
+            }
+
+            .stage-contour-fill {
+              fill: rgba(239, 68, 68, .25);
+            }
+
+            .stage-contour-line {
+              fill: none;
+              stroke: #EF4444;
+              stroke-width: 2.5;
+              vector-effect: non-scaling-stroke;
+            }
+
+            .stage-label {
+              font-size: 12px;
+              font-weight: 800;
+              paint-order: stroke;
+              stroke: rgba(2, 6, 23, .88);
+              stroke-width: 3px;
+              &.detection { fill: #BBF7D0; }
+              &.segmentation { fill: #FECACA; }
+              &.malignancy.low { fill: #BBF7D0; }
+              &.malignancy.medium { fill: #FDE68A; }
+              &.malignancy.high { fill: #FECACA; }
+            }
+          }
+
+          .stage-slot-state {
+            display: flex;
+            width: 100%;
+            min-height: 220px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 18px;
+            color: #D1FAE5;
+            text-align: center;
+            font-size: 13px;
+
+            .el-icon { font-size: 28px; color: #34D399; }
+            &.muted {
+              color: #94A3B8;
+              .el-icon { color: #64748B; }
+            }
+          }
+        }
+
+        .stage-slice-nav {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 10px;
+          background: #F8FAFC;
+          border-top: 1px solid #E2E8F0;
+
+          .stage-nav-center {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            gap: 2px;
+            color: #475569;
+            font-size: 12px;
+
+            strong { color: #0F172A; font-family: ui-monospace, monospace; }
+            .stage-z { color: #94A3B8; font-size: 10px; }
+            .stage-slider { margin-top: 1px; }
+          }
+        }
       }
     }
 
@@ -1254,6 +2118,7 @@ onMounted(() => {
     .page-header, .patient-bar { margin-bottom: 14px; }
     .main-content { display: flex; flex-direction: column;
       .viewer-col, .side-col { width: 100% !important; max-width: 100% !important; }
+      .stage-image-section { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .side-col { margin-top: 14px; }
     }
   }
@@ -1267,6 +2132,7 @@ onMounted(() => {
       .header-actions { justify-content: flex-start; }
     }
     .patient-bar { grid-template-columns: 1fr; }
+    .main-content .stage-image-section { grid-template-columns: 1fr; }
     .main-content .diagnosis-panel :deep(.el-radio-group) { grid-template-columns: 1fr; }
   }
 }

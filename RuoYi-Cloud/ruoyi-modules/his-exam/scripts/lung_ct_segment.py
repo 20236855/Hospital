@@ -126,6 +126,174 @@ def _is_truthy(value, default: bool = False) -> bool:
     return str(value).strip().lower() in ("1", "true", "yes", "y", "on")
 
 
+def _encode_png_base64(gray_img: np.ndarray) -> str:
+    buf = io.BytesIO()
+    Image.fromarray(gray_img).save(buf, format='PNG')
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+
+def _select_preview_slice(candidates: List[Dict], slice_indices: List[int], total_slices: int) -> Tuple[int, int]:
+    if total_slices <= 0:
+        return 0, 0
+
+    if candidates:
+        top_candidate = max(candidates, key=lambda c: float(c.get("malignancyProbability", 0) or 0))
+        preview_slice_index = int(top_candidate.get("slice_index", 0) or 0)
+    else:
+        preview_slice_index = total_slices // 2
+
+    preview_slice_index = max(0, min(preview_slice_index, total_slices - 1))
+    preview_slice_z = int(slice_indices[preview_slice_index]) if slice_indices else preview_slice_index
+    return preview_slice_index, preview_slice_z
+
+
+def _compact_segmentation(segmentation: Optional[Dict], max_points: int = 32) -> Dict:
+    if not segmentation:
+        return {}
+    contour = segmentation.get("contour") or []
+    if len(contour) > max_points:
+        step = max(1, int(np.ceil(len(contour) / max_points)))
+        contour = contour[::step][:max_points]
+    return {
+        "contourPointCount": segmentation.get("contourPointCount", len(segmentation.get("contour") or [])),
+        "areaPx": segmentation.get("areaPx"),
+        "contour": contour
+    }
+
+
+def _compact_candidate(c: Dict, include_segmentation: bool = True) -> Dict:
+    item = {
+        "slice_index": c.get("slice_index"),
+        "slice_z": c.get("slice_z"),
+        "type": c.get("type"),
+        "classification": c.get("classification"),
+        "sizeClass": c.get("sizeClass"),
+        "densityClass": c.get("densityClass"),
+        "morphologyClass": c.get("morphologyClass"),
+        "diameter_mm": c.get("diameter_mm"),
+        "area_mm2": c.get("area_mm2"),
+        "centroid_y": c.get("centroid_y"),
+        "centroid_x": c.get("centroid_x"),
+        "bbox_y1": c.get("bbox_y1"),
+        "bbox_x1": c.get("bbox_x1"),
+        "bbox_y2": c.get("bbox_y2"),
+        "bbox_x2": c.get("bbox_x2"),
+        "hu_mean": c.get("hu_mean"),
+        "hu_std": c.get("hu_std"),
+        "hu_min": c.get("hu_min"),
+        "hu_max": c.get("hu_max"),
+        "circularity": c.get("circularity"),
+        "eccentricity": c.get("eccentricity"),
+        "malignancyProbability": c.get("malignancyProbability"),
+        "malignancyRisk": c.get("malignancyRisk"),
+        "malignancyLabel": c.get("malignancyLabel"),
+        "riskAdvice": c.get("riskAdvice")
+    }
+    if include_segmentation:
+        item["segmentation"] = _compact_segmentation(c.get("segmentation"))
+    return item
+
+
+def _candidate_rank(c: Dict) -> Tuple[float, float]:
+    return (
+        float(c.get("malignancyProbability", 0) or 0),
+        float(c.get("diameter_mm", 0) or 0)
+    )
+
+
+def _candidate_quality_score(c: Dict) -> float:
+    diameter = float(c.get("diameter_mm", 0) or 0)
+    circularity = float(c.get("circularity", 0) or 0)
+    eccentricity = float(c.get("eccentricity", 0) or 0)
+    solidity = float(c.get("solidity", 0) or 0)
+    hu_std = float(c.get("hu_std", 0) or 0)
+    nodule_type = c.get("type")
+
+    score = 0.0
+    if 3.0 <= diameter <= 18.0:
+        score += 0.35
+    elif 2.5 <= diameter <= 25.0:
+        score += 0.18
+
+    if circularity >= 0.58:
+        score += 0.22
+    elif circularity >= 0.42:
+        score += 0.10
+
+    if eccentricity <= 0.72:
+        score += 0.16
+    elif eccentricity <= 0.86:
+        score += 0.06
+
+    if solidity >= 0.72:
+        score += 0.14
+    elif solidity >= 0.58:
+        score += 0.06
+
+    if nodule_type == "ggo":
+        score += 0.10 if hu_std <= 80 else -0.12
+    elif nodule_type == "solid":
+        score += 0.08
+    elif nodule_type == "calcified":
+        score += 0.04
+
+    if diameter > 22 and circularity < 0.55:
+        score -= 0.25
+    if eccentricity > 0.9:
+        score -= 0.22
+    return round(score, 3)
+
+
+def _filter_true_nodule_candidates(candidates: List[Dict]) -> List[Dict]:
+    true_candidates = []
+    for c in candidates:
+        score = _candidate_quality_score(c)
+        c["candidateScore"] = score
+        diameter = float(c.get("diameter_mm", 0) or 0)
+        area = float(c.get("area_mm2", 0) or 0)
+        circularity = float(c.get("circularity", 0) or 0)
+        eccentricity = float(c.get("eccentricity", 0) or 0)
+        solidity = float(c.get("solidity", 0) or 0)
+
+        if diameter < 3.0 or diameter > 25.0:
+            continue
+        if area < 7.0 or area > 520.0:
+            continue
+        if circularity < 0.38 or eccentricity > 0.93 or solidity < 0.45:
+            continue
+        if c.get("type") == "ggo" and score < 0.52:
+            continue
+        if c.get("type") != "ggo" and score < 0.48:
+            continue
+        true_candidates.append(c)
+    return true_candidates
+
+
+def _limit_candidates_per_slice(candidates: List[Dict], max_per_slice: int = 4) -> List[Dict]:
+    grouped: Dict[int, List[Dict]] = {}
+    for c in candidates:
+        grouped.setdefault(int(c.get("slice_index", 0) or 0), []).append(c)
+    limited = []
+    for _, items in grouped.items():
+        limited.extend(sorted(items, key=lambda c: (c.get("candidateScore", 0), c.get("diameter_mm", 0)), reverse=True)[:max_per_slice])
+    return sorted(limited, key=lambda c: (c.get("slice_index", 0), -c.get("candidateScore", 0)))
+
+
+def _compact_candidate_list(candidates: List[Dict], max_candidates: int, keep_slice_index: Optional[int] = None) -> List[Dict]:
+    if not candidates:
+        return []
+    selected = sorted(candidates, key=_candidate_rank, reverse=True)[:max_candidates]
+    if keep_slice_index is not None:
+        selected_ids = {id(c) for c in selected}
+        for c in candidates:
+            if c.get("slice_index") == keep_slice_index and id(c) not in selected_ids:
+                selected.append(c)
+                selected_ids.add(id(c))
+    selected = sorted(selected, key=lambda c: (c.get("slice_index", 0), -float(c.get("malignancyProbability", 0) or 0)))
+    return [_compact_candidate(c) for c in selected]
+
+
 # ===================== CT体数据读取 =====================
 
 def read_ct_volume(file_path: str) -> Tuple[np.ndarray, dict]:
@@ -336,8 +504,8 @@ def detect_nodule_candidates(slice_hu: np.ndarray,
     """
     candidates = []
 
-    # 策略1: 实性/软组织结节 (-100 ~ 200 HU)
-    solid_mask = (slice_hu > soft_min) & (slice_hu < soft_max) & lung_mask
+    # 策略1: 实性/软组织结节，收紧范围，减少血管和肺纹理误报。
+    solid_mask = (slice_hu > max(soft_min, -80)) & (slice_hu < min(soft_max, 180)) & lung_mask
     solid_mask = remove_small_objects(solid_mask, min_size=min_size)
     # 限制最大面积，过滤掉大血管/心脏
     solid_mask = _remove_large_objects(solid_mask, max_size=max_size)
@@ -346,10 +514,10 @@ def detect_nodule_candidates(slice_hu: np.ndarray,
         solid_cands = _extract_candidates(slice_hu, solid_mask, spacing_xy, "solid")
         candidates.extend(solid_cands)
 
-    # 策略2: 磨玻璃结节 (-750 ~ -100 HU)
-    ggo_mask = (slice_hu > -750) & (slice_hu < -100) & lung_mask
-    ggo_mask = remove_small_objects(ggo_mask, min_size=min_size)
-    ggo_mask = _remove_large_objects(ggo_mask, max_size=max_size)
+    # 策略2: 磨玻璃结节。原 -750~-100 会把大量正常肺纹理纳入，先收窄再靠形态筛选。
+    ggo_mask = (slice_hu > -620) & (slice_hu < -180) & lung_mask
+    ggo_mask = remove_small_objects(ggo_mask, min_size=max(min_size, 45))
+    ggo_mask = _remove_large_objects(ggo_mask, max_size=min(max_size, 2500))
 
     if ggo_mask.any():
         ggo_cands = _extract_candidates(slice_hu, ggo_mask, spacing_xy, "ggo")
@@ -357,7 +525,7 @@ def detect_nodule_candidates(slice_hu: np.ndarray,
 
     # 策略3: 钙化结节 (> 200 HU)
     calc_mask = (slice_hu > 200) & (slice_hu < 1000) & lung_mask
-    calc_mask = remove_small_objects(calc_mask, min_size=20)
+    calc_mask = remove_small_objects(calc_mask, min_size=max(20, min_size // 2))
 
     if calc_mask.any():
         calc_cands = _extract_candidates(slice_hu, calc_mask, spacing_xy, "calcified")
@@ -499,36 +667,36 @@ def estimate_malignancy_features(candidate: Dict) -> Dict:
     hu_std = float(candidate.get("hu_std", 0) or 0)
     hu_mean = float(candidate.get("hu_mean", 0) or 0)
 
-    score = 0.12
+    score = 0.06
     if diameter >= 8:
-        score += 0.24
+        score += 0.20
     elif diameter >= 5:
-        score += 0.14
+        score += 0.10
     elif diameter >= 3:
-        score += 0.06
+        score += 0.04
 
     if nodule_type == "ggo":
-        score += 0.18
-    elif nodule_type == "solid":
-        score += 0.12
-    elif nodule_type == "calcified":
-        score -= 0.18
-
-    if circularity < 0.55:
-        score += 0.14
-    if eccentricity > 0.65:
         score += 0.10
-    if hu_std > 35:
+    elif nodule_type == "solid":
+        score += 0.06
+    elif nodule_type == "calcified":
+        score -= 0.22
+
+    if circularity < 0.45:
+        score += 0.14
+    if eccentricity > 0.78:
+        score += 0.10
+    if hu_std > 55:
         score += 0.08
     if hu_mean > 120 and nodule_type != "calcified":
         score += 0.05
 
-    probability = round(_clamp(score, 0.03, 0.92), 2)
-    if probability >= 0.65:
+    probability = round(_clamp(score, 0.02, 0.88), 2)
+    if probability >= 0.75:
         risk = "高风险"
         label = "高度疑似恶性"
         advice = "建议薄层增强CT/胸外科会诊，必要时PET-CT或穿刺病理。"
-    elif probability >= 0.35:
+    elif probability >= 0.45:
         risk = "中风险"
         label = "恶性可能待排"
         advice = "建议3个月复查低剂量薄层CT，结合临床和既往影像对比。"
@@ -540,7 +708,7 @@ def estimate_malignancy_features(candidate: Dict) -> Dict:
     candidate["malignancyProbability"] = probability
     candidate["malignancyRisk"] = risk
     candidate["malignancyLabel"] = label
-    candidate["cancerSuspicion"] = probability >= 0.35
+    candidate["cancerSuspicion"] = probability >= 0.45
     candidate["riskAdvice"] = advice
     return candidate
 
@@ -646,11 +814,77 @@ def draw_segmentation_overlay(gray_img: np.ndarray,
     return base64.b64encode(buf.read()).decode('utf-8')
 
 
+def draw_stage_overlay(gray_img: np.ndarray,
+                       candidates: Optional[List[Dict]] = None,
+                       stage: str = "detection") -> str:
+    """
+    按流程阶段生成独立标注图：
+      detection: 候选结节检测与分类框
+      segmentation: 红色半透明结节分割掩码
+      malignancy: 良恶性风险概率标注
+    """
+    rgb = np.stack([gray_img, gray_img, gray_img], axis=-1)
+    pil_img = Image.fromarray(rgb).convert("RGBA")
+    overlay = Image.new("RGBA", pil_img.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    for cand in candidates or []:
+        x1, y1 = int(cand['bbox_x1']), int(cand['bbox_y1'])
+        x2, y2 = int(cand['bbox_x2']), int(cand['bbox_y2'])
+        cx, cy = int(cand['centroid_x']), int(cand['centroid_y'])
+        contour = (cand.get("segmentation") or {}).get("contour") or []
+
+        if stage == "detection":
+            color = (34, 197, 94, 255)
+            if cand.get("type") == "ggo":
+                color = (245, 158, 11, 255)
+            elif cand.get("type") == "calcified":
+                color = (14, 165, 233, 255)
+            draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
+            draw.ellipse([cx - 3, cy - 3, cx + 3, cy + 3], outline=color, width=2)
+            label_text = f"{cand.get('type', 'nodule')} {cand.get('diameter_mm', 0)}mm"
+            draw.rectangle([x1, max(0, y1 - 18), min(pil_img.width, x1 + len(label_text) * 7), y1], fill=color)
+            draw.text((x1 + 2, max(0, y1 - 17)), label_text[:28], fill=(255, 255, 255, 255))
+
+        elif stage == "segmentation":
+            if len(contour) >= 3:
+                pts = [(int(p[1]), int(p[0])) for p in contour]
+                draw.polygon(pts, fill=(239, 68, 68, 96))
+                draw.line(pts + [pts[0]], fill=(239, 68, 68, 255), width=2)
+            else:
+                draw.rectangle([x1, y1, x2, y2], outline=(239, 68, 68, 255), width=2)
+            draw.text((x1 + 2, max(0, y1 - 17)), "SEG", fill=(255, 255, 255, 255))
+
+        elif stage == "malignancy":
+            risk = cand.get("malignancyRisk", "低风险")
+            probability = int(round(float(cand.get("malignancyProbability", 0) or 0) * 100))
+            color = (34, 197, 94, 255)
+            risk_code = "LOW"
+            if risk == "高风险":
+                color = (220, 38, 38, 255)
+                risk_code = "HIGH"
+            elif risk == "中风险":
+                color = (245, 158, 11, 255)
+                risk_code = "MID"
+            draw.rectangle([x1, y1, x2, y2], outline=color, width=3)
+            label_text = f"{risk_code} {probability}%"
+            draw.rectangle([x1, max(0, y1 - 20), min(pil_img.width, x1 + len(label_text) * 9), y1], fill=color)
+            draw.text((x1 + 2, max(0, y1 - 18)), label_text, fill=(255, 255, 255, 255))
+
+    out = Image.alpha_composite(pil_img, overlay).convert("RGB")
+    buf = io.BytesIO()
+    out.save(buf, format='PNG')
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+
 # ===================== 主分析函数 =====================
 
 def analyze_lung_ct(volume: np.ndarray,
                      metadata: dict,
-                     max_slices: int = 80) -> Dict:
+                     max_slices: int = 80,
+                     lightweight: bool = True,
+                     max_candidates: int = 80) -> Dict:
     """
     全流程：肺实质提取 → 结节检测 → 生成标注切片
     """
@@ -671,10 +905,12 @@ def analyze_lung_ct(volume: np.ndarray,
     total_slices = len(slice_indices)
 
     # 结果
+    slice_images = []      # 主浏览器原始切片Base64
     raw_slices = []       # 原始切片Base64
     annotated_slices = [] # 标注切片Base64
     slice_hu_stats = []   # HU统计
-    all_candidates = []   # 所有结节候选
+    raw_candidate_count = 0
+    all_candidates = []   # 筛选后的可信结节
     lung_areas_mm2 = []   # 肺面积
 
     for scan_idx, z in enumerate(slice_indices):
@@ -686,11 +922,8 @@ def analyze_lung_ct(volume: np.ndarray,
 
         # 转换灰度图（肺窗）
         gray = hu_to_grayscale(slice_hu, ww=1600, wl=-600)
-
-        # 原始切片（无标注）
-        raw_buf = io.BytesIO()
-        Image.fromarray(gray).save(raw_buf, format='PNG')
-        raw_b64 = base64.b64encode(raw_buf.getvalue()).decode('utf-8')
+        raw_b64 = _encode_png_base64(gray)
+        slice_images.append(raw_b64)
 
         # 提取肺实质
         lung_mask = extract_lung_mask(slice_hu, lung_threshold=-400)
@@ -702,7 +935,7 @@ def analyze_lung_ct(volume: np.ndarray,
             candidates = detect_nodule_candidates(
                 slice_hu, lung_mask,
                 soft_min=-100, soft_max=200,
-                min_size=30, max_size=6000,
+                min_size=45, max_size=2600,
                 spacing_xy=pixel_spacing_x
             )
 
@@ -712,15 +945,15 @@ def analyze_lung_ct(volume: np.ndarray,
             cand['slice_z'] = int(z)
             cand['pixel_spacing'] = pixel_spacing_x
             estimate_malignancy_features(cand)
+        raw_count_this_slice = len(candidates)
+        raw_candidate_count += raw_count_this_slice
+        candidates = _limit_candidates_per_slice(_filter_true_nodule_candidates(candidates), max_per_slice=4)
         all_candidates.extend(candidates)
 
-        # 生成标注图像
-        annotated_b64 = draw_segmentation_overlay(
-            gray, candidates=candidates
-        )
-
-        raw_slices.append(raw_b64)
-        annotated_slices.append(annotated_b64)
+        if not lightweight:
+            # 非轻量模式才返回整套切片，避免接口响应体膨胀。
+            raw_slices.append(raw_b64)
+            annotated_slices.append(draw_stage_overlay(gray, candidates=candidates, stage="segmentation"))
 
         slice_hu_stats.append({
             "slice_index": scan_idx,
@@ -730,7 +963,8 @@ def analyze_lung_ct(volume: np.ndarray,
             "hu_mean": round(hu_mean, 1),
             "lung_area_px": lung_area_px,
             "lung_area_mm2": round(lung_area_px * pixel_spacing_x * pixel_spacing_y, 1),
-            "candidate_count": len(candidates)
+            "candidate_count": len(candidates),
+            "raw_candidate_count": raw_count_this_slice
         })
 
         lung_areas_mm2.append(lung_area_px * pixel_spacing_x * pixel_spacing_y)
@@ -757,29 +991,43 @@ def analyze_lung_ct(volume: np.ndarray,
     medium_risk = [c for c in all_candidates if c.get('malignancyRisk') == '中风险']
     low_risk = [c for c in all_candidates if c.get('malignancyRisk') == '低风险']
 
-    # 生成分割掩码数据：每个结节的精确轮廓、面积、边界框和风险字段
-    segmentation_data = {}
-    for z_idx, z in enumerate(slice_indices):
-        slice_cands = [c for c in all_candidates if c.get('slice_index') == z_idx]
-        if slice_cands:
-            seg_key = f"z{int(z)}"
-            contours_list = []
-            for cand in slice_cands:
-                contours_list.append({
-                    "centroid": [cand['centroid_y'], cand['centroid_x']],
-                    "diameter_mm": cand['diameter_mm'],
-                    "bbox": [cand['bbox_y1'], cand['bbox_x1'],
-                             cand['bbox_y2'], cand['bbox_x2']],
-                    "type": cand['type'],
-                    "classification": cand.get("classification"),
-                    "segmentation": cand.get("segmentation"),
-                    "hu_mean": cand['hu_mean'],
-                    "malignancyProbability": cand.get('malignancyProbability'),
-                    "malignancyRisk": cand.get('malignancyRisk')
-                })
-            segmentation_data[seg_key] = contours_list
-
     top_risk = sorted(all_candidates, key=lambda c: c.get("malignancyProbability", 0), reverse=True)[:5]
+    output_slice_index, output_slice_z = _select_preview_slice(all_candidates, slice_indices, total_slices)
+    output_gray = hu_to_grayscale(volume[output_slice_z, :, :].copy(), ww=1600, wl=-600)
+    output_candidates = [c for c in all_candidates if c.get("slice_index") == output_slice_index]
+    preview_image = _encode_png_base64(output_gray)
+    stage_outputs = {
+        "sliceIndex": output_slice_index,
+        "sliceZ": output_slice_z,
+        "candidateCount": len(output_candidates),
+        "detectionImage": draw_stage_overlay(output_gray, candidates=output_candidates, stage="detection"),
+        "segmentationImage": draw_stage_overlay(output_gray, candidates=output_candidates, stage="segmentation"),
+        "malignancyImage": draw_stage_overlay(output_gray, candidates=output_candidates, stage="malignancy")
+    }
+
+    display_candidates = _compact_candidate_list(
+        all_candidates,
+        max_candidates=max(1, int(max_candidates or 80)),
+        keep_slice_index=output_slice_index
+    )
+
+    # 生成分割掩码数据：轻量模式只保留返回候选对应的压缩轮廓。
+    source_for_payload = display_candidates if lightweight else [_compact_candidate(c) for c in all_candidates]
+    segmentation_data = {}
+    for cand in source_for_payload:
+        seg_key = f"z{int(cand.get('slice_z') or 0)}"
+        segmentation_data.setdefault(seg_key, []).append({
+            "centroid": [cand.get('centroid_y'), cand.get('centroid_x')],
+            "diameter_mm": cand.get('diameter_mm'),
+            "bbox": [cand.get('bbox_y1'), cand.get('bbox_x1'), cand.get('bbox_y2'), cand.get('bbox_x2')],
+            "type": cand.get('type'),
+            "classification": cand.get("classification"),
+            "segmentation": cand.get("segmentation"),
+            "hu_mean": cand.get('hu_mean'),
+            "malignancyProbability": cand.get('malignancyProbability'),
+            "malignancyRisk": cand.get('malignancyRisk')
+        })
+
     detection_items = [{
         "sliceIndex": c.get("slice_index"),
         "sliceZ": c.get("slice_z"),
@@ -792,7 +1040,7 @@ def analyze_lung_ct(volume: np.ndarray,
         "areaMm2": c.get("area_mm2"),
         "huMean": c.get("hu_mean"),
         "bbox": c.get("bbox")
-    } for c in all_candidates]
+    } for c in source_for_payload]
     segmentation_items = [{
         "sliceIndex": c.get("slice_index"),
         "sliceZ": c.get("slice_z"),
@@ -801,7 +1049,7 @@ def analyze_lung_ct(volume: np.ndarray,
         "areaMm2": c.get("area_mm2"),
         "contourPointCount": (c.get("segmentation") or {}).get("contourPointCount", 0),
         "segmentation": c.get("segmentation")
-    } for c in all_candidates]
+    } for c in source_for_payload]
     malignancy_items = [{
         "sliceIndex": c.get("slice_index"),
         "sliceZ": c.get("slice_z"),
@@ -820,7 +1068,7 @@ def analyze_lung_ct(volume: np.ndarray,
             "huMean": c.get("hu_mean"),
             "huStd": c.get("hu_std")
         }
-    } for c in all_candidates]
+    } for c in source_for_payload]
     overall_risk = "高风险" if high_risk else ("中风险" if medium_risk else ("低风险" if total_nodules else "未检出结节"))
     pipeline = {
         "noduleDetection": "completed",
@@ -846,10 +1094,17 @@ def analyze_lung_ct(volume: np.ndarray,
         "sliceThickness": round(slice_thickness, 2),
         "pixelSpacingX": round(pixel_spacing_x, 3),
         "pixelSpacingY": round(pixel_spacing_y, 3),
-        "rawSlices": raw_slices,
-        "slices": annotated_slices,  # 标注后的切片
+        "imageShape": [int(volume.shape[1]), int(volume.shape[2])],
+        "previewImage": preview_image,
+        "previewSliceIndex": output_slice_index,
+        "previewSliceZ": output_slice_z,
+        "sliceImages": slice_images,
+        "rawSlices": raw_slices if not lightweight else [],
+        "slices": annotated_slices if not lightweight else [],
+        "stageOutputs": stage_outputs,
         "sliceHuStats": slice_hu_stats,
-        "stats": {
+    "stats": {
+            "rawCandidateRegions": raw_candidate_count,
             "totalNoduleCandidates": total_nodules,
             "solidNodules": len(solid_nodules),
             "ggoNodules": len(ggo_nodules),
@@ -867,7 +1122,7 @@ def analyze_lung_ct(volume: np.ndarray,
             "meanLungAreaMM2": round(np.mean(lung_areas_mm2), 1) if lung_areas_mm2 else 0,
             "maxLungAreaMM2": round(np.max(lung_areas_mm2), 1) if lung_areas_mm2 else 0
         },
-        "candidates": all_candidates,
+        "candidates": display_candidates if lightweight else [_compact_candidate(c) for c in all_candidates],
         "segmentationData": segmentation_data,
         "detectionClassification": {
             "enabled": True,
@@ -894,7 +1149,7 @@ def analyze_lung_ct(volume: np.ndarray,
             "lowRiskCount": len(low_risk),
             "overallRisk": overall_risk,
             "maxProbability": round(max([c.get('malignancyProbability', 0) for c in all_candidates], default=0), 2),
-            "topRiskItems": top_risk,
+            "topRiskItems": [_compact_candidate(c) for c in top_risk],
             "items": malignancy_items,
             "conclusion": "发现高风险结节，建议进一步检查" if high_risk else ("存在中风险结节，建议随访复查" if medium_risk else "未见明确高危恶性征象")
         }
@@ -933,7 +1188,8 @@ def analyze():
         params = {}
 
     max_slices = params.get('max_slices', 80)
-    mock_nodule = _is_truthy(params.get('mock_nodule'), default=False)
+    lightweight = _is_truthy(params.get('lightweight'), default=True)
+    max_candidates = int(params.get('max_candidates', 80) or 80)
 
     # 保存临时文件
     filename_lower = file.filename.lower()
@@ -945,19 +1201,15 @@ def analyze():
     try:
         file.save(str(tmp_path))
 
-        if mock_nodule:
-            volume, metadata = build_demo_lung_volume(file.filename)
-            result = analyze_lung_ct(volume, metadata, max_slices=max_slices)
-            result = apply_autodl_config(result, params)
-            result["mockMode"] = True
-            result["sourceFile"] = file.filename
-            result["message"] = "已启用肺结节检测/分割/恶性风险模拟流程"
-            return jsonify(result)
-
         volume, metadata = read_ct_volume(str(tmp_path))
-        result = analyze_lung_ct(volume, metadata, max_slices=max_slices)
+        result = analyze_lung_ct(
+            volume,
+            metadata,
+            max_slices=max_slices,
+            lightweight=lightweight,
+            max_candidates=max_candidates
+        )
         result = apply_autodl_config(result, params)
-        result["mockMode"] = False
         result["sourceFile"] = file.filename
 
         return jsonify(result)
