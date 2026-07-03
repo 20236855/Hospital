@@ -45,6 +45,10 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
     private static final long RECEPTION_DOCTOR_ROLE_ID = 5L;
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private static final String[] TIME_SLOTS = {"morning", "afternoon"};
+    private static final int MAX_DOCTORS_PER_DEPT_SLOT = 20;
+    private static final int MIN_WEEKLY_SHIFTS_PER_DOCTOR = 6;
+    private static final int TARGET_VISITS_PER_DOCTOR_SLOT = 12;
+    private static final double BASE_ACTIVE_DOCTOR_RATIO = 0.85D;
 
     @Autowired
     private DoctorMapper doctorMapper;
@@ -237,7 +241,7 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
 
     private String buildAiReasoning(AgentScheduleResult result)
     {
-        String fallback = "规则引擎完成推理：优先保障科室覆盖，结合历史排班负载、同日重复约束、连续工作惩罚和主任/专家优先级生成排班。";
+        String fallback = "规则引擎完成推理：根据上一周科室半日预约量动态扩容，忙科室多排人，并为每位接诊医生补足基础周班次。";
         String prompt = "你是医院会诊排班智能体，请基于以下结果生成100字以内排班推理说明：医生数="
                 + result.getDoctorCount() + "，科室数=" + result.getDeptCount()
                 + "，新增班次=" + result.getInsertedCount() + "，兜底科室数=" + result.getFallbackCount()
@@ -263,6 +267,8 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
                 .collect(Collectors.groupingBy(AgentScheduleDoctor::getDeptId, LinkedHashMap::new, Collectors.toList()));
         Set<Long> candidateDoctorIds = doctors.stream().map(AgentScheduleDoctor::getDoctorId).collect(Collectors.toSet());
         List<AgentScheduleItem> history = scheduleMapper.selectAgentScheduleItems(toDate(weekStart.minusDays(28)), toDate(weekStart.minusDays(1)));
+        List<AgentScheduleItem> previousWeek = scheduleMapper.selectAgentScheduleItems(toDate(weekStart.minusDays(7)), toDate(weekStart.minusDays(1)));
+        Map<String, Integer> previousWeekDemand = buildPreviousWeekDemand(previousWeek);
         Map<Long, Integer> historyLoad = new HashMap<>();
         for (AgentScheduleItem item : history)
         {
@@ -274,6 +280,7 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
         Map<Long, Integer> weeklyLoad = new HashMap<>();
         Map<String, Integer> dailyLoad = new HashMap<>();
         Set<String> doctorDaySet = new HashSet<>();
+        Set<String> doctorSlotSet = new HashSet<>();
         List<AgentScheduleItem> generated = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
 
@@ -282,6 +289,7 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
             weeklyLoad.merge(item.getDoctorId(), 1, Integer::sum);
             dailyLoad.merge(item.getDoctorId() + "@" + toLocalDate(item.getScheduleDate()), 1, Integer::sum);
             doctorDaySet.add(item.getDoctorId() + "@" + toLocalDate(item.getScheduleDate()));
+            doctorSlotSet.add(itemKey(item));
         }
 
         if (fillMissingSlots)
@@ -294,29 +302,34 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
                     for (Map.Entry<Long, List<AgentScheduleDoctor>> entry : doctorsByDept.entrySet())
                     {
                         Long deptId = entry.getKey();
-                        if (deptHasSlot(occupied, generated, deptId, date, slot))
-                        {
-                            continue;
-                        }
+                        List<AgentScheduleDoctor> deptDoctors = entry.getValue();
+                        int targetCount = targetDeptSlotDoctorCount(deptDoctors.size(), previousWeekDemand.getOrDefault(demandKey(deptId, slot), 0));
 
-                        AgentScheduleDoctor doctor = selectBestDoctor(entry.getValue(), date, historyLoad, weeklyLoad, dailyLoad, doctorDaySet);
-                        if (doctor == null)
+                        while (deptSlotCount(occupied, generated, deptId, date, slot) < targetCount)
                         {
-                            warnings.add(formatDate(date) + " " + slotName(slot) + " 科室" + deptId + "无可排医生，需要人工兜底。");
-                            continue;
-                        }
+                            AgentScheduleDoctor doctor = selectBestDoctor(deptDoctors, date, slot, historyLoad, weeklyLoad, dailyLoad, doctorDaySet, doctorSlotSet);
+                            if (doctor == null)
+                            {
+                                int currentCount = deptSlotCount(occupied, generated, deptId, date, slot);
+                                warnings.add(formatDate(date) + " " + slotName(slot) + " 科室" + deptId
+                                        + "目标" + targetCount + "人，当前仅" + currentCount + "人可排，需要人工补充或调整医生状态。");
+                                break;
+                            }
 
-                        AgentScheduleItem item = buildItem(doctor, date, slot);
-                        item.setGenerated(true);
-                        item.setReason(buildReason(doctor, entry.getValue().size(), historyLoad.getOrDefault(doctor.getDoctorId(), 0),
-                                weeklyLoad.getOrDefault(doctor.getDoctorId(), 0), dailyLoad.getOrDefault(doctor.getDoctorId() + "@" + date, 0)));
-                        generated.add(item);
-                        weeklyLoad.merge(doctor.getDoctorId(), 1, Integer::sum);
-                        dailyLoad.merge(doctor.getDoctorId() + "@" + date, 1, Integer::sum);
-                        doctorDaySet.add(doctor.getDoctorId() + "@" + date);
+                            AgentScheduleItem item = buildItem(doctor, date, slot);
+                            item.setGenerated(true);
+                            item.setReason(buildReason(doctor, deptDoctors.size(), targetCount, historyLoad.getOrDefault(doctor.getDoctorId(), 0),
+                                    weeklyLoad.getOrDefault(doctor.getDoctorId(), 0), dailyLoad.getOrDefault(doctor.getDoctorId() + "@" + date, 0)));
+                            generated.add(item);
+                            weeklyLoad.merge(doctor.getDoctorId(), 1, Integer::sum);
+                            dailyLoad.merge(doctor.getDoctorId() + "@" + date, 1, Integer::sum);
+                            doctorDaySet.add(doctor.getDoctorId() + "@" + date);
+                            doctorSlotSet.add(itemKey(item));
+                        }
                     }
                 }
             }
+            ensureMinimumDoctorLoad(doctorsByDept, weekStart, occupied, generated, weeklyLoad, dailyLoad, doctorDaySet, doctorSlotSet);
         }
 
         int inserted = 0;
@@ -359,7 +372,7 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
         result.setFallbackCount(countSingleDoctorDept(doctorsByDept));
         result.setPublishStatus(persist ? "generated" : "draft");
         result.setWarnings(warnings);
-        result.setReports(buildReports(doctors, doctorsByDept, historyLoad, existing, generated, warnings, persist, preview));
+        result.setReports(buildReports(doctors, doctorsByDept, historyLoad, previousWeekDemand, existing, generated, warnings, persist, preview));
 
         List<AgentScheduleItem> allItems = new ArrayList<>();
         allItems.addAll(existing);
@@ -374,12 +387,13 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
         return result;
     }
 
-    private AgentScheduleDoctor selectBestDoctor(List<AgentScheduleDoctor> doctors, LocalDate date, Map<Long, Integer> historyLoad, Map<Long, Integer> weeklyLoad,
-            Map<String, Integer> dailyLoad, Set<String> doctorDaySet)
+    private AgentScheduleDoctor selectBestDoctor(List<AgentScheduleDoctor> doctors, LocalDate date, String slot, Map<Long, Integer> historyLoad,
+            Map<Long, Integer> weeklyLoad, Map<String, Integer> dailyLoad, Set<String> doctorDaySet, Set<String> doctorSlotSet)
     {
         boolean singleDoctorDept = doctors.size() == 1;
         return doctors.stream()
-                .filter(doctor -> singleDoctorDept || !doctorDaySet.contains(doctor.getDoctorId() + "@" + date))
+                .filter(doctor -> !doctorSlotSet.contains(doctor.getDoctorId() + "@" + date + "@" + slot))
+                .filter(doctor -> singleDoctorDept || dailyLoad.getOrDefault(doctor.getDoctorId() + "@" + date, 0) < 2)
                 .min(Comparator
                         .comparingInt((AgentScheduleDoctor doctor) -> score(doctor, date, singleDoctorDept, historyLoad, weeklyLoad, dailyLoad, doctorDaySet))
                         .thenComparing(AgentScheduleDoctor::getLevelId, Comparator.nullsLast(Comparator.reverseOrder()))
@@ -392,8 +406,8 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
     {
         int score = weeklyLoad.getOrDefault(doctor.getDoctorId(), 0) * 12;
         score += historyLoad.getOrDefault(doctor.getDoctorId(), 0) * 3;
-        score += dailyLoad.getOrDefault(doctor.getDoctorId() + "@" + date, 0) * 30;
-        score += doctorDaySet.contains(doctor.getDoctorId() + "@" + date.minusDays(1)) ? 8 : 0;
+        score += dailyLoad.getOrDefault(doctor.getDoctorId() + "@" + date, 0) * 18;
+        score += doctorDaySet.contains(doctor.getDoctorId() + "@" + date.minusDays(1)) ? 6 : 0;
         score += doctorDaySet.contains(doctor.getDoctorId() + "@" + date.plusDays(1)) ? 4 : 0;
         score += singleDoctorDept ? 15 : 0;
         score -= levelPriority(doctor.getLevelId());
@@ -421,24 +435,29 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
         return item;
     }
 
-    private String buildReason(AgentScheduleDoctor doctor, int deptDoctorCount, int historyLoad, int weeklyLoad, int dailyLoad)
+    private String buildReason(AgentScheduleDoctor doctor, int deptDoctorCount, int targetCount, int historyLoad, int weeklyLoad, int dailyLoad)
     {
         if (deptDoctorCount == 1)
         {
             return "单医生科室兜底排班，结合近4周历史" + historyLoad + "班保障每日会诊覆盖";
         }
-        return "综合科室覆盖、近4周历史" + historyLoad + "班、本周负载" + weeklyLoad + "班、当日负载" + dailyLoad + "班后择优安排";
+        return "大型医院容量策略：本科室半日目标" + targetCount + "人，综合近4周历史" + historyLoad
+                + "班、本周负载" + weeklyLoad + "班、当日负载" + dailyLoad + "班后择优安排";
     }
 
     private List<String> buildReports(List<AgentScheduleDoctor> doctors, Map<Long, List<AgentScheduleDoctor>> doctorsByDept, Map<Long, Integer> historyLoad,
-            List<AgentScheduleItem> existing, List<AgentScheduleItem> generated, List<String> warnings, boolean persist, boolean preview)
+            Map<String, Integer> previousWeekDemand, List<AgentScheduleItem> existing, List<AgentScheduleItem> generated, List<String> warnings,
+            boolean persist, boolean preview)
     {
         List<String> reports = new ArrayList<>();
         reports.add("候选池：仅纳入 doctor.user_id 绑定 sys_user_role.role_id=5 且状态正常的接诊医生，共" + doctors.size() + "人。");
         reports.add("科室覆盖：" + doctorsByDept.size() + "个科室参与排班，其中" + countSingleDoctorDept(doctorsByDept) + "个单医生科室启用兜底规则。");
-        reports.add("生成策略：按下周一至周日、上午/下午两个会诊时段逐日计算，优先保证每个科室每天有会诊医生。");
+        reports.add("生成策略：按下周一至周日、上午/下午两个会诊时段逐日计算，每科室每半天按医生规模和上一周预约量安排1-20名医生。");
+        reports.add("需求感知：读取上一周同科室同半天已预约量 " + previousWeekDemand.values().stream().mapToInt(Integer::intValue).sum()
+                + " 人次，忙科室按半天日均每" + TARGET_VISITS_PER_DOCTOR_SLOT + "人次配置1名医生。");
         reports.add("历史推理：读取目标周前28天历史排班负载，参与医生公平性评分，历史高负载医生自动降低优先级。");
-        reports.add("公平性：评分时降低历史高负载、本周高负载、连续工作和同日重复医生优先级，同时保留主任号/专家号会诊优先权。");
+        reports.add("公平性：同一医生同一半天不重复排班，允许上下午均出诊；每位接诊医生每周至少补足"
+                + MIN_WEEKLY_SHIFTS_PER_DOCTOR + "个基础班次。");
         reports.add("历史样本：role_id=5 候选医生近4周累计历史班次 " + historyLoad.values().stream().mapToInt(Integer::intValue).sum() + " 条。");
         reports.add("数据处理：已有排班" + existing.size() + "条全部保留，新方案" + generated.size() + "条" + (persist ? "已写入数据库。" : "仅预览未入库。"));
         if (preview)
@@ -452,23 +471,127 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
         return reports;
     }
 
-    private boolean deptHasSlot(Map<String, AgentScheduleItem> occupied, List<AgentScheduleItem> generated, Long deptId, LocalDate date, String slot)
+    private int deptSlotCount(Map<String, AgentScheduleItem> occupied, List<AgentScheduleItem> generated, Long deptId, LocalDate date, String slot)
     {
+        int count = 0;
         for (AgentScheduleItem item : occupied.values())
         {
             if (deptId.equals(item.getDeptId()) && date.equals(toLocalDate(item.getScheduleDate())) && slot.equals(item.getTimeSlot()))
             {
-                return true;
+                count++;
             }
         }
         for (AgentScheduleItem item : generated)
         {
             if (deptId.equals(item.getDeptId()) && date.equals(toLocalDate(item.getScheduleDate())) && slot.equals(item.getTimeSlot()))
             {
-                return true;
+                count++;
             }
         }
-        return false;
+        return count;
+    }
+
+    private Map<String, Integer> buildPreviousWeekDemand(List<AgentScheduleItem> previousWeek)
+    {
+        Map<String, Integer> demand = new HashMap<>();
+        for (AgentScheduleItem item : previousWeek)
+        {
+            if (item.getDeptId() == null || item.getTimeSlot() == null)
+            {
+                continue;
+            }
+            int reserved = item.getReservedNumber() == null ? 0 : item.getReservedNumber().intValue();
+            demand.merge(demandKey(item.getDeptId(), item.getTimeSlot()), Math.max(reserved, 0), Integer::sum);
+        }
+        return demand;
+    }
+
+    private int targetDeptSlotDoctorCount(int doctorCount, int previousWeekReserved)
+    {
+        if (doctorCount <= 0)
+        {
+            return 0;
+        }
+        if (doctorCount <= 2)
+        {
+            return doctorCount;
+        }
+        int baseTarget = doctorCount <= 4 ? doctorCount : (int) Math.ceil(doctorCount * BASE_ACTIVE_DOCTOR_RATIO);
+        double averageSlotVisits = previousWeekReserved / 7.0D;
+        int demandTarget = previousWeekReserved <= 0 ? 0 : (int) Math.ceil(averageSlotVisits / TARGET_VISITS_PER_DOCTOR_SLOT);
+        int target = Math.max(baseTarget, demandTarget);
+        return Math.min(doctorCount, Math.min(MAX_DOCTORS_PER_DEPT_SLOT, Math.max(1, target)));
+    }
+
+    private void ensureMinimumDoctorLoad(Map<Long, List<AgentScheduleDoctor>> doctorsByDept, LocalDate weekStart,
+            Map<String, AgentScheduleItem> occupied, List<AgentScheduleItem> generated, Map<Long, Integer> weeklyLoad,
+            Map<String, Integer> dailyLoad, Set<String> doctorDaySet, Set<String> doctorSlotSet)
+    {
+        List<AgentScheduleDoctor> allDoctors = doctorsByDept.values().stream()
+                .flatMap(List::stream)
+                .sorted(Comparator
+                        .comparingInt((AgentScheduleDoctor doctor) -> weeklyLoad.getOrDefault(doctor.getDoctorId(), 0))
+                        .thenComparing(AgentScheduleDoctor::getDeptId, Comparator.nullsLast(Long::compareTo))
+                        .thenComparing(AgentScheduleDoctor::getDoctorId, Comparator.nullsLast(Long::compareTo)))
+                .collect(Collectors.toList());
+
+        for (AgentScheduleDoctor doctor : allDoctors)
+        {
+            while (weeklyLoad.getOrDefault(doctor.getDoctorId(), 0) < MIN_WEEKLY_SHIFTS_PER_DOCTOR)
+            {
+                AgentScheduleItem item = buildSupplementItem(doctor, weekStart, occupied, generated, dailyLoad, doctorSlotSet);
+                if (item == null)
+                {
+                    break;
+                }
+                item.setGenerated(true);
+                item.setReason("医生周班次保底：补足大型医院基础出诊量，避免接诊医生整周空排或班次过少");
+                generated.add(item);
+                weeklyLoad.merge(doctor.getDoctorId(), 1, Integer::sum);
+                dailyLoad.merge(doctor.getDoctorId() + "@" + toLocalDate(item.getScheduleDate()), 1, Integer::sum);
+                doctorDaySet.add(doctor.getDoctorId() + "@" + toLocalDate(item.getScheduleDate()));
+                doctorSlotSet.add(itemKey(item));
+            }
+        }
+    }
+
+    private AgentScheduleItem buildSupplementItem(AgentScheduleDoctor doctor, LocalDate weekStart,
+            Map<String, AgentScheduleItem> occupied, List<AgentScheduleItem> generated, Map<String, Integer> dailyLoad, Set<String> doctorSlotSet)
+    {
+        LocalDate bestDate = null;
+        String bestSlot = null;
+        int bestScore = Integer.MAX_VALUE;
+        for (int dayIndex = 0; dayIndex < 7; dayIndex++)
+        {
+            LocalDate date = weekStart.plusDays(dayIndex);
+            String doctorDayKey = doctor.getDoctorId() + "@" + date;
+            if (dailyLoad.getOrDefault(doctorDayKey, 0) >= TIME_SLOTS.length)
+            {
+                continue;
+            }
+            for (String slot : TIME_SLOTS)
+            {
+                String doctorSlotKey = doctor.getDoctorId() + "@" + date + "@" + slot;
+                if (doctorSlotSet.contains(doctorSlotKey))
+                {
+                    continue;
+                }
+                int deptCount = deptSlotCount(occupied, generated, doctor.getDeptId(), date, slot);
+                int score = deptCount * 10 + dailyLoad.getOrDefault(doctorDayKey, 0) * 20 + dayIndex;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    bestDate = date;
+                    bestSlot = slot;
+                }
+            }
+        }
+        return bestDate == null ? null : buildItem(doctor, bestDate, bestSlot);
+    }
+
+    private String demandKey(Long deptId, String slot)
+    {
+        return deptId + "@" + slot;
     }
 
     private int countSingleDoctorDept(Map<Long, List<AgentScheduleDoctor>> doctorsByDept)
@@ -480,13 +603,13 @@ public class AgentScheduleServiceImpl implements IAgentScheduleService
     {
         if (levelId != null && levelId == 3L)
         {
-            return 12L;
+            return 30L;
         }
         if (levelId != null && levelId == 2L)
         {
-            return 15L;
+            return 35L;
         }
-        return 20L;
+        return 40L;
     }
 
     private int levelPriority(Long levelId)

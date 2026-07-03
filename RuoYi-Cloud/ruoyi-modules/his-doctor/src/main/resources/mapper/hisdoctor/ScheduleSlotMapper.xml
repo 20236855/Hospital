@@ -11,6 +11,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="deptId" column="dept_id" />
         <result property="deptName" column="dept_name" />
         <result property="doctorName" column="doctor_name" />
+        <result property="avatar" column="avatar" />
         <result property="levelId" column="level_id" />
         <result property="levelName" column="level_name" />
         <result property="fee" column="fee" />
@@ -33,6 +34,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             d.dept_id,
             sd.dept_name,
             d.doctor_name,
+            d.avatar,
             d.level_id,
             rl.level_name,
             rl.fee,
@@ -80,6 +82,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             d.dept_id,
             sd.dept_name,
             d.doctor_name,
+            max(d.avatar) as avatar,
             d.level_id,
             rl.level_name,
             rl.fee,

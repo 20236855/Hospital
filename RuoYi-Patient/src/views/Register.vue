@@ -110,17 +110,17 @@
               >
                 <span class="date-week">{{ day.weekDay }}</span>
                 <strong>{{ day.monthDay }}</strong>
-                <em>{{ day.schedules.length }}位医生</em>
                 <small>余号 {{ getDayAvailableCount(day) }}</small>
               </button>
             </div>
             <div v-else class="empty-day">未来一周暂无可预约日期</div>
 
-            <div v-if="selectedDateSchedules.length" class="schedule-list">
+            <div v-if="selectedDateSchedules.length" class="slot-list">
               <div
                 v-for="schedule in selectedDateSchedules"
                 :key="`${selectedScheduleDate}-${schedule.slotId || schedule.scheduleId || schedule.doctorId}`"
-                class="schedule-card"
+                :data-schedule-key="`${selectedScheduleDate}-${schedule.slotId || schedule.scheduleId || schedule.doctorId}`"
+                class="slot-card"
                 :class="{
                   selected: form.doctorId === schedule.doctorId && form.selectedDate === selectedScheduleDate,
                   disabled: !isScheduleSelectable(schedule),
@@ -129,23 +129,32 @@
                 }"
                 @click="selectDoctorSchedule(selectedScheduleDate, schedule)"
               >
-                <div class="schedule-main">
-                  <div class="schedule-doctor">
-                    <span class="doctor-avatar-mini">{{ getDoctorInitial(schedule) }}</span>
-                    <div>
-                      <strong>{{ schedule.doctorName || '医生' }}</strong>
-                      <span>{{ schedule.levelName || '普通号' }}</span>
-                    </div>
+                <div class="slot-field slot-time-field doctor-field">
+                  <span class="doctor-avatar">
+                    <img
+                      :src="getDoctorAvatar(schedule)"
+                      :alt="schedule.doctorName || '医生'"
+                      @error="onDoctorAvatarError"
+                    />
+                    <span v-if="!schedule.avatarOk" class="doctor-avatar-fallback">{{ getDoctorInitial(schedule) }}</span>
+                  </span>
+                  <div class="doctor-meta">
+                    <strong>{{ schedule.doctorName || '医生' }}</strong>
+                    <span class="doctor-sub">
+                      <em>{{ schedule.levelName || '普通号' }}</em>
+                      <span class="doctor-time">{{ schedule.startTime }}-{{ schedule.endTime }} 可约</span>
+                    </span>
                   </div>
-                  <div class="schedule-time">{{ schedule.startTime }}-{{ schedule.endTime }} 可约</div>
                 </div>
-                <div class="schedule-meta">
+                <div class="slot-field">
+                  <span class="slot-label">余号数量</span>
+                  <strong>{{ schedule.availableNumber || Math.max(getScheduleMaxNumber(schedule) - getScheduleReservedNumber(schedule), 0) }}</strong>
+                </div>
+                <div class="slot-field slot-fee-field">
+                  <span class="slot-label">挂号费用</span>
                   <strong>{{ formatMoney(schedule.fee) }}</strong>
-                  <span>{{ getScheduleAvailableText(schedule) }}</span>
                 </div>
-                <div v-if="form.doctorId === schedule.doctorId && form.selectedDate === selectedScheduleDate" class="select-mark">
-                  <div class="mark-circle">✓</div>
-                </div>
+                <van-icon class="slot-arrow" name="arrow" />
               </div>
             </div>
             <div v-else-if="availableScheduleDates.length" class="empty-day">请选择上方日期查看医生号源</div>
@@ -339,6 +348,8 @@ import { createRegister, getDeptList, getOpenDoctorSlots, getOpenScheduleSlots }
 import { getPatientByUserId } from '@/api/patient'
 import { getInfo } from '@/api/user'
 import { payRegister } from '@/api/payment'
+import doctorAvatar1 from '@/assets/doctor1.png'
+import doctorAvatar2 from '@/assets/doctor2.png'
 
 console.log('[Register] module loaded')
 const router = useRouter()
@@ -505,6 +516,68 @@ const getDoctorInitial = (schedule) => {
   return (schedule?.doctorName || '医').charAt(0)
 }
 
+const doctorAvatarPool = [doctorAvatar1, doctorAvatar2]
+const doctorAvatarMap = new Map()
+const joinApiPath = (path) => {
+  const base = import.meta.env.VITE_APP_BASE_API || ''
+  if (!base) return path
+  return `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
+}
+
+const resolveAvatarUrl = (avatar) => {
+  const raw = String(avatar || '').trim()
+  if (!raw) return ''
+  if (/^(data:|blob:|https?:\/\/)/i.test(raw)) return raw
+  if (raw.startsWith(import.meta.env.VITE_APP_BASE_API || '/__empty_base__')) return raw
+  if (raw.startsWith('/profile/') || raw.startsWith('profile/')) return joinApiPath(raw)
+  if (raw.startsWith('/')) return joinApiPath(raw)
+  return joinApiPath(`/profile/${raw}`)
+}
+
+const getDefaultDoctorAvatar = (schedule) => {
+  const id = schedule?.doctorId
+  if (id == null) return doctorAvatarPool[0]
+  if (doctorAvatarMap.has(id)) return doctorAvatarMap.get(id)
+  const seed = String(id).split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
+  const nameSeed = (schedule?.doctorName || '').charCodeAt(0) || 0
+  const avatar = doctorAvatarPool[(seed + nameSeed) % doctorAvatarPool.length]
+  doctorAvatarMap.set(id, avatar)
+  return avatar
+}
+
+const getDoctorAvatar = (schedule) => {
+  schedule.avatarOk = true
+  if (!schedule?.avatarBroken) {
+    const dbAvatar = resolveAvatarUrl(schedule?.avatar)
+    if (dbAvatar) return dbAvatar
+  }
+  return getDefaultDoctorAvatar(schedule)
+}
+
+const onDoctorAvatarError = (event) => {
+  const target = event?.target
+  const card = target?.closest('.slot-card')
+  let item = null
+  if (card) {
+    const scheduleKey = card.dataset?.scheduleKey
+    if (scheduleKey) {
+      item = (selectedDateSchedules.value || []).find(
+        (s) => `${selectedScheduleDate.value}-${s.slotId || s.scheduleId || s.doctorId}` === scheduleKey
+      )
+    }
+  }
+  if (item && !item.avatarBroken && resolveAvatarUrl(item.avatar)) {
+    item.avatarBroken = true
+    if (target) {
+      target.style.display = 'block'
+      target.src = getDefaultDoctorAvatar(item)
+    }
+    return
+  }
+  if (target && target.style) target.style.display = 'none'
+  if (item) item.avatarOk = false
+}
+
 const scheduleDateGroups = computed(() => {
   const grouped = new Map()
   doctorSlotList.value.forEach((schedule) => {
@@ -638,6 +711,9 @@ const normalizeSchedule = (schedule) => {
     doctorId: schedule.doctorId ?? schedule.doctor_id,
     deptId: schedule.deptId ?? schedule.dept_id,
     doctorName: schedule.doctorName ?? schedule.doctor_name,
+    avatar: schedule.avatar,
+    avatarOk: true,
+    avatarBroken: false,
     levelId: schedule.levelId ?? schedule.level_id,
     levelName: schedule.levelName ?? schedule.level_name,
     fee: schedule.fee ?? schedule.registerFee ?? schedule.register_fee,
@@ -1411,14 +1487,14 @@ onMounted(() => {
 }
 
 .date-card {
-  min-width: 72px;
-  min-height: 68px;
+  min-width: 64px;
+  min-height: 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 6px 8px;
+  gap: 1px;
+  padding: 4px 6px;
   border: 1px solid rgba(213, 237, 243, 0.9);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.62);
@@ -1427,20 +1503,20 @@ onMounted(() => {
   transition: all 0.25s ease;
 
   strong {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: #4f7380;
+    line-height: 1.2;
   }
 
   em {
-    font-size: 12px;
-    color: #8e9fa8;
-    font-style: normal;
+    display: none;
   }
 
   small {
-    font-size: 12px;
+    font-size: 10px;
     color: #68a895;
+    line-height: 1.2;
   }
 
   &:hover {
@@ -1457,127 +1533,15 @@ onMounted(() => {
 }
 
 .date-week {
-  font-size: 13px;
+  font-size: 11px;
   color: #7e98a4;
+  line-height: 1.2;
 }
 
 .schedule-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.schedule-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 16px;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.8);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  &.selected {
-    border-color: #68c7a9;
-    background: linear-gradient(135deg, rgba(104, 199, 169, 0.1), rgba(142, 214, 242, 0.1));
-  }
-
-  &.disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    background: rgba(220, 230, 236, 0.9);
-  }
-
-  &.full {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: rgba(240, 83, 145, 0.08);
-  }
-
-  &.past {
-    opacity: 0.45;
-    cursor: not-allowed;
-    background: rgba(150, 160, 170, 0.08);
-  }
-}
-
-.schedule-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.schedule-doctor {
-  display: flex;
-  align-items: center;
   gap: 10px;
-  min-width: 0;
-
-  div {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  strong {
-    font-size: 16px;
-    color: #4f7380;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  span:last-child {
-    font-size: 12px;
-    color: #68c7a9;
-  }
-}
-
-.doctor-avatar-mini {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.schedule-meta {
-  min-width: 78px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  text-align: right;
-
-  strong {
-    font-size: 16px;
-    color: #f05391;
-  }
-
-  span {
-    font-size: 12px;
-    line-height: 1.35;
-    color: #68c7a9;
-  }
 }
 
 .empty-day {
@@ -1587,6 +1551,89 @@ onMounted(() => {
   color: #8e9fa8;
   font-size: 13px;
   text-align: center;
+}
+
+// 医生卡片（步骤 2 复用 slot-card 样式时的扩展）
+.doctor-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doctor-avatar {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 14px rgba(104, 199, 169, 0.22);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.doctor-avatar-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.doctor-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  > strong {
+    display: block;
+    font-size: 14px;
+    color: #4f7380;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+  }
+}
+
+.doctor-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #8e9fa8;
+
+  em {
+    flex: 0 0 auto;
+    font-style: normal;
+    color: #68c7a9;
+    background: rgba(104, 199, 169, 0.12);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-weight: 700;
+  }
+}
+
+.doctor-time {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .slot-list {
@@ -1920,8 +1967,12 @@ onMounted(() => {
 }
 
 .time-card-header {
-  justify-content: space-between;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+
+  .header-text {
+    margin-bottom: 10px;
+  }
 }
 
 .appt-info-inline {
@@ -1929,6 +1980,7 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 6px 16px;
   align-items: center;
+  width: 100%;
 }
 
 .appt-info-row {
@@ -1966,13 +2018,19 @@ onMounted(() => {
   color: #f05391;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .content-section {
-    padding: 0 8px;
+    padding: 0 6px;
   }
 
   .form-card {
-    padding: 22px 16px;
+    min-height: 320px;
+    padding: 18px 12px;
+  }
+
+  .card-header {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
   }
 
   .department-selector {
@@ -1994,18 +2052,59 @@ onMounted(() => {
   }
 
   .date-card {
-    min-width: 82px;
-    min-height: 88px;
-    padding: 9px 7px;
+    min-width: 72px;
+    min-height: 58px;
+    padding: 6px 7px;
+    gap: 2px;
+
+    strong {
+      font-size: 13px;
+    }
+
+    small {
+      font-size: 10px;
+    }
+  }
+
+  .date-week {
+    font-size: 10px;
+  }
+
+  .slot-list {
+    gap: 9px;
+    margin: 0 -4px;
   }
 
   .slot-card {
-    gap: 8px;
-    padding: 10px;
+    min-height: 68px;
+    gap: 7px;
+    padding: 10px 8px;
   }
 
   .slot-time-field {
-    flex: 1.1;
+    flex: 1.22;
+  }
+
+  .doctor-field {
+    gap: 8px;
+  }
+
+  .doctor-avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .doctor-meta > strong {
+    font-size: 13px;
+  }
+
+  .doctor-sub {
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .doctor-time {
+    display: none;
   }
 
   .slot-card strong {
@@ -2014,6 +2113,14 @@ onMounted(() => {
 
   .slot-card .slot-label {
     font-size: 11px;
+  }
+
+  .slot-fee-field {
+    flex: 0.82;
+  }
+
+  .slot-arrow {
+    font-size: 17px;
   }
 
   .confirm-summary {
