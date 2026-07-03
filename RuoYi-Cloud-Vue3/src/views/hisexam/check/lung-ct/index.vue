@@ -121,6 +121,19 @@
               <el-tooltip content="放大"><el-button link @click="zoomIn"><el-icon><ZoomIn /></el-icon></el-button></el-tooltip>
               <el-tooltip content="缩小"><el-button link @click="zoomOut"><el-icon><ZoomOut /></el-icon></el-button></el-tooltip>
               <el-tooltip content="重置"><el-button link @click="resetZoom"><el-icon><RefreshRight /></el-icon></el-button></el-tooltip>
+              <el-upload
+                v-if="ctImageDisplay || uploadedFileName"
+                class="ct-reupload"
+                :auto-upload="false"
+                :show-file-list="false"
+                :on-change="handleFileSelect"
+                accept=".zip,.mhd,.nii,.nii.gz,.dcm"
+              >
+                <el-button link>
+                  <el-icon><Upload /></el-icon>
+                  <span>重新上传</span>
+                </el-button>
+              </el-upload>
             </div>
           </div>
           <div class="panel-body ct-viewer">
@@ -150,7 +163,7 @@
                 <p class="sub">{{ loadingText }}</p>
               </div>
               <!-- CT影像展示 -->
-              <img v-if="ctImageDisplay && !loading" :src="ctImageDisplay" class="ct-image" :style="imageStyle" />
+              <img v-if="ctImageDisplay && !loading" :src="ctImageDisplay" class="ct-image" :style="imageStyle" @error="handleMainImageError" />
               <div class="representative-ribbon" v-if="ctImageDisplay && !loading">
                 服务端代表切片
               </div>
@@ -242,6 +255,7 @@
                       class="stage-contour-line"
                     />
                     <text
+                      v-if="item.key !== 'segmentation'"
                       :x="det.bbox_x1"
                       :y="Math.max(12, det.bbox_y1 - 5)"
                       :class="['stage-label', item.key, riskClass(det)]"
@@ -291,6 +305,14 @@
               <el-tag type="success" size="small" effect="dark" round>分析完成</el-tag>
             </div>
             <div class="annotation-stats">
+              <div class="stat-badge info">
+                <span class="badge-num">{{ stats.rawCandidateRegions }}</span>
+                <span class="badge-txt">原始候选</span>
+              </div>
+              <div class="stat-badge solid">
+                <span class="badge-num">{{ stats.totalNoduleCandidates }}</span>
+                <span class="badge-txt">真结节 {{ formatPercent(stats.trueNoduleRatioActual) }}</span>
+              </div>
               <div class="stat-badge solid">
                 <span class="badge-num">{{ stats.solidNodules }}</span>
                 <span class="badge-txt">实性结节</span>
@@ -305,7 +327,7 @@
               </div>
               <div class="stat-badge risk">
                 <span class="badge-num">{{ stats.highRiskNodules }}</span>
-                <span class="badge-txt">高风险</span>
+                <span class="badge-txt">高风险 {{ formatPercent(stats.highRiskRatioActual) }}</span>
               </div>
               <div class="stat-badge info">
                 <span class="badge-num">{{ totalSlices }}</span>
@@ -316,7 +338,7 @@
 
           <div class="nodule-table-area" v-if="allCandidates.length > 0">
             <h4>
-              <span class="sec-dot"></span>检测到 {{ allCandidates.length }} 个结节候选区域
+              <span class="sec-dot"></span>筛选后保留 {{ allCandidates.length }} 个可信真结节
             </h4>
             <el-table :data="paginatedCandidates" size="small" stripe border style="width:100%">
               <el-table-column prop="slice_z" label="Z层" width="60" />
@@ -599,6 +621,7 @@ const stageSlice = reactive({
 })
 const totalSlices = ref(0)
 const zoom = ref(1)
+const brokenMainImageSrc = ref('')
 
 const imageStyle = computed(() => ({ transform: `scale(${zoom.value})` }))
 
@@ -613,22 +636,36 @@ const sliceCountFromResult = (data) => {
 }
 
 const stripDataUrlPrefix = (src) => {
-  if (!src) return ''
-  if (src.startsWith('data:image')) return src.split(',')[1] || ''
-  return src
+  if (typeof src !== 'string') return ''
+  const text = src.trim()
+  if (!text) return ''
+  if (text.startsWith('data:image')) return text.split(',')[1] || ''
+  return text
 }
 
 const normalizeImageSrc = (src) => {
-  if (!src) return ''
-  if (src.startsWith('/') || src.startsWith('http') || src.startsWith('data:image')) return src
-  return 'data:image/png;base64,' + src
+  if (typeof src !== 'string') return ''
+  const text = src.trim()
+  if (!text || text === 'null' || text === 'undefined' || text === 'false') return ''
+  if (text.startsWith('/') || text.startsWith('http') || text.startsWith('blob:') || text.startsWith('data:image')) return text
+  if (/^(profile|dev-api|prod-api|stage-api)\//i.test(text)) return `/${text}`
+  if (/\.(png|jpe?g|webp|gif|bmp)(\?.*)?$/i.test(text)) return text.startsWith('/') ? text : `/${text}`
+  if (/^[A-Za-z0-9+/=\r\n]+$/.test(text) && text.length > 100) return 'data:image/png;base64,' + text
+  return ''
 }
 
 const looksLikeImageString = (value) => {
   if (typeof value !== 'string') return false
   const text = value.trim()
-  if (!text) return false
-  if (text.startsWith('data:image') || text.startsWith('http') || text.startsWith('/')) return true
+  if (!text || text === 'null' || text === 'undefined' || text === 'false') return false
+  if (
+    text.startsWith('data:image') ||
+    text.startsWith('http') ||
+    text.startsWith('blob:') ||
+    text.startsWith('/') ||
+    /^(profile|dev-api|prod-api|stage-api)\//i.test(text) ||
+    /\.(png|jpe?g|webp|gif|bmp)(\?.*)?$/i.test(text)
+  ) return true
   return text.length > 100 && /^[A-Za-z0-9+/=\r\n]+$/.test(text)
 }
 
@@ -793,20 +830,37 @@ const isRepresentativeSlice = computed(() => {
   return currentSlice.value === Math.min(Math.max((analysisResult.value.previewSliceIndex ?? 0) + 1, 1), totalSlices.value || 1)
 })
 
+const representativeImageSrc = () => {
+  if (!analysisResult.value) return ''
+  const outputs = analysisResult.value.stageOutputs || {}
+  return normalizeImageSrc(
+    analysisResult.value.previewImage ||
+    outputs.detectionImage ||
+    outputs.segmentationImage ||
+    outputs.malignancyImage ||
+    ''
+  )
+}
+
+const displayableImageSrc = (src) => {
+  const normalized = normalizeImageSrc(src)
+  return normalized && normalized !== brokenMainImageSrc.value ? normalized : ''
+}
+
 // 当前显示的CT图像：默认定位代表切片，同时支持用滑条浏览返回的原始切片。
 const ctImageDisplay = computed(() => {
   if (!analysisResult.value) return ''
   if (savedSlicesLoaded.value && savedSlices.value.length > 0) {
     const idx = Math.min(Math.max(currentSlice.value - 1, 0), savedSlices.value.length - 1)
     const slice = savedSlices.value[idx]
-    return slice.imagePath || slice.rawImagePath || ''
+    return displayableImageSrc(slice.rawImagePath || slice.imagePath) || displayableImageSrc(representativeImageSrc())
   }
   const slices = realtimeBrowseSlices.value
   if (slices.length) {
     const idx = Math.min(Math.max(currentSlice.value - 1, 0), slices.length - 1)
-    return normalizeImageSrc(imageFromValue(slices[idx]))
+    return displayableImageSrc(imageFromValue(slices[idx])) || displayableImageSrc(representativeImageSrc())
   }
-  return normalizeImageSrc(analysisResult.value.previewImage)
+  return displayableImageSrc(representativeImageSrc())
 })
 
 const stageOutputSrc = (stage) => {
@@ -841,6 +895,16 @@ const prevSlice = () => { if (currentSlice.value > 1) currentSlice.value-- }
 const nextSlice = () => { if (currentSlice.value < (totalSlices.value || 1)) currentSlice.value++ }
 const prevStageSlice = (key) => { if (stageSlice[key] > 1) stageSlice[key]-- }
 const nextStageSlice = (key) => { if (stageSlice[key] < (totalSlices.value || 1)) stageSlice[key]++ }
+
+const handleMainImageError = () => {
+  const badSrc = ctImageDisplay.value
+  if (badSrc) brokenMainImageSrc.value = badSrc
+  const previewNo = Math.min(Math.max((analysisResult.value?.previewSliceIndex ?? 0) + 1, 1), totalSlices.value || 1)
+  if (currentSlice.value !== previewNo) currentSlice.value = previewNo
+  if (fileSelected.value || uploadedFileName.value) {
+    ElMessage.warning('当前切片图片加载失败，已尝试切换到代表切片')
+  }
+}
 
 // ============ 分析状态 ============
 const loading = ref(false)
@@ -907,7 +971,7 @@ const candidatesForSlice = (sliceNo) => {
 }
 
 const contourPoints = (det) => {
-  const contour = det?.segmentation?.contour || []
+  const contour = det?.segmentation?.displayContour || det?.segmentation?.contour || []
   if (!Array.isArray(contour) || contour.length < 3) return ''
   return contour
     .map(p => Array.isArray(p) ? `${Number(p[1])},${Number(p[0])}` : '')
@@ -953,7 +1017,7 @@ const stagePanelItems = computed(() => {
       index: 3,
       key: 'malignancy',
       title: '良恶性鉴别诊断',
-      note: '输出风险等级与概率标注图；前三个阶段图最终同时保留。',
+      note: '标出全部低/中/高风险结节区域，颜色区分风险等级。',
       runningText: '正在计算良恶性风险...',
       waitingText: '等待第 02 步完成后输出风险评估图'
     }
@@ -995,15 +1059,36 @@ const paginatedCandidates = computed(() => {
 
 // 汇总统计
 const stats = computed(() => {
-  if (!analysisResult.value) return { solidNodules: 0, ggoNodules: 0, calcifiedNodules: 0, highRiskNodules: 0 }
+  if (!analysisResult.value) {
+    return {
+      rawCandidateRegions: 0,
+      totalNoduleCandidates: 0,
+      solidNodules: 0,
+      ggoNodules: 0,
+      calcifiedNodules: 0,
+      highRiskNodules: 0,
+      trueNoduleRatioActual: 0,
+      highRiskRatioActual: 0
+    }
+  }
   const s = analysisResult.value.stats || {}
   return {
+    rawCandidateRegions: s.rawCandidateRegions || 0,
+    totalNoduleCandidates: s.totalNoduleCandidates || 0,
     solidNodules: s.solidNodules || 0,
     ggoNodules: s.ggoNodules || 0,
     calcifiedNodules: s.calcifiedNodules || 0,
-    highRiskNodules: s.highRiskNodules || 0
+    highRiskNodules: s.highRiskNodules || 0,
+    trueNoduleRatioActual: s.trueNoduleRatioActual || 0,
+    highRiskRatioActual: s.highRiskRatioActual || 0
   }
 })
+
+const formatPercent = (value) => {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '0%'
+  return `${Math.round(n * 100)}%`
+}
 
 const malignancySummary = computed(() => {
   const m = analysisResult.value?.malignancyAssessment || {}
@@ -1162,6 +1247,9 @@ const handleFileSelect = async (uploadFile) => {
 
   uploadedFileName.value = file.name
   fileSelected.value = true
+  brokenMainImageSrc.value = ''
+  savedSlicesLoaded.value = false
+  savedSlices.value = []
 
   // 自动开始分析
   await doAnalyze(file)
@@ -1173,7 +1261,8 @@ const startAIAnalysis = async () => {
     return
   }
   // 重新选文件
-  document.querySelector('.ct-upload input[type="file"]')?.click()
+  document.querySelector('.ct-reupload input[type="file"]')?.click()
+    || document.querySelector('.ct-upload input[type="file"]')?.click()
 }
 
 const doAnalyze = async (file) => {
@@ -1184,6 +1273,7 @@ const doAnalyze = async (file) => {
   analysisDone.value = false
   pipelineRevealing.value = false
   currentStage.value = 0
+  brokenMainImageSrc.value = ''
   stage1Done.value = false
   stage2Done.value = false
   stage3Done.value = false
@@ -1199,7 +1289,7 @@ const doAnalyze = async (file) => {
   logLungCtDebug('analyze.request', {
     fileName: file.name,
     fileSize: file.size,
-    params: { max_slices: 80, max_candidates: 80, enable_autodl: false, lightweight: true }
+    params: { max_slices: 180, max_candidates: 600, enable_autodl: false, lightweight: true }
   })
 
   // 模拟进度
@@ -1214,7 +1304,7 @@ const doAnalyze = async (file) => {
   }, 600)
 
   try {
-    const res = await analyzeLungCt(file, { max_slices: 80, max_candidates: 80, enable_autodl: false, lightweight: true })
+    const res = await analyzeLungCt(file, { max_slices: 180, max_candidates: 600, enable_autodl: false, lightweight: true })
 
     clearInterval(progressTimer)
     loadingProgress.value = 100
@@ -1399,33 +1489,61 @@ async function saveCurrentLungSlice() {
   }
 }
 
+function limitText(text, max = 260) {
+  const value = String(text || '').trim()
+  return value.length > max ? `${value.slice(0, max)}...` : value
+}
+
+function buildLungSuggestionText() {
+  const candidates = [...(allCandidates.value || [])]
+  const highRisk = candidates.filter(c => c.malignancyRisk === '高风险').length
+  const midRisk = candidates.filter(c => c.malignancyRisk === '中风险').length
+  const advice = analysisResult.value?.malignancyAssessment?.recommendation
+    || analysisResult.value?.malignancyAssessment?.advice
+    || ''
+
+  if (advice) return limitText(advice, 500)
+  if (highRisk > 0) return '存在高风险结节，建议结合临床资料完善增强CT/专科评估，并按肺结节诊疗规范随访或进一步处理。'
+  if (midRisk > 0) return '存在中风险结节，建议结合既往影像对比，按医嘱定期复查胸部CT。'
+  if (candidates.length > 0) return '当前以低风险结节为主，建议结合症状及危险因素定期随访。'
+  return '本次未见明确可评估结节，建议结合临床情况常规随访。'
+}
+
 function buildDiagnosisPayload() {
   const candidates = allCandidates.value || []
+  const topRisks = [...candidates]
+    .sort((a, b) => (b.malignancyProbability || 0) - (a.malignancyProbability || 0))
+    .slice(0, 3)
+    .map(c => ({
+      sliceZ: c.slice_z,
+      type: c.type,
+      diameterMm: Number(c.diameter_mm || 0).toFixed(1),
+      risk: c.malignancyRisk || '低风险',
+      probability: Math.round((c.malignancyProbability || 0) * 100)
+    }))
+
   return JSON.stringify({
     checkType: 'LUNG_CT',
-    findings: diagnosisForm.findings,
-    impression: malignancySummary.value.conclusion,
-    conclusion: malignancySummary.value.overallRisk,
-    remark: diagnosisForm.remark,
+    diagnosis: {
+      findings: limitText(diagnosisForm.findings, 420),
+      impression: limitText(malignancySummary.value.conclusion, 220),
+      conclusion: malignancySummary.value.overallRisk,
+      remark: limitText(diagnosisForm.remark, 160)
+    },
     stats: {
+      rawCandidateRegions: stats.value.rawCandidateRegions,
+      totalNoduleCandidates: stats.value.totalNoduleCandidates || candidates.length,
       solidNodules: stats.value.solidNodules,
       ggoNodules: stats.value.ggoNodules,
       calcifiedNodules: stats.value.calcifiedNodules,
       highRiskNodules: stats.value.highRiskNodules
     },
-    detectionClassification: analysisResult.value?.detectionClassification || null,
-    segmentationAssessment: analysisResult.value?.segmentationAssessment || null,
-    segmentationData: analysisResult.value?.segmentationData || null,
-    stageOutputs: analysisResult.value?.stageOutputs || null,
-    detectionResult: candidates.length > 0 ? candidates.map(c => ({
-      type: c.type, diameter_mm: c.diameter_mm, sliceZ: c.slice_z,
-      classification: c.classification,
-      segmentation: c.segmentation,
-      malignancyRisk: c.malignancyRisk,
-      malignancyProbability: c.malignancyProbability
-    })) : null,
-    malignancyAssessment: analysisResult.value?.malignancyAssessment || null,
-    pipeline: analysisResult.value?.pipeline || null
+    aiResult: {
+      overallRisk: malignancySummary.value.overallRisk,
+      conclusion: limitText(malignancySummary.value.conclusion, 220),
+      topRisks
+    },
+    fileName: uploadedFileName.value
   })
 }
 
@@ -1563,6 +1681,8 @@ const saveDiagnosis = async () => {
       imageFind: diagnosisForm.findings || null,
       diagnosisOpinion: malignancySummary.value.conclusion || null,
       diagnosisResult: malignancySummary.value.overallRisk || null,
+      suggestion: buildLungSuggestionText() || null,
+      remark: diagnosisForm.remark || null,
       sort: 1,
       status: '1',
       reportTime: formatDateTime()
@@ -1698,6 +1818,36 @@ function formatDateTime(date = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
+function resetLungCtWorkspace() {
+  uploadedFileName.value = ''
+  fileSelected.value = false
+  currentSlice.value = 1
+  totalSlices.value = 0
+  zoom.value = 1
+  brokenMainImageSrc.value = ''
+  loading.value = false
+  analyzing.value = false
+  analysisDone.value = false
+  analysisResult.value = null
+  pipelineRevealing.value = false
+  currentStage.value = 0
+  pipelineStageIndex.value = 0
+  stage1Done.value = false
+  stage2Done.value = false
+  stage3Done.value = false
+  stageSlice.detection = 1
+  stageSlice.segmentation = 1
+  stageSlice.malignancy = 1
+  stageDetectionSrc.value = ''
+  stageSegmentationSrc.value = ''
+  stageMalignancySrc.value = ''
+  allCandidates.value = []
+  candidatePage.value = 1
+  savedSliceImageUrl.value = ''
+  savedSlices.value = []
+  savedSlicesLoaded.value = false
+}
+
 async function loadApplyDetail() {
   const applyId = route.query.applyId
   if (!applyId) {
@@ -1706,10 +1856,10 @@ async function loadApplyDetail() {
     return
   }
   currentApplyId.value = applyId
+  resetLungCtWorkspace()
   try {
     const res = await getApply(applyId)
     fillPatientFromApply(res.data || {})
-    await loadSavedSlices(applyId)
   } catch (e) {
     ElMessage.error('申请单加载失败，无法执行检查')
     router.back()
@@ -1950,7 +2100,7 @@ onMounted(() => {
             }
 
             .stage-contour-fill {
-              fill: rgba(239, 68, 68, .25);
+              fill: rgba(239, 68, 68, .42);
             }
 
             .stage-contour-line {
@@ -2083,6 +2233,7 @@ onMounted(() => {
           &.solid { color: #C2410C; }
           &.ggo { color: #D97706; }
           &.calc { color: #0F766E; }
+          &.risk { color: #DC2626; }
           &.info { color: #16614D; }
         }
       }
