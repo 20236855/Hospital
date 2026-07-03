@@ -101,9 +101,13 @@ public class PatientServiceImpl implements IPatientService
         {
             throw new ServiceException("当前登录用户不能为空");
         }
-        if (patientMapper.selectPatientByUserId(patient.getUserId()) != null)
+        Patient existing = patientMapper.selectPatientByUserId(patient.getUserId());
+        if (existing != null)
         {
-            throw new ServiceException("患者档案已存在，请勿重复完善");
+            // 已存在则更新
+            patient.setPatientId(existing.getPatientId());
+            patient.setUpdateTime(DateUtils.getNowDate());
+            return patientMapper.updatePatient(patient);
         }
         if (StringUtils.isEmpty(patient.getPatientNo()))
         {

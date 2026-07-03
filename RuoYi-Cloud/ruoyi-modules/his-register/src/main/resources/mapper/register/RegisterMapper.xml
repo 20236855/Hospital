@@ -21,6 +21,7 @@
         <result property="idCard"    column="id_card"    />
         <result property="patientName"    column="patient_name"    />
         <result property="doctorName"    column="doctor_name"    />
+        <result property="doctorAvatar" column="doctor_avatar" />
         <result property="deptName"    column="dept_name"    />
         <result property="levelName"    column="level_name"    />
         <result property="startTime"    column="start_time"    />
@@ -34,7 +35,7 @@
         select r.register_id, r.register_no, r.patient_id, r.schedule_id, r.slot_id, r.doctor_id, r.dept_id, r.level_id,
         r.register_type, r.register_status, r.pay_status, r.register_fee, r.register_time, r.remark,
         r.create_time, r.update_time, p.id_card, p.name as patient_name,
-        d_dept.dept_name, dr.doctor_name, rl.level_name,
+        d_dept.dept_name, dr.doctor_name, dr.avatar as doctor_avatar, rl.level_name,
         date_format(ss.start_time, '%H:%i') as start_time,
         date_format(ss.end_time, '%H:%i') as end_time
         from register r

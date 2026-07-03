@@ -37,26 +37,6 @@
       </el-form>
     </div>
 
-    <!-- ===== 工具栏 ===== -->
-    <el-row :gutter="10" class="toolbar-row">
-      <el-col :span="1.5">
-        <el-button type="success" :color="'#1A6B54'" icon="MagicStick" @click="openAIAssistantFirst">🤖 AI助手</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['emr:encounter:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['emr:encounter:edit']">修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['emr:encounter:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['emr:encounter:export']">导出</el-button>
-      </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
-
     <!-- ===== 数据表格 ===== -->
     <div class="table-wrap">
       <el-table v-loading="loading" :data="encounterList" @selection-change="handleSelectionChange" stripe>
@@ -719,7 +699,6 @@ getList(); getPatientOptions()
 <style scoped lang="scss">
 .encounter-page {
   .search-panel { background: #F8FAFC; border-radius: 12px; padding: 20px 16px 4px; margin-bottom: 14px; border: 1px solid #E2E8F0; }
-  .toolbar-row { margin-bottom: 14px; }
   .table-wrap {
     border-radius: 12px; overflow: hidden; border: 1px solid #E2E8F0;
     :deep(.el-table) {

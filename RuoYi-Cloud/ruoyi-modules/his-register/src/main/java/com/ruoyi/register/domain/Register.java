@@ -79,6 +79,9 @@ public class Register extends BaseEntity
     /** 医生姓名（查询/展示用，不入挂号表） */
     private String doctorName;
 
+    /** 医头像（查询/展示用，不入挂号表） */
+    private String doctorAvatar;
+
     /** 科室名称（查询/展示用，不入挂号表） */
     private String deptName;
 
@@ -249,6 +252,16 @@ public class Register extends BaseEntity
     public String getDoctorName()
     {
         return doctorName;
+    }
+
+    public void setDoctorAvatar(String doctorAvatar)
+    {
+        this.doctorAvatar = doctorAvatar;
+    }
+
+    public String getDoctorAvatar()
+    {
+        return doctorAvatar;
     }
 
     public void setDeptName(String deptName)

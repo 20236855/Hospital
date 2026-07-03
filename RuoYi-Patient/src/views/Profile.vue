@@ -15,9 +15,9 @@
     </div>
 
     <div class="content-section">
-      <div class="profile-card slide-up-animation">
+      <div class="profile-card">
         <div class="profile-header">
-          <div class="user-avatar float-animation">
+          <div class="user-avatar">
             <span class="avatar-text">{{ (userName || '患').charAt(0) }}</span>
           </div>
           <div class="user-info">
@@ -55,7 +55,7 @@
         </div>
       </div>
 
-      <div class="health-card slide-up-animation" style="animation-delay: 0.08s">
+      <div class="health-card">
         <div class="card-title-row">
           <div>
             <strong>健康档案</strong>
@@ -79,7 +79,7 @@
         </div>
       </div>
 
-      <div class="menu-card slide-up-animation" style="animation-delay: 0.16s">
+      <div class="menu-card">
         <div class="menu-section">
           <div class="menu-title">我的服务</div>
           <div class="menu-item" @click="goToInfo">
@@ -115,7 +115,7 @@
         </div>
       </div>
 
-      <div class="menu-card slide-up-animation" style="animation-delay: 0.24s">
+      <div class="menu-card">
         <div class="menu-section">
           <div class="menu-title">其他</div>
           <div class="menu-item" @click="showToast('帮助中心功能开发中')">
@@ -151,7 +151,7 @@
         </div>
       </div>
 
-      <div class="logout-section slide-up-animation" style="animation-delay: 0.32s">
+      <div class="logout-section">
         <van-button round block class="logout-btn" @click="doLogout">
           <van-icon name="log-out" />
           退出登录
@@ -582,20 +582,20 @@ onMounted(() => {
 }
 
 .menu-card {
-  background: rgba(255, 255, 255, 0.82);
-  border-radius: 16px;
-  padding: 20px 16px;
-  border: 1px solid rgba(194, 228, 236, 0.72);
-  box-shadow: var(--card-shadow);
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px 16px;
+  border: 1px solid #e4eaf0;
+  box-shadow: 0 6px 18px rgba(31, 52, 64, 0.06);
   backdrop-filter: blur(8px);
 }
 
 .health-card {
-  background: rgba(255, 255, 255, 0.82);
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid rgba(194, 228, 236, 0.72);
-  box-shadow: var(--card-shadow);
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  border: 1px solid #e4eaf0;
+  box-shadow: 0 6px 18px rgba(31, 52, 64, 0.06);
   backdrop-filter: blur(8px);
 }
 

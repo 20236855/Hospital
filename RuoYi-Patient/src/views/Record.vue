@@ -307,7 +307,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .record-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--bg-gradient);
   padding-bottom: 60px;
   position: relative;
   overflow-x: hidden;
@@ -366,29 +366,26 @@ onMounted(() => {
 }
 
 .header-section {
-  padding: 16px 18px 14px;
+  padding: 16px 20px 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: #fff;
-  border-bottom: 1px solid #e6ebf1;
+  gap: 16px;
 }
 
 .header-back {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: #f2f6f8;
-  border: 1px solid #e2e8ef;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  transition: all 0.3s ease;
 
   &:active {
-    transform: scale(0.98);
-    background: #e8f1f3;
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.8);
   }
 
   .van-icon {
@@ -403,9 +400,9 @@ onMounted(() => {
   gap: 12px;
 
   h1 {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
-    color: #1f3440;
+    color: #4f7380;
     margin: 0;
   }
 }

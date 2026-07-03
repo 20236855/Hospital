@@ -1,56 +1,45 @@
 <template>
   <div class="appointments-page">
-    <div class="ambient-layer" aria-hidden="true">
-      <span class="mesh mesh-a"></span>
-      <span class="mesh mesh-b"></span>
-      <span class="grid-plane"></span>
-    </div>
+    <div class="auth-bg-cross cross-one"></div>
+    <div class="auth-bg-cross cross-two"></div>
+    <div class="auth-bg-cross cross-three"></div>
+    <div class="auth-bg-cross cross-four"></div>
 
-    <header class="page-header slide-up-animation">
-      <button class="icon-button" type="button" @click="goBack">
+    <div class="header-section">
+      <div class="header-back" @click="goBack">
         <van-icon name="arrow-left" />
-      </button>
-      <div class="title-block">
-        <span>APPOINTMENTS</span>
+      </div>
+      <div class="header-title">
         <h1>我的预约</h1>
       </div>
-      <button class="icon-button" type="button" @click="onRefresh">
-        <van-icon name="replay" />
-      </button>
-    </header>
+    </div>
 
     <main class="content-section">
-      <section class="overview-panel slide-up-animation" style="animation-delay: 0.06s">
+      <section class="overview-panel">
         <div class="overview-copy">
           <p>智慧就诊队列</p>
           <h2>{{ nextAppointment ? '下一次就诊已同步' : '暂无待办就诊' }}</h2>
           <span>{{ nextAppointment ? formatAppointmentTime(nextAppointment) : '可以快速发起新的预约挂号' }}</span>
         </div>
-        <div class="overview-orbit" aria-hidden="true">
-          <span class="orbit-ring ring-a"></span>
-          <span class="orbit-ring ring-b"></span>
-          <span class="orbit-core">
-            <van-icon name="todo-list-o" />
-          </span>
+        <div class="overview-stats">
+          <div class="os-item">
+            <strong>{{ appointmentList.length }}</strong>
+            <span>全部预约</span>
+          </div>
+          <div class="os-divider"></div>
+          <div class="os-item">
+            <strong>{{ unpaidCount }}</strong>
+            <span>待支付</span>
+          </div>
+          <div class="os-divider"></div>
+          <div class="os-item">
+            <strong>{{ todayCount }}</strong>
+            <span>今日就诊</span>
+          </div>
         </div>
       </section>
 
-      <section class="stats-grid slide-up-animation" style="animation-delay: 0.12s">
-        <div class="stat-card">
-          <strong>{{ appointmentList.length }}</strong>
-          <span>全部预约</span>
-        </div>
-        <div class="stat-card">
-          <strong>{{ unpaidCount }}</strong>
-          <span>待支付</span>
-        </div>
-        <div class="stat-card">
-          <strong>{{ todayCount }}</strong>
-          <span>今日就诊</span>
-        </div>
-      </section>
-
-      <section class="quick-bar slide-up-animation" style="animation-delay: 0.18s">
+      <section class="quick-bar">
         <button type="button" @click="goToRegister">
           <van-icon name="add-o" />
           新预约
@@ -61,11 +50,11 @@
         </button>
       </section>
 
-      <section class="filter-section slide-up-animation" style="animation-delay: 0.24s">
+      <section class="filter-section">
         <button
           v-for="tab in filterTabs"
           :key="tab.value"
-          class="filter-chip"
+          class="filter-tab"
           :class="{ active: activeFilter === tab.value }"
           type="button"
           @click="activeFilter = tab.value"
@@ -101,7 +90,10 @@
                 </div>
                 <div class="doctor-block">
                   <div class="doctor-row">
-                    <span class="doctor-avatar">{{ getAvatarText(item.doctorName) }}</span>
+                    <span class="doctor-avatar">
+                      <img v-if="item.doctorAvatar" :src="item.doctorAvatar" alt="" />
+                      <span v-else class="avatar-fallback">{{ getAvatarText(item.doctorName) }}</span>
+                    </span>
                     <div>
                       <h3>{{ item.doctorName || '接诊医生' }}</h3>
                       <p>{{ item.deptName || '门诊科室' }}</p>
@@ -497,57 +489,37 @@ onMounted(() => {
 .appointments-page {
   min-height: 100vh;
   background: var(--bg-gradient);
-  padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  padding-bottom: 60px;
   position: relative;
   overflow-x: hidden;
-  color: var(--text-primary);
 }
 
-.ambient-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
+.header-section {
+  padding: 16px 20px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.mesh,
-.grid-plane {
-  position: absolute;
+.header-back {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  &:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.8); }
+  .van-icon { color: #5f7580; font-size: 20px; }
 }
 
-.mesh {
-  border-radius: 999px;
-  filter: blur(3px);
-  animation: drift 9s ease-in-out infinite;
-}
-
-.mesh-a {
-  width: 260px;
-  height: 260px;
-  top: -96px;
-  right: -88px;
-  background: radial-gradient(circle, rgba(185, 225, 205, .76), rgba(185, 225, 205, 0) 68%);
-}
-
-.mesh-b {
-  width: 230px;
-  height: 230px;
-  left: -116px;
-  top: 290px;
-  background: radial-gradient(circle, rgba(142, 214, 242, .52), rgba(142, 214, 242, 0) 70%);
-  animation-delay: -3s;
-}
-
-.grid-plane {
-  inset: 0;
-  opacity: .24;
-  background-image:
-    linear-gradient(rgba(26, 77, 69, .08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26, 77, 69, .08) 1px, transparent 1px);
-  background-size: 28px 28px;
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .85), transparent 76%);
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .85), transparent 76%);
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  h1 { font-size: 24px; font-weight: 700; color: #4f7380; margin: 0; }
 }
 
 .page-header,
@@ -556,91 +528,44 @@ onMounted(() => {
   z-index: 1;
 }
 
-.page-header {
-  display: grid;
-  grid-template-columns: 44px 1fr 44px;
+.overview-panel {
+  border-radius: 12px;
+  padding: 16px 16px 4px;
+  background: #fff;
+  border: 1px solid #e4eaf0;
+  box-shadow: 0 6px 18px rgba(31, 52, 64, 0.06);
+  margin-bottom: 12px;
+}
+
+.overview-copy {
+  p { color: #7e98a4; font-size: 12px; font-weight: 600; margin: 0 0 4px; }
+  h2 { color: #1f3440; font-size: 20px; margin: 0 0 4px; line-height: 1.3; }
+  span { color: #7e98a4; font-size: 13px; display: block; }
+}
+
+.overview-stats {
+  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 18px 16px 12px;
+  margin-top: 14px;
+  padding: 12px 0;
+  border-top: 1px solid #edf1f5;
+  text-align: center;
 }
 
-.icon-button {
-  width: 44px;
-  height: 44px;
-  border: 1px solid rgba(213, 237, 243, .72);
-  border-radius: 16px;
-  background: rgba(255, 253, 248, .72);
-  color: var(--primary-color);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 12px 28px rgba(102, 170, 189, .12);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-
-  .van-icon {
-    font-size: 20px;
-  }
-
-  &:active {
-    transform: scale(.96);
-  }
+.os-item {
+  flex: 1;
+  strong { display: block; font-size: 22px; font-weight: 700; color: #1f3440; line-height: 1; }
+  span { display: block; font-size: 11px; color: #7e98a4; margin-top: 3px; font-weight: 600; }
 }
 
-.title-block {
-  min-width: 0;
-
-  span {
-    color: rgba(26, 77, 69, .58);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0;
-  }
-
-  h1 {
-    margin: 3px 0 0;
-    color: var(--primary-color);
-    font-size: 24px;
-    line-height: 1.15;
-  }
+.os-divider {
+  width: 1px;
+  height: 36px;
+  background: #edf1f5;
 }
 
 .content-section {
-  padding: 0 16px;
-}
-
-.overview-panel {
-  min-height: 158px;
-  border-radius: 18px;
-  padding: 20px;
-  overflow: hidden;
-  position: relative;
-  background:
-    linear-gradient(135deg, rgba(255, 253, 248, .88), rgba(255, 253, 248, .52)),
-    linear-gradient(120deg, rgba(185, 225, 205, .46), rgba(142, 214, 242, .26));
-  border: 1px solid rgba(213, 237, 243, .78);
-  box-shadow: 0 24px 56px rgba(102, 170, 189, .18);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(110deg, transparent 10%, rgba(255, 253, 248, .58) 46%, transparent 70%);
-    transform: translateX(-105%);
-    animation: sheen 5s ease-in-out infinite;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    right: -40px;
-    top: -54px;
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(142, 214, 242, .34), rgba(142, 214, 242, 0) 68%);
-  }
+  padding: 14px 14px 18px;
 }
 
 .overview-copy {
@@ -713,40 +638,6 @@ onMounted(() => {
   box-shadow: 0 16px 32px rgba(102, 170, 189, .14);
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.stat-card {
-  min-height: 70px;
-  border-radius: 14px;
-  padding: 14px 10px;
-  background: rgba(255, 253, 248, .74);
-  border: 1px solid rgba(213, 237, 243, .72);
-  box-shadow: 0 16px 34px rgba(102, 170, 189, .12);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-
-  strong {
-    color: var(--primary-color);
-    font-size: 23px;
-    line-height: 1;
-  }
-
-  span {
-    color: var(--text-light);
-    font-size: 11px;
-    font-weight: 800;
-  }
-}
-
 .quick-bar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -771,32 +662,41 @@ onMounted(() => {
 
 .filter-section {
   display: flex;
-  gap: 9px;
+  gap: 0;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid #e4eaf0;
   overflow-x: auto;
-  padding: 18px 0 12px;
   scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  &::-webkit-scrollbar { display: none; }
 }
 
-.filter-chip {
-  height: 34px;
-  border: 1px solid rgba(213, 237, 243, .78);
-  border-radius: 10px;
-  padding: 0 14px;
-  flex: 0 0 auto;
-  background: rgba(255, 253, 248, .68);
-  color: rgba(26, 77, 69, .62);
-  font-size: 13px;
-  font-weight: 800;
+.filter-tab {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: none;
+  background: none;
+  color: #7e98a4;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  padding: 0 12px;
 
   &.active {
-    color: #4f9fb4;
-    background: linear-gradient(135deg, rgba(185, 225, 205, .34), rgba(142, 214, 242, .22));
-    border-color: rgba(142, 214, 242, .34);
-    box-shadow: 0 12px 28px rgba(102, 170, 189, .14);
+    color: #4f7380;
+    font-weight: 700;
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -9px;
+      left: 12px;
+      right: 12px;
+      height: 3px;
+      border-radius: 2px;
+      background: #68c7a9;
+    }
   }
 }
 
@@ -865,11 +765,11 @@ onMounted(() => {
 }
 
 .appointment-card {
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 16px;
   background: #fff;
-  border: 1px solid rgba(213, 237, 243, .72);
-  box-shadow: 0 18px 44px rgba(102, 170, 189, .13);
+  border: 1px solid #e4eaf0;
+  box-shadow: 0 6px 18px rgba(31, 52, 64, 0.06);
   position: relative;
   overflow: hidden;
 
@@ -953,11 +853,21 @@ onMounted(() => {
   border-radius: 50%;
   display: grid;
   place-items: center;
+  overflow: hidden;
   background: linear-gradient(135deg, rgba(185, 225, 205, .86), rgba(142, 214, 242, .54));
-  color: #fffdf8;
-  font-size: 15px;
-  font-weight: 800;
-  flex: 0 0 auto;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-fallback {
+    color: #fffdf8;
+    font-size: 15px;
+    font-weight: 800;
+    flex: 0 0 auto;
+  }
 }
 
 .status-row {
