@@ -26,6 +26,8 @@ public class ScheduleSlot extends BaseEntity
 
     private String doctorName;
 
+    private String avatar;
+
     private Long levelId;
 
     private String levelName;
@@ -111,6 +113,16 @@ public class ScheduleSlot extends BaseEntity
     public void setDoctorName(String doctorName)
     {
         this.doctorName = doctorName;
+    }
+
+    public String getAvatar()
+    {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar)
+    {
+        this.avatar = avatar;
     }
 
     public Long getLevelId()
@@ -257,6 +269,7 @@ public class ScheduleSlot extends BaseEntity
             .append("doctorId", getDoctorId())
             .append("deptId", getDeptId())
             .append("doctorName", getDoctorName())
+            .append("avatar", getAvatar())
             .append("scheduleDate", getScheduleDate())
             .append("startTime", getStartTime())
             .append("endTime", getEndTime())

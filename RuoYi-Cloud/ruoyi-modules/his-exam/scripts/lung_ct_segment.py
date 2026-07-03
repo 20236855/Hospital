@@ -109,6 +109,16 @@ def _compact_contour(binary_mask: np.ndarray,
                      offset_y: int,
                      offset_x: int,
                      max_points: int = 80) -> List[List[float]]:
+    if binary_mask is None:
+        return []
+    binary_mask = np.asarray(binary_mask).astype(bool)
+    if binary_mask.ndim != 2 or binary_mask.shape[0] < 2 or binary_mask.shape[1] < 2 or not binary_mask.any():
+        ys, xs = np.where(binary_mask) if binary_mask.ndim == 2 else ([], [])
+        if len(ys) == 0:
+            return []
+        y1, y2 = int(np.min(ys)) + offset_y, int(np.max(ys)) + offset_y + 1
+        x1, x2 = int(np.min(xs)) + offset_x, int(np.max(xs)) + offset_x + 1
+        return [[float(y1), float(x1)], [float(y1), float(x2)], [float(y2), float(x2)], [float(y2), float(x1)]]
     contours = find_contours(binary_mask.astype(float), 0.5)
     if not contours:
         return []
@@ -116,6 +126,57 @@ def _compact_contour(binary_mask: np.ndarray,
     step = max(1, int(np.ceil(len(contour) / max_points)))
     points = contour[::step]
     return [[round(float(p[0] + offset_y), 1), round(float(p[1] + offset_x), 1)] for p in points]
+
+
+def _ellipse_contour(center_y: float,
+                     center_x: float,
+                     radius_y: float,
+                     radius_x: float,
+                     max_points: int = 48) -> List[List[float]]:
+    ry = max(2.2, float(radius_y))
+    rx = max(2.2, float(radius_x))
+    points = []
+    for i in range(max_points):
+        angle = 2.0 * np.pi * i / max_points
+        points.append([
+            round(float(center_y + np.sin(angle) * ry), 1),
+            round(float(center_x + np.cos(angle) * rx), 1)
+        ])
+    return points
+
+
+def _contour_bbox(contour: List[List[float]]) -> Tuple[float, float, float, float]:
+    if not contour:
+        return 0.0, 0.0, 0.0, 0.0
+    ys = [float(p[0]) for p in contour if isinstance(p, list) and len(p) >= 2]
+    xs = [float(p[1]) for p in contour if isinstance(p, list) and len(p) >= 2]
+    if not ys or not xs:
+        return 0.0, 0.0, 0.0, 0.0
+    return min(ys), min(xs), max(ys), max(xs)
+
+
+def _display_segmentation_contour(candidate: Dict) -> List[List[float]]:
+    contour = (candidate.get("segmentation") or {}).get("contour") or []
+    cy = float(candidate.get("centroid_y", 0) or 0)
+    cx = float(candidate.get("centroid_x", 0) or 0)
+    y1 = float(candidate.get("bbox_y1", cy - 2) or cy - 2)
+    x1 = float(candidate.get("bbox_x1", cx - 2) or cx - 2)
+    y2 = float(candidate.get("bbox_y2", cy + 2) or cy + 2)
+    x2 = float(candidate.get("bbox_x2", cx + 2) or cx + 2)
+    diameter_px = max(
+        3.0,
+        float(candidate.get("diameter_mm", 0) or 0) / max(float(candidate.get("pixel_spacing", 1) or 1), 0.2)
+    )
+    radius_y = max((y2 - y1) * 0.58, diameter_px * 0.55, 2.4)
+    radius_x = max((x2 - x1) * 0.58, diameter_px * 0.55, 2.4)
+
+    if len(contour) >= 3:
+        c_y1, c_x1, c_y2, c_x2 = _contour_bbox(contour)
+        contour_h = c_y2 - c_y1
+        contour_w = c_x2 - c_x1
+        if contour_h >= 2.5 and contour_w >= 2.5:
+            return contour
+    return _ellipse_contour(cy, cx, radius_y, radius_x)
 
 
 def _is_truthy(value, default: bool = False) -> bool:
@@ -158,7 +219,8 @@ def _compact_segmentation(segmentation: Optional[Dict], max_points: int = 32) ->
     return {
         "contourPointCount": segmentation.get("contourPointCount", len(segmentation.get("contour") or [])),
         "areaPx": segmentation.get("areaPx"),
-        "contour": contour
+        "contour": contour,
+        "displayContour": segmentation.get("displayContour") or contour
     }
 
 
@@ -185,6 +247,12 @@ def _compact_candidate(c: Dict, include_segmentation: bool = True) -> Dict:
         "hu_max": c.get("hu_max"),
         "circularity": c.get("circularity"),
         "eccentricity": c.get("eccentricity"),
+        "solidity": c.get("solidity"),
+        "extent": c.get("extent"),
+        "aspectRatio": c.get("aspectRatio"),
+        "candidateScore": c.get("candidateScore"),
+        "noduleScore": c.get("noduleScore"),
+        "rejectReason": c.get("rejectReason"),
         "malignancyProbability": c.get("malignancyProbability"),
         "malignancyRisk": c.get("malignancyRisk"),
         "malignancyLabel": c.get("malignancyLabel"),
@@ -203,46 +271,128 @@ def _candidate_rank(c: Dict) -> Tuple[float, float]:
 
 
 def _candidate_quality_score(c: Dict) -> float:
+    """Score how much a 2D candidate looks like a compact pulmonary nodule.
+
+    This intentionally favors recall for round bright nodules while penalizing
+    thin vessel/texture-like structures. It is still a local morphology
+    heuristic, not a clinical model.
+    """
     diameter = float(c.get("diameter_mm", 0) or 0)
     circularity = float(c.get("circularity", 0) or 0)
     eccentricity = float(c.get("eccentricity", 0) or 0)
     solidity = float(c.get("solidity", 0) or 0)
     hu_std = float(c.get("hu_std", 0) or 0)
+    hu_mean = float(c.get("hu_mean", 0) or 0)
+    aspect_ratio = float(c.get("aspectRatio", 99) or 99)
+    extent = float(c.get("extent", 0) or 0)
     nodule_type = c.get("type")
 
     score = 0.0
-    if 3.0 <= diameter <= 18.0:
-        score += 0.35
-    elif 2.5 <= diameter <= 25.0:
-        score += 0.18
 
-    if circularity >= 0.58:
-        score += 0.22
-    elif circularity >= 0.42:
-        score += 0.10
-
-    if eccentricity <= 0.72:
+    if 1.5 <= diameter <= 30.0:
         score += 0.16
-    elif eccentricity <= 0.86:
-        score += 0.06
+    if 2.0 <= diameter <= 18.0:
+        score += 0.18
+    if 4.0 <= diameter <= 16.0:
+        score += 0.08
 
-    if solidity >= 0.72:
-        score += 0.14
-    elif solidity >= 0.58:
-        score += 0.06
+    score += min(0.22, max(0.0, circularity) * 0.24)
+    score += min(0.18, max(0.0, solidity) * 0.18)
+    score += min(0.14, max(0.0, extent) * 0.18)
+
+    if aspect_ratio <= 1.8:
+        score += 0.18
+    elif aspect_ratio <= 2.6:
+        score += 0.09
+    elif aspect_ratio > 3.2:
+        score -= 0.30
+
+    if eccentricity <= 0.78:
+        score += 0.10
+    elif eccentricity > 0.94:
+        score -= 0.20
 
     if nodule_type == "ggo":
-        score += 0.10 if hu_std <= 80 else -0.12
-    elif nodule_type == "solid":
-        score += 0.08
+        if -760 <= hu_mean <= -120:
+            score += 0.12
+        if hu_std <= 95:
+            score += 0.08
     elif nodule_type == "calcified":
-        score += 0.04
+        if hu_mean >= 120:
+            score += 0.16
+    else:
+        if hu_mean > -180:
+            score += 0.14
+        if hu_std <= 150:
+            score += 0.06
 
-    if diameter > 22 and circularity < 0.55:
-        score -= 0.25
-    if eccentricity > 0.9:
+    # Vessel/texture penalty: long, poorly filled or very irregular components.
+    if aspect_ratio > 2.8 and circularity < 0.45:
         score -= 0.22
-    return round(score, 3)
+    if extent < 0.22:
+        score -= 0.20
+    if solidity < 0.38:
+        score -= 0.20
+    if diameter > 22 and circularity < 0.45:
+        score -= 0.18
+
+    return round(max(0.0, score), 3)
+
+
+def _nodule_reject_reason(c: Dict, score: float) -> Optional[str]:
+    diameter = float(c.get("diameter_mm", 0) or 0)
+    area = float(c.get("area_mm2", 0) or 0)
+    circularity = float(c.get("circularity", 0) or 0)
+    eccentricity = float(c.get("eccentricity", 0) or 0)
+    solidity = float(c.get("solidity", 0) or 0)
+    aspect_ratio = float(c.get("aspectRatio", 99) or 99)
+    extent = float(c.get("extent", 0) or 0)
+    hu_mean = float(c.get("hu_mean", 0) or 0)
+    hu_std = float(c.get("hu_std", 0) or 0)
+    nodule_type = c.get("type")
+
+    if diameter < 1.5:
+        return "too_small"
+    if diameter > 32.0 or area > 1100.0:
+        return "too_large"
+    if area < 2.0:
+        return "tiny_area"
+
+    bright_compact = (
+        nodule_type in ("solid", "calcified")
+        and hu_mean > -180
+        and circularity >= 0.34
+        and aspect_ratio <= 2.8
+        and extent >= 0.22
+        and solidity >= 0.38
+        and 1.5 <= diameter <= 24.0
+    )
+    if bright_compact:
+        return None
+
+    if aspect_ratio > 4.2:
+        return "vessel_like_aspect"
+    if aspect_ratio > 3.2 and circularity < 0.40:
+        return "elongated_texture"
+    if solidity < 0.34:
+        return "low_solidity"
+    if extent < 0.16:
+        return "sparse_component"
+    if eccentricity > 0.97 and circularity < 0.40:
+        return "linear_component"
+
+    if nodule_type == "ggo":
+        if hu_std > 120 and circularity < 0.45:
+            return "ggo_texture"
+        if score < 0.46:
+            return "low_ggo_score"
+    else:
+        if hu_std > 210 and circularity < 0.40:
+            return "heterogeneous_vessel"
+        if score < (0.42 if diameter < 4.0 else 0.50):
+            return "low_solid_score"
+
+    return None
 
 
 def _filter_true_nodule_candidates(candidates: List[Dict]) -> List[Dict]:
@@ -250,27 +400,16 @@ def _filter_true_nodule_candidates(candidates: List[Dict]) -> List[Dict]:
     for c in candidates:
         score = _candidate_quality_score(c)
         c["candidateScore"] = score
-        diameter = float(c.get("diameter_mm", 0) or 0)
-        area = float(c.get("area_mm2", 0) or 0)
-        circularity = float(c.get("circularity", 0) or 0)
-        eccentricity = float(c.get("eccentricity", 0) or 0)
-        solidity = float(c.get("solidity", 0) or 0)
-
-        if diameter < 3.0 or diameter > 25.0:
-            continue
-        if area < 7.0 or area > 520.0:
-            continue
-        if circularity < 0.38 or eccentricity > 0.93 or solidity < 0.45:
-            continue
-        if c.get("type") == "ggo" and score < 0.52:
-            continue
-        if c.get("type") != "ggo" and score < 0.48:
+        reason = _nodule_reject_reason(c, score)
+        c["noduleScore"] = score
+        c["rejectReason"] = reason
+        if reason:
             continue
         true_candidates.append(c)
     return true_candidates
 
 
-def _limit_candidates_per_slice(candidates: List[Dict], max_per_slice: int = 4) -> List[Dict]:
+def _limit_candidates_per_slice(candidates: List[Dict], max_per_slice: int = 24) -> List[Dict]:
     grouped: Dict[int, List[Dict]] = {}
     for c in candidates:
         grouped.setdefault(int(c.get("slice_index", 0) or 0), []).append(c)
@@ -280,16 +419,89 @@ def _limit_candidates_per_slice(candidates: List[Dict], max_per_slice: int = 4) 
     return sorted(limited, key=lambda c: (c.get("slice_index", 0), -c.get("candidateScore", 0)))
 
 
+def _ratio_cap(total: int, ratio: float = 0.25, min_keep: int = 0) -> int:
+    """Return a soft global cap. min_keep prevents high-quality nodules from being over-trimmed."""
+    if total <= 0:
+        return 0
+    return min(total, max(min_keep, int(np.ceil(total * ratio))))
+
+
+def _strict_under_ratio_cap(total: int, ratio: float = 0.10) -> int:
+    """Return the largest integer count that stays strictly under the ratio."""
+    if total <= 0:
+        return 0
+    return max(0, int(np.ceil(total * ratio)) - 1)
+
+
+def _cap_true_nodule_ratio(candidates: List[Dict], raw_candidate_count: int, ratio: float = 1.0) -> List[Dict]:
+    max_true = _ratio_cap(raw_candidate_count, ratio=ratio, min_keep=len(candidates))
+    if max_true <= 0:
+        return []
+    ranked = sorted(
+        candidates,
+        key=lambda c: (c.get("candidateScore", 0), c.get("diameter_mm", 0), c.get("malignancyProbability", 0)),
+        reverse=True
+    )
+    return sorted(ranked[:max_true], key=lambda c: (c.get("slice_index", 0), -c.get("candidateScore", 0)))
+
+
+def _cap_high_risk_ratio(candidates: List[Dict], ratio: float = 0.10) -> List[Dict]:
+    max_high = _strict_under_ratio_cap(len(candidates), ratio)
+    high_ranked = sorted(
+        [c for c in candidates if c.get("malignancyRisk") == "高风险"],
+        key=lambda c: c.get("malignancyProbability", 0),
+        reverse=True
+    )
+    keep_high_ids = {id(c) for c in high_ranked[:max_high]}
+    for c in candidates:
+        if c.get("malignancyRisk") == "高风险" and id(c) not in keep_high_ids:
+            c["malignancyProbability"] = min(float(c.get("malignancyProbability", 0) or 0), 0.44)
+            c["malignancyRisk"] = "中风险" if c["malignancyProbability"] >= 0.35 else "低风险"
+            c["malignancyLabel"] = "恶性可能待排" if c["malignancyRisk"] == "中风险" else "倾向良性"
+            c["cancerSuspicion"] = c["malignancyRisk"] == "中风险"
+            c["riskAdvice"] = "高风险数量已按全局比例约束收敛，建议结合临床和既往影像复核。"
+    return candidates
+
+
+def _safe_ratio(part: int, total: int) -> float:
+    if total <= 0:
+        return 0.0
+    return round(float(part) / float(total), 4)
+
+
 def _compact_candidate_list(candidates: List[Dict], max_candidates: int, keep_slice_index: Optional[int] = None) -> List[Dict]:
     if not candidates:
         return []
-    selected = sorted(candidates, key=_candidate_rank, reverse=True)[:max_candidates]
+    max_candidates = max(1, int(max_candidates or 600))
+    selected = []
+    selected_ids = set()
+
+    # Keep visible coverage across slices first; otherwise middle slices can look empty
+    # even when detection produced candidates.
+    grouped: Dict[int, List[Dict]] = {}
+    for c in candidates:
+        grouped.setdefault(int(c.get("slice_index", 0) or 0), []).append(c)
+    per_slice_keep = 8 if max_candidates >= 300 else 4
+    for _, items in sorted(grouped.items()):
+        for c in sorted(items, key=_candidate_rank, reverse=True)[:per_slice_keep]:
+            selected.append(c)
+            selected_ids.add(id(c))
+
+    if len(selected) < max_candidates:
+        for c in sorted(candidates, key=_candidate_rank, reverse=True):
+            if id(c) not in selected_ids:
+                selected.append(c)
+                selected_ids.add(id(c))
+            if len(selected) >= max_candidates:
+                break
+
     if keep_slice_index is not None:
-        selected_ids = {id(c) for c in selected}
         for c in candidates:
             if c.get("slice_index") == keep_slice_index and id(c) not in selected_ids:
                 selected.append(c)
                 selected_ids.add(id(c))
+    if len(selected) > max_candidates and keep_slice_index is None:
+        selected = selected[:max_candidates]
     selected = sorted(selected, key=lambda c: (c.get("slice_index", 0), -float(c.get("malignancyProbability", 0) or 0)))
     return [_compact_candidate(c) for c in selected]
 
@@ -504,20 +716,46 @@ def detect_nodule_candidates(slice_hu: np.ndarray,
     """
     candidates = []
 
-    # 策略1: 实性/软组织结节，收紧范围，减少血管和肺纹理误报。
-    solid_mask = (slice_hu > max(soft_min, -80)) & (slice_hu < min(soft_max, 180)) & lung_mask
-    solid_mask = remove_small_objects(solid_mask, min_size=min_size)
+    # 策略1: 实性/软组织结节。保留偏高密度实性结节，后续用形态过滤血管。
+    solid_mask = (slice_hu > max(soft_min, -90)) & (slice_hu < 340) & lung_mask
+    solid_mask = binary_closing(solid_mask, iterations=1)
+    solid_mask = remove_small_objects(solid_mask, min_size=max(8, min_size // 4))
     # 限制最大面积，过滤掉大血管/心脏
-    solid_mask = _remove_large_objects(solid_mask, max_size=max_size)
+    solid_mask = _remove_large_objects(solid_mask, max_size=min(max_size, 1800))
 
     if solid_mask.any():
         solid_cands = _extract_candidates(slice_hu, solid_mask, spacing_xy, "solid")
         candidates.extend(solid_cands)
 
+    # 策略1a: 亮结节局部增强。检测相对肺背景突出的实性结节，减少固定阈值漏检。
+    smooth_small = ndimage.gaussian_filter(slice_hu, sigma=0.8)
+    smooth_large = ndimage.gaussian_filter(slice_hu, sigma=3.0)
+    local_contrast = smooth_small - smooth_large
+    blob_mask = (slice_hu > -140) & (slice_hu < 420) & (local_contrast > 28) & lung_mask
+    blob_mask = remove_small_objects(blob_mask, min_size=5)
+    blob_mask = _remove_large_objects(blob_mask, max_size=900)
+    if blob_mask.any():
+        blob_cands = _extract_candidates(slice_hu, blob_mask, spacing_xy, "solid")
+        candidates.extend(blob_cands)
+
+    # 策略1b: 距离变换圆心种子。圆形亮结节即使贴着血管，也从结节中心向外分割。
+    seed_cands = _extract_round_bright_seed_candidates(slice_hu, lung_mask, spacing_xy)
+    candidates.extend(seed_cands)
+
+    # 策略1b: 微小实性/钙化样结节。不开运算，避免 2-4mm 小圆点被腐蚀掉。
+    micro_mask = (slice_hu > -100) & (slice_hu < 420) & lung_mask
+    micro_mask = remove_small_objects(micro_mask, min_size=5)
+    micro_mask = _remove_large_objects(micro_mask, max_size=180)
+    if micro_mask.any():
+        micro_cands = _extract_candidates(slice_hu, micro_mask, spacing_xy, "solid")
+        candidates.extend(micro_cands)
+
     # 策略2: 磨玻璃结节。原 -750~-100 会把大量正常肺纹理纳入，先收窄再靠形态筛选。
-    ggo_mask = (slice_hu > -620) & (slice_hu < -180) & lung_mask
-    ggo_mask = remove_small_objects(ggo_mask, min_size=max(min_size, 45))
-    ggo_mask = _remove_large_objects(ggo_mask, max_size=min(max_size, 2500))
+    ggo_mask = (slice_hu > -560) & (slice_hu < -210) & lung_mask
+    ggo_mask = binary_opening(ggo_mask, iterations=1)
+    ggo_mask = binary_closing(ggo_mask, iterations=1)
+    ggo_mask = remove_small_objects(ggo_mask, min_size=max(24, min_size // 2))
+    ggo_mask = _remove_large_objects(ggo_mask, max_size=min(max_size, 1600))
 
     if ggo_mask.any():
         ggo_cands = _extract_candidates(slice_hu, ggo_mask, spacing_xy, "ggo")
@@ -525,7 +763,8 @@ def detect_nodule_candidates(slice_hu: np.ndarray,
 
     # 策略3: 钙化结节 (> 200 HU)
     calc_mask = (slice_hu > 200) & (slice_hu < 1000) & lung_mask
-    calc_mask = remove_small_objects(calc_mask, min_size=max(20, min_size // 2))
+    calc_mask = remove_small_objects(calc_mask, min_size=5)
+    calc_mask = _remove_large_objects(calc_mask, max_size=min(max_size, 1200))
 
     if calc_mask.any():
         calc_cands = _extract_candidates(slice_hu, calc_mask, spacing_xy, "calcified")
@@ -535,6 +774,49 @@ def detect_nodule_candidates(slice_hu: np.ndarray,
     candidates = _merge_overlapping_candidates(candidates)
 
     return candidates
+
+
+def _extract_round_bright_seed_candidates(slice_hu: np.ndarray,
+                                          lung_mask: np.ndarray,
+                                          spacing_xy: float,
+                                          max_seeds: int = 80) -> List[Dict]:
+    bright = (slice_hu > -180) & (slice_hu < 520) & lung_mask
+    bright = binary_closing(bright, iterations=1)
+    bright = remove_small_objects(bright, min_size=4)
+    bright = _remove_large_objects(bright, max_size=1600)
+    if not bright.any():
+        return []
+
+    dist = ndimage.distance_transform_edt(bright)
+    smooth_small = ndimage.gaussian_filter(slice_hu, sigma=0.8)
+    smooth_large = ndimage.gaussian_filter(slice_hu, sigma=4.0)
+    contrast = smooth_small - smooth_large
+    dist_peak = (dist == ndimage.maximum_filter(dist, size=5)) & bright & (dist >= 1.15)
+    contrast_peak = (contrast == ndimage.maximum_filter(contrast, size=5)) & bright & (contrast > 14)
+    seed_points = np.argwhere(dist_peak | contrast_peak)
+    if seed_points.size == 0:
+        return []
+
+    ranked = sorted(
+        [(int(y), int(x), float(dist[y, x]), float(contrast[y, x]), float(slice_hu[y, x])) for y, x in seed_points],
+        key=lambda item: (item[2] * 18.0 + item[3] + item[4] * 0.03),
+        reverse=True
+    )
+
+    seed_mask = np.zeros_like(slice_hu, dtype=bool)
+    accepted: List[Tuple[int, int]] = []
+    for y, x, radius, _, _ in ranked:
+        if len(accepted) >= max_seeds:
+            break
+        if any((y - ay) ** 2 + (x - ax) ** 2 < 20 for ay, ax in accepted):
+            continue
+        accepted.append((y, x))
+        r = int(max(1, min(3, round(radius))))
+        y1, y2 = max(0, y - r), min(slice_hu.shape[0], y + r + 1)
+        x1, x2 = max(0, x - r), min(slice_hu.shape[1], x + r + 1)
+        seed_mask[y1:y2, x1:x2] |= bright[y1:y2, x1:x2]
+
+    return _extract_candidates(slice_hu, seed_mask, spacing_xy, "solid") if seed_mask.any() else []
 
 
 def _remove_large_objects(mask: np.ndarray, max_size: int) -> np.ndarray:
@@ -547,6 +829,207 @@ def _remove_large_objects(mask: np.ndarray, max_size: int) -> np.ndarray:
     return mask
 
 
+def _keep_best_seed_component(mask: np.ndarray, seed_mask: np.ndarray, seed_y: int, seed_x: int) -> np.ndarray:
+    if mask is None or not mask.any():
+        return seed_mask.astype(bool)
+    labeled = label(mask)
+    props = regionprops(labeled)
+    if not props:
+        return seed_mask.astype(bool)
+
+    best_label = None
+    best_score = -1.0
+    for p in props:
+        component = labeled == p.label
+        overlap = int(np.sum(component & seed_mask))
+        cy, cx = p.centroid
+        dist = float(np.hypot(cy - seed_y, cx - seed_x))
+        score = overlap * 20.0 + float(p.area) - dist
+        if score > best_score:
+            best_score = score
+            best_label = p.label
+
+    if best_label is None:
+        return seed_mask.astype(bool)
+    refined = labeled == best_label
+    return refined if refined.any() else seed_mask.astype(bool)
+
+
+def _component_shape_score(prop) -> float:
+    perimeter = float(prop.perimeter or 0)
+    circularity = 4 * np.pi * prop.area / (perimeter * perimeter) if perimeter > 0 else 0.0
+    aspect = 99.0
+    minr, minc, maxr, maxc = prop.bbox
+    h = max(1, maxr - minr)
+    w = max(1, maxc - minc)
+    aspect = max(h, w) / max(1, min(h, w))
+    solidity = float(getattr(prop, "solidity", 0) or 0)
+    return float(circularity) * 18.0 + solidity * 10.0 - max(0.0, aspect - 1.8) * 8.0
+
+
+def _select_local_lesion_component(mask: np.ndarray,
+                                   seed_mask: np.ndarray,
+                                   center_y: float,
+                                   center_x: float,
+                                   max_area: int) -> np.ndarray:
+    """Select the local component that best represents the whole nodule, not just an edge seed."""
+    if mask is None or not mask.any():
+        return seed_mask.astype(bool)
+
+    labeled = label(mask)
+    props = regionprops(labeled)
+    if not props:
+        return seed_mask.astype(bool)
+
+    best_label = None
+    best_score = -1e9
+    seed_area = max(1, int(np.sum(seed_mask)))
+    max_area = max(seed_area * 3, int(max_area))
+
+    for p in props:
+        if p.area < 2 or p.area > max_area:
+            continue
+        component = labeled == p.label
+        overlap = int(np.sum(component & seed_mask))
+        cy, cx = p.centroid
+        dist = float(np.hypot(cy - center_y, cx - center_x))
+        score = overlap * 60.0 + min(float(p.area), seed_area * 10.0) * 0.35 - dist * 2.2 + _component_shape_score(p)
+        if score > best_score:
+            best_score = score
+            best_label = p.label
+
+    if best_label is None:
+        return seed_mask.astype(bool)
+    refined = labeled == best_label
+    return refined if refined.any() else seed_mask.astype(bool)
+
+
+def _ellipse_prior_mask(shape: Tuple[int, int],
+                        center_y: float,
+                        center_x: float,
+                        radius_y: float,
+                        radius_x: float) -> np.ndarray:
+    if shape[0] <= 0 or shape[1] <= 0:
+        return np.zeros(shape, dtype=bool)
+    yy, xx = np.ogrid[:shape[0], :shape[1]]
+    ry = max(1.4, float(radius_y))
+    rx = max(1.4, float(radius_x))
+    return (((yy - center_y) / ry) ** 2 + ((xx - center_x) / rx) ** 2) <= 1.0
+
+
+def _region_grow_nodule_mask(crop_hu: np.ndarray,
+                             seed_mask: np.ndarray,
+                             nodule_type: str) -> np.ndarray:
+    """Grow from the candidate seed until the HU profile reaches normal lung/background."""
+    if crop_hu.size == 0 or seed_mask is None or not seed_mask.any():
+        return seed_mask.astype(bool)
+
+    seed_values = crop_hu[seed_mask]
+    seed_mean = float(np.mean(seed_values))
+    seed_std = float(np.std(seed_values))
+    lung_bg = crop_hu[crop_hu < -320]
+    bg_p95 = float(np.percentile(lung_bg, 95)) if lung_bg.size else -420.0
+
+    if nodule_type == "ggo":
+        lower = max(-760.0, bg_p95 + 45.0, seed_mean - max(90.0, seed_std * 1.8 + 45.0))
+        upper = min(-90.0, seed_mean + max(95.0, seed_std * 1.8 + 60.0))
+    elif nodule_type == "calcified":
+        lower = max(120.0, seed_mean - max(140.0, seed_std * 2.0 + 70.0))
+        upper = min(1300.0, seed_mean + max(220.0, seed_std * 2.0 + 100.0))
+    else:
+        lower = max(-260.0, bg_p95 + 110.0, seed_mean - max(130.0, seed_std * 2.0 + 65.0))
+        upper = min(360.0, seed_mean + max(150.0, seed_std * 2.0 + 80.0))
+
+    eligible = (crop_hu >= lower) & (crop_hu <= upper)
+    grown = seed_mask.astype(bool)
+    for _ in range(10):
+        nxt = binary_dilation(grown, iterations=1) & eligible
+        if int(np.sum(nxt)) == int(np.sum(grown)):
+            break
+        grown = nxt
+
+    grown = binary_closing(grown, iterations=1)
+    grown = binary_fill_holes(grown)
+    return grown.astype(bool)
+
+
+def _refine_candidate_mask(slice_hu: np.ndarray,
+                           component_mask: np.ndarray,
+                           bbox: Tuple[int, int, int, int],
+                           centroid: Tuple[float, float],
+                           nodule_type: str) -> Tuple[np.ndarray, int, int]:
+    """Refine a rough threshold component into a local connected nodule mask."""
+    y1, x1, y2, x2 = bbox
+    h, w = slice_hu.shape
+    seed_h = max(1, y2 - y1)
+    seed_w = max(1, x2 - x1)
+    pad = max(8, int(round(max(seed_h, seed_w) * (1.10 if nodule_type != "ggo" else 0.85))))
+    cy, cx = centroid
+
+    crop_y1 = max(0, y1 - pad)
+    crop_x1 = max(0, x1 - pad)
+    crop_y2 = min(h, y2 + pad)
+    crop_x2 = min(w, x2 + pad)
+    if crop_y2 - crop_y1 < 1 or crop_x2 - crop_x1 < 1:
+        return component_mask.astype(bool), y1, x1
+
+    crop_hu = slice_hu[crop_y1:crop_y2, crop_x1:crop_x2]
+    seed_mask = np.zeros(crop_hu.shape, dtype=bool)
+    seed_y1 = y1 - crop_y1
+    seed_x1 = x1 - crop_x1
+    seed_mask[seed_y1:seed_y1 + component_mask.shape[0], seed_x1:seed_x1 + component_mask.shape[1]] = component_mask.astype(bool)
+    if not seed_mask.any():
+        return component_mask.astype(bool), y1, x1
+
+    seed_area = max(1, int(np.sum(seed_mask)))
+    equivalent_radius = max(1.8, np.sqrt(seed_area / np.pi))
+    local_cy = float(cy - crop_y1)
+    local_cx = float(cx - crop_x1)
+    ellipse_mask = _ellipse_prior_mask(
+        crop_hu.shape,
+        local_cy,
+        local_cx,
+        max(equivalent_radius * 1.75, seed_h * 0.85),
+        max(equivalent_radius * 1.75, seed_w * 0.85)
+    )
+    local_window = binary_dilation(seed_mask | ellipse_mask, iterations=8 if nodule_type != "ggo" else 6)
+
+    if nodule_type in ("solid", "calcified"):
+        lung_bg = crop_hu[crop_hu < -320]
+        bg_p95 = float(np.percentile(lung_bg, 95)) if lung_bg.size else -420.0
+        seed_values = crop_hu[seed_mask]
+        seed_p35 = float(np.percentile(seed_values, 35)) if seed_values.size else -80.0
+        lower = max(-180.0, bg_p95 + 95.0, seed_p35 - 130.0)
+        upper = 1350.0 if nodule_type == "calcified" else 460.0
+        bright_body = (crop_hu >= lower) & (crop_hu <= upper) & local_window
+        bright_body = binary_closing(bright_body, iterations=1)
+        bright_body = binary_fill_holes(bright_body)
+        grown = _select_local_lesion_component(
+            bright_body,
+            seed_mask,
+            local_cy,
+            local_cx,
+            max_area=max(80, int(seed_area * 18))
+        )
+    else:
+        grown = _region_grow_nodule_mask(crop_hu, seed_mask, nodule_type) & local_window
+
+    refined = grown | seed_mask
+    refined = binary_closing(refined, iterations=1)
+    refined = binary_fill_holes(refined)
+    refined = _keep_best_seed_component(refined, seed_mask, int(round(cy - crop_y1)), int(round(cx - crop_x1)))
+
+    min_area = max(4, int(seed_area * 0.85))
+    if np.sum(refined) < min_area:
+        refined = binary_dilation(seed_mask, iterations=1)
+        refined = binary_closing(refined, iterations=1)
+        refined = binary_fill_holes(refined)
+        refined = _keep_best_seed_component(refined, seed_mask, int(round(cy - crop_y1)), int(round(cx - crop_x1)))
+    if np.sum(refined) < max(3, int(seed_area * 0.55)):
+        refined = seed_mask
+    return refined.astype(bool), crop_y1, crop_x1
+
+
 def _extract_candidates(slice_hu: np.ndarray,
                          mask: np.ndarray,
                          spacing_xy: float,
@@ -557,46 +1040,76 @@ def _extract_candidates(slice_hu: np.ndarray,
     props = regionprops(labeled, intensity_image=slice_hu)
 
     for p in props:
-        # 尺寸过滤 (直径 < 3mm 忽略，> 30mm 大概率不是结节)
+        # 尺寸过滤：入口保留 1.5mm 以上小结节，后续再用形态过滤假阳性。
         area_mm2 = p.area * spacing_xy * spacing_xy
         diameter_mm = 2 * np.sqrt(area_mm2 / np.pi)
-        if diameter_mm < 2.0 or diameter_mm > 35.0:
+        if diameter_mm < 1.5 or diameter_mm > 35.0:
+            continue
+
+        refined_mask, offset_y, offset_x = _refine_candidate_mask(
+            slice_hu,
+            p.image,
+            p.bbox,
+            p.centroid,
+            nodule_type
+        )
+        refined_props = regionprops(
+            label(refined_mask),
+            intensity_image=slice_hu[offset_y:offset_y + refined_mask.shape[0], offset_x:offset_x + refined_mask.shape[1]]
+        )
+        if not refined_props:
+            continue
+        rp = max(refined_props, key=lambda item: item.area)
+
+        area_mm2 = rp.area * spacing_xy * spacing_xy
+        diameter_mm = 2 * np.sqrt(area_mm2 / np.pi)
+        if diameter_mm < 1.5 or diameter_mm > 35.0:
             continue
 
         # 计算HU统计
-        hu_vals = p.intensity_image[p.image]
+        hu_vals = rp.intensity_image[rp.image]
         hu_mean = float(np.mean(hu_vals))
         hu_std = float(np.std(hu_vals))
         hu_min = float(np.min(hu_vals))
         hu_max = float(np.max(hu_vals))
 
         # 计算形态特征
-        perimeter = p.perimeter * spacing_xy
-        circularity = 4 * np.pi * p.area / (p.perimeter * p.perimeter) if p.perimeter > 0 else 0
+        perimeter = rp.perimeter * spacing_xy
+        circularity = 4 * np.pi * rp.area / (rp.perimeter * rp.perimeter) if rp.perimeter > 0 else 0
 
         # 离心率
-        eccentricity = p.eccentricity if hasattr(p, 'eccentricity') else 0
-        y1, x1, y2, x2 = p.bbox
-        contour_points = _compact_contour(p.image, y1, x1)
+        eccentricity = rp.eccentricity if hasattr(rp, 'eccentricity') else 0
+        local_y1, local_x1, local_y2, local_x2 = rp.bbox
+        y1, x1 = offset_y + local_y1, offset_x + local_x1
+        y2, x2 = offset_y + local_y2, offset_x + local_x2
+        bbox_h = max(1, y2 - y1)
+        bbox_w = max(1, x2 - x1)
+        aspect_ratio = max(bbox_h, bbox_w) / max(1, min(bbox_h, bbox_w))
+        extent = float(getattr(rp, "extent", 0) or 0)
+        contour_points = _compact_contour(rp.image, y1, x1)
         density_class = _density_class(nodule_type, hu_mean)
         size_class = _size_class(diameter_mm)
         morphology_class = _morphology_class(circularity, eccentricity)
 
         cand = {
-            "centroid_y": float(p.centroid[0]),
-            "centroid_x": float(p.centroid[1]),
+            "centroid_y": float(offset_y + rp.centroid[0]),
+            "centroid_x": float(offset_x + rp.centroid[1]),
             "bbox_y1": float(y1),
             "bbox_x1": float(x1),
             "bbox_y2": float(y2),
             "bbox_x2": float(x2),
             "bbox": [float(y1), float(x1), float(y2), float(x2)],
-            "area_pixels": int(p.area),
+            "area_pixels": int(rp.area),
             "area_mm2": round(area_mm2, 2),
             "diameter_mm": round(diameter_mm, 2),
             "perimeter_mm": round(perimeter, 1),
             "circularity": round(circularity, 3),
             "eccentricity": round(eccentricity, 3),
-            "solidity": round(float(getattr(p, "solidity", 0) or 0), 3),
+            "solidity": round(float(getattr(rp, "solidity", 0) or 0), 3),
+            "extent": round(extent, 3),
+            "aspectRatio": round(float(aspect_ratio), 3),
+            "bboxHeight": int(bbox_h),
+            "bboxWidth": int(bbox_w),
             "hu_mean": round(hu_mean, 1),
             "hu_std": round(hu_std, 1),
             "hu_min": round(hu_min, 1),
@@ -607,14 +1120,16 @@ def _extract_candidates(slice_hu: np.ndarray,
             "morphologyClass": morphology_class,
             "classification": f"{size_class} / {density_class} / {morphology_class}",
             "segmentation": {
-                "algorithm": "HU阈值 + 连通域 + 形态学过滤",
-                "maskAreaPixels": int(p.area),
+                "algorithm": "局部HU自适应阈值 + 种子连通域 + 形态学细化",
+                "maskAreaPixels": int(rp.area),
                 "maskAreaMM2": round(area_mm2, 2),
                 "contour": contour_points,
                 "contourPointCount": len(contour_points),
                 "bbox": [float(y1), float(x1), float(y2), float(x2)]
             }
         }
+        cand["segmentation"]["displayContour"] = _display_segmentation_contour(cand)
+        cand["segmentation"]["displayContourPointCount"] = len(cand["segmentation"]["displayContour"])
         candidates.append(cand)
 
     return candidates
@@ -634,7 +1149,7 @@ def _merge_overlapping_candidates(candidates: List[Dict],
         if i in used:
             continue
         best = candidates[i]
-        best_area = best['area_pixels']
+        best_score = _candidate_quality_score(best)
         for j in range(i + 1, len(candidates)):
             if j in used:
                 continue
@@ -646,9 +1161,10 @@ def _merge_overlapping_candidates(candidates: List[Dict],
             max_diam = max(ci['diameter_mm'], cj['diameter_mm']) * 0.5 / max(
                 max(ci.get('pixel_spacing', 1), 1), 0.3)
             if dist < max_diam:
-                if cj['area_pixels'] > best_area:
+                candidate_score = _candidate_quality_score(cj)
+                if candidate_score > best_score:
                     best = cj
-                    best_area = cj['area_pixels']
+                    best_score = candidate_score
                 used.add(j)
         merged.append(best)
 
@@ -832,7 +1348,8 @@ def draw_stage_overlay(gray_img: np.ndarray,
         x1, y1 = int(cand['bbox_x1']), int(cand['bbox_y1'])
         x2, y2 = int(cand['bbox_x2']), int(cand['bbox_y2'])
         cx, cy = int(cand['centroid_x']), int(cand['centroid_y'])
-        contour = (cand.get("segmentation") or {}).get("contour") or []
+        segmentation = cand.get("segmentation") or {}
+        contour = segmentation.get("displayContour") or segmentation.get("contour") or []
 
         if stage == "detection":
             color = (34, 197, 94, 255)
@@ -853,19 +1370,19 @@ def draw_stage_overlay(gray_img: np.ndarray,
                 draw.line(pts + [pts[0]], fill=(239, 68, 68, 255), width=2)
             else:
                 draw.rectangle([x1, y1, x2, y2], outline=(239, 68, 68, 255), width=2)
-            draw.text((x1 + 2, max(0, y1 - 17)), "SEG", fill=(255, 255, 255, 255))
 
         elif stage == "malignancy":
             risk = cand.get("malignancyRisk", "低风险")
             probability = int(round(float(cand.get("malignancyProbability", 0) or 0) * 100))
-            color = (34, 197, 94, 255)
-            risk_code = "LOW"
             if risk == "高风险":
                 color = (220, 38, 38, 255)
                 risk_code = "HIGH"
             elif risk == "中风险":
                 color = (245, 158, 11, 255)
                 risk_code = "MID"
+            else:
+                color = (34, 197, 94, 255)
+                risk_code = "LOW"
             draw.rectangle([x1, y1, x2, y2], outline=color, width=3)
             label_text = f"{risk_code} {probability}%"
             draw.rectangle([x1, max(0, y1 - 20), min(pil_img.width, x1 + len(label_text) * 9), y1], fill=color)
@@ -882,9 +1399,9 @@ def draw_stage_overlay(gray_img: np.ndarray,
 
 def analyze_lung_ct(volume: np.ndarray,
                      metadata: dict,
-                     max_slices: int = 80,
+                     max_slices: int = 180,
                      lightweight: bool = True,
-                     max_candidates: int = 80) -> Dict:
+                     max_candidates: int = 600) -> Dict:
     """
     全流程：肺实质提取 → 结节检测 → 生成标注切片
     """
@@ -909,6 +1426,7 @@ def analyze_lung_ct(volume: np.ndarray,
     raw_slices = []       # 原始切片Base64
     annotated_slices = [] # 标注切片Base64
     slice_hu_stats = []   # HU统计
+    slice_candidate_summary = []
     raw_candidate_count = 0
     all_candidates = []   # 筛选后的可信结节
     lung_areas_mm2 = []   # 肺面积
@@ -947,8 +1465,15 @@ def analyze_lung_ct(volume: np.ndarray,
             estimate_malignancy_features(cand)
         raw_count_this_slice = len(candidates)
         raw_candidate_count += raw_count_this_slice
-        candidates = _limit_candidates_per_slice(_filter_true_nodule_candidates(candidates), max_per_slice=4)
+        candidates = _limit_candidates_per_slice(_filter_true_nodule_candidates(candidates), max_per_slice=24)
         all_candidates.extend(candidates)
+        slice_candidate_summary.append({
+            "slice_index": scan_idx,
+            "slice_z": int(z),
+            "rawCandidateCount": raw_count_this_slice,
+            "trueNoduleCount": len(candidates),
+            "returnedCandidateCount": 0
+        })
 
         if not lightweight:
             # 非轻量模式才返回整套切片，避免接口响应体膨胀。
@@ -970,8 +1495,15 @@ def analyze_lung_ct(volume: np.ndarray,
         lung_areas_mm2.append(lung_area_px * pixel_spacing_x * pixel_spacing_y)
 
     # ===== 汇总统计 =====
+    true_nodule_ratio_limit = 1.0
+    high_risk_ratio_limit = 0.10
+    pre_cap_true_nodule_count = len(all_candidates)
+    all_candidates = _cap_true_nodule_ratio(all_candidates, raw_candidate_count, ratio=true_nodule_ratio_limit)
     all_candidates = enrich_malignancy(all_candidates)
+    all_candidates = _cap_high_risk_ratio(all_candidates, ratio=high_risk_ratio_limit)
     total_nodules = len(all_candidates)
+    max_true_nodule_count = _ratio_cap(raw_candidate_count, ratio=true_nodule_ratio_limit, min_keep=pre_cap_true_nodule_count)
+    max_high_risk_count = _strict_under_ratio_cap(total_nodules, ratio=high_risk_ratio_limit)
 
     # 按结节类型分类
     solid_nodules = [c for c in all_candidates if c.get('type') == 'solid']
@@ -1013,6 +1545,12 @@ def analyze_lung_ct(volume: np.ndarray,
 
     # 生成分割掩码数据：轻量模式只保留返回候选对应的压缩轮廓。
     source_for_payload = display_candidates if lightweight else [_compact_candidate(c) for c in all_candidates]
+    returned_by_slice: Dict[int, int] = {}
+    for cand in source_for_payload:
+        idx = int(cand.get("slice_index", 0) or 0)
+        returned_by_slice[idx] = returned_by_slice.get(idx, 0) + 1
+    for item in slice_candidate_summary:
+        item["returnedCandidateCount"] = returned_by_slice.get(int(item["slice_index"]), 0)
     segmentation_data = {}
     for cand in source_for_payload:
         seg_key = f"z{int(cand.get('slice_z') or 0)}"
@@ -1103,8 +1641,14 @@ def analyze_lung_ct(volume: np.ndarray,
         "slices": annotated_slices if not lightweight else [],
         "stageOutputs": stage_outputs,
         "sliceHuStats": slice_hu_stats,
-    "stats": {
+        "sliceCandidateSummary": slice_candidate_summary,
+        "stats": {
             "rawCandidateRegions": raw_candidate_count,
+            "preCapTrueNodules": pre_cap_true_nodule_count,
+            "trueNoduleRatioLimit": true_nodule_ratio_limit,
+            "highRiskRatioLimit": high_risk_ratio_limit,
+            "maxTrueNodulesAllowed": max_true_nodule_count,
+            "maxHighRiskAllowed": max_high_risk_count,
             "totalNoduleCandidates": total_nodules,
             "solidNodules": len(solid_nodules),
             "ggoNodules": len(ggo_nodules),
@@ -1118,6 +1662,8 @@ def analyze_lung_ct(volume: np.ndarray,
             "highRiskNodules": len(high_risk),
             "mediumRiskNodules": len(medium_risk),
             "lowRiskNodules": len(low_risk),
+            "trueNoduleRatioActual": _safe_ratio(total_nodules, raw_candidate_count),
+            "highRiskRatioActual": _safe_ratio(len(high_risk), total_nodules),
             "maxMalignancyProbability": round(max([c.get('malignancyProbability', 0) for c in all_candidates], default=0), 2),
             "meanLungAreaMM2": round(np.mean(lung_areas_mm2), 1) if lung_areas_mm2 else 0,
             "maxLungAreaMM2": round(np.max(lung_areas_mm2), 1) if lung_areas_mm2 else 0
@@ -1130,6 +1676,9 @@ def analyze_lung_ct(volume: np.ndarray,
             "model": "HU-Morphology-Detector; AutoDL YOLOv8/ResNet接口预留",
             "completed": True,
             "count": total_nodules,
+            "rawCandidateCount": raw_candidate_count,
+            "preCapTrueNoduleCount": pre_cap_true_nodule_count,
+            "maxTrueNodulesAllowed": max_true_nodule_count,
             "items": detection_items
         },
         "segmentationAssessment": {
@@ -1145,6 +1694,8 @@ def analyze_lung_ct(volume: np.ndarray,
             "model": "HU-Morphology-Risk; AutoDL DenseNet/Transformer接口预留",
             "completed": True,
             "highRiskCount": len(high_risk),
+            "maxHighRiskAllowed": max_high_risk_count,
+            "highRiskRatioActual": _safe_ratio(len(high_risk), total_nodules),
             "mediumRiskCount": len(medium_risk),
             "lowRiskCount": len(low_risk),
             "overallRisk": overall_risk,
@@ -1187,9 +1738,9 @@ def analyze():
     except json.JSONDecodeError:
         params = {}
 
-    max_slices = params.get('max_slices', 80)
+    max_slices = params.get('max_slices', 180)
     lightweight = _is_truthy(params.get('lightweight'), default=True)
-    max_candidates = int(params.get('max_candidates', 80) or 80)
+    max_candidates = int(params.get('max_candidates', 600) or 600)
 
     # 保存临时文件
     filename_lower = file.filename.lower()
