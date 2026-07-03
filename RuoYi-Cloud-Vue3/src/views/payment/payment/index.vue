@@ -1,10 +1,10 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="收费单号(唯一)" prop="payNo">
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="90px">
+      <el-form-item label="收费单号" prop="payNo">
         <el-input
           v-model="queryParams.payNo"
-          placeholder="请输入收费单号(唯一)"
+          placeholder="请输入收费单号"
           clearable
           @keyup.enter="handleQuery"
         />
@@ -241,7 +241,7 @@ const data = reactive({
   },
   rules: {
     payNo: [
-      { required: true, message: "收费单号(唯一)不能为空", trigger: "blur" }
+      { required: true, message: "收费单号不能为空", trigger: "blur" }
     ],
     patientId: [
       { required: true, message: "患者ID不能为空", trigger: "blur" }

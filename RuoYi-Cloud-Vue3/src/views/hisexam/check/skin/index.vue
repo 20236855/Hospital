@@ -16,6 +16,9 @@
         <el-button type="success" @click="saveDiagnosis" :disabled="!result" :loading="saving">
           <el-icon><Check /></el-icon> 保存诊断
         </el-button>
+        <el-button type="warning" plain @click="downloadWordReport" :disabled="!currentApplyId" :loading="downloadingWord">
+          <el-icon><Download /></el-icon> 下载word文档
+        </el-button>
       </div>
     </div>
 
@@ -235,10 +238,11 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { analyzeSkin, skinAiDiagnosis } from '@/api/hisexam/skinAnalysis'
 import { getApply, updateApply } from '@/api/hisexam/apply'
-import { listResult, addResult, updateResult } from '@/api/hisexam/result'
+import { listResult, addResult, updateResult, downloadResultWordReport } from '@/api/hisexam/result'
 import { uploadFile } from '@/api/system/file'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ChatDotRound, Check, Search, Upload, Promotion, Loading, Picture, PictureFilled, CircleCheck } from '@element-plus/icons-vue'
+import { saveAs } from 'file-saver'
+import { ArrowLeft, ChatDotRound, Check, Search, Upload, Promotion, Loading, Picture, PictureFilled, CircleCheck, Download } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -259,6 +263,7 @@ const currentApplyId = ref(null)
 const saving = ref(false)
 const savingSlice = ref(false)
 const savedSliceImageUrl = ref('')
+const downloadingWord = ref(false)
 
 const diagnosisForm = ref({
   imageFindings: '',
@@ -479,6 +484,24 @@ async function saveDiagnosis() {
     ElMessage.error('保存失败：' + (e.response?.data?.msg || e.message || '未知错误'))
   } finally {
     saving.value = false
+  }
+}
+
+async function downloadWordReport() {
+  if (!currentApplyId.value) {
+    ElMessage.warning('缺少申请单ID，无法下载Word报告')
+    return
+  }
+  downloadingWord.value = true
+  try {
+    const data = await downloadResultWordReport(currentApplyId.value)
+    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+    saveAs(blob, `检查报告_${currentApplyId.value}.docx`)
+    ElMessage.success('Word报告已开始下载')
+  } catch (e) {
+    ElMessage.error('下载Word报告失败，请先保存诊断结果')
+  } finally {
+    downloadingWord.value = false
   }
 }
 

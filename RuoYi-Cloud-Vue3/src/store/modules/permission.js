@@ -4,9 +4,18 @@ import { getRouters } from '@/api/menu'
 import Layout from '@/layout/index'
 import ParentView from '@/components/ParentView'
 import InnerLink from '@/layout/components/InnerLink'
+import useUserStore from '@/store/modules/user'
 
 // 匹配views里面所有的.vue文件
 const modules = import.meta.glob('./../../views/**/*.vue')
+
+// 患者不可见的路由组件（仅前端隐藏，不动后端权限）
+const PATIENT_HIDDEN_ROUTES = [
+  'hisexam/apply/index',
+  'hisexam/technology/index',
+  'emr/disease/index',
+  'hisprescription/drug/index'
+]
 const usePermissionStore = defineStore(
   'permission',
   {
@@ -54,9 +63,20 @@ const usePermissionStore = defineStore(
     }
   })
 
+// 患者用户前端隐藏特定路由（不改变后端权限）
+function isPatientHiddenRoute(component) {
+  if (!component) return false
+  return PATIENT_HIDDEN_ROUTES.includes(component)
+}
+
 // 遍历后台传来的路由字符串，转换为组件对象
 function filterAsyncRouter(asyncRouterMap, lastRouter = false, type = false) {
   return asyncRouterMap.filter(route => {
+    // 患者用户隐藏特定路由
+    const userStore = useUserStore()
+    if (userStore.userType === 'patient' && isPatientHiddenRoute(route.component)) {
+      return false
+    }
     if (type && route.children) {
       route.children = filterChildren(route.children)
     }

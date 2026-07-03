@@ -3,6 +3,8 @@ package com.ruoyi.hisexam.controller;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,8 +26,10 @@ import com.ruoyi.his.api.RemoteDoctorService;
 import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.hisexam.domain.ExamApply;
 import com.ruoyi.hisexam.domain.ExamResult;
+import com.ruoyi.hisexam.service.ExamReportPdfService;
 import com.ruoyi.hisexam.service.IExamApplyService;
 import com.ruoyi.hisexam.service.IExamResultService;
+import com.ruoyi.hisexam.service.ExamReportWordService;
 import com.ruoyi.system.api.domain.SysRole;
 import com.ruoyi.system.api.model.LoginUser;
 import com.ruoyi.common.core.web.controller.BaseController;
@@ -57,6 +61,12 @@ public class ExamResultController extends BaseController
 
     @Autowired
     private RemoteDoctorService remoteDoctorService;
+
+    @Autowired
+    private ExamReportWordService examReportWordService;
+
+    @Autowired
+    private ExamReportPdfService examReportPdfService;
 
     /**
      * 查询可录入结果的申请单选项。
@@ -146,8 +156,70 @@ public class ExamResultController extends BaseController
     }
 
     /**
+     * 下载检查诊断Word报告。
+     */
+    @GetMapping("/report/word/{applyId}")
+    public void downloadWordReport(@PathVariable("applyId") Long applyId, HttpServletResponse response)
+    {
+        ExamApply examApply = examApplyService.selectExamApplyByApplyId(applyId);
+        checkApplyScope(examApply);
+
+        ExamResult query = new ExamResult();
+        query.setApplyId(applyId);
+        query.setStatus("1");
+        List<ExamResult> results = examResultService.selectExamResultList(query);
+        byte[] reportBytes = examReportWordService.buildReport(examApply, results);
+
+        String filename = "检查报告_" + applyId + ".docx";
+        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        response.setCharacterEncoding("utf-8");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFilename);
+        response.setContentLength(reportBytes.length);
+        try
+        {
+            response.getOutputStream().write(reportBytes);
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("下载Word报告失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 修改检查检验结果
      */
+    /**
+     * 下载或预览检查诊断PDF报告。
+     */
+    @GetMapping("/report/pdf/{applyId}")
+    public void downloadPdfReport(@PathVariable("applyId") Long applyId, HttpServletResponse response)
+    {
+        ExamApply examApply = examApplyService.selectExamApplyByApplyId(applyId);
+        checkApplyScope(examApply);
+
+        ExamResult query = new ExamResult();
+        query.setApplyId(applyId);
+        query.setStatus("1");
+        List<ExamResult> results = examResultService.selectExamResultList(query);
+        byte[] reportBytes = examReportPdfService.buildReport(examApply, results);
+
+        String filename = "检查报告_" + applyId + ".pdf";
+        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        response.setContentType("application/pdf");
+        response.setCharacterEncoding("utf-8");
+        response.setHeader("Content-Disposition", "inline; filename*=UTF-8''" + encodedFilename);
+        response.setContentLength(reportBytes.length);
+        try
+        {
+            response.getOutputStream().write(reportBytes);
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("下载PDF报告失败：" + e.getMessage());
+        }
+    }
+
     @RequiresPermissions("hisexam:result:edit")
     @Log(title = "检查检验结果", businessType = BusinessType.UPDATE)
     @PutMapping
@@ -198,6 +270,22 @@ public class ExamResultController extends BaseController
         if (isOutpatientDoctorRole() && (examApply == null || !Objects.equals(examApply.getDoctorId(), getCurrentDoctorId())))
         {
             throw new ServiceException("无权限访问其他医生的检查检验结果");
+        }
+    }
+
+    private void checkApplyScope(ExamApply examApply)
+    {
+        if (examApply == null)
+        {
+            throw new ServiceException("检查申请单不存在");
+        }
+        if (isPatientRole() && !Objects.equals(examApply.getPatientId(), getCurrentPatientId()))
+        {
+            throw new ServiceException("无权限访问其他患者的检查报告");
+        }
+        if (isOutpatientDoctorRole() && !Objects.equals(examApply.getDoctorId(), getCurrentDoctorId()))
+        {
+            throw new ServiceException("无权限访问其他医生的检查报告");
         }
     }
 

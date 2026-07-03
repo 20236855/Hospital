@@ -43,6 +43,24 @@ export function saveResultReport(data) {
   })
 }
 
+// Download Word report by apply id.
+export function downloadResultWordReport(applyId) {
+  return request({
+    url: '/hisexam/result/report/word/' + applyId,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+// Download or preview PDF report by apply id.
+export function downloadResultPdfReport(applyId) {
+  return request({
+    url: '/hisexam/result/report/pdf/' + applyId,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
 // Update result.
 export function updateResult(data) {
   return request({

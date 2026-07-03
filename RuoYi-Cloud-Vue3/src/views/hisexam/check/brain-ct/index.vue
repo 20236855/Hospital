@@ -21,6 +21,10 @@
           <el-icon><DocumentChecked /></el-icon>
           保存诊断结果
         </el-button>
+        <el-button type="warning" plain :loading="downloadingWord" :disabled="!patientInfo.applyId" @click="downloadWordReport">
+          <el-icon><Download /></el-icon>
+          下载word文档
+        </el-button>
       </div>
     </div>
 
@@ -505,12 +509,13 @@ import {
   ArrowLeft, Cpu, DocumentChecked, Picture, ZoomIn, ZoomOut, 
   RefreshRight, Sunny, Upload, ArrowRight, Warning, InfoFilled,
   MagicStick, EditPen, Loading, DataAnalysis, FirstAidKit,
-  PictureFilled, CircleCheck
+  PictureFilled, CircleCheck, Download
 } from '@element-plus/icons-vue'
 import { detectArtifact, aiDiagnosis } from '@/api/hisexam/ctAnalysis'
 import { getApply, updateApply } from '@/api/hisexam/apply'
-import { listResult, addResult, updateResult } from '@/api/hisexam/result'
+import { listResult, addResult, updateResult, downloadResultWordReport } from '@/api/hisexam/result'
 import { uploadFile } from '@/api/system/file'
+import { saveAs } from 'file-saver'
 
 const route = useRoute()
 const router = useRouter()
@@ -684,6 +689,7 @@ const aiResult = ref(null)
 const saving = ref(false)
 const savingSlice = ref(false)
 const savedSliceImageUrl = ref('')
+const downloadingWord = ref(false)
 const selectedFinding = ref(0)
 const aiDetections = ref([])
 const aiDialogVisible = ref(false)
@@ -1072,6 +1078,24 @@ const saveDiagnosis = async () => {
     ElMessage.error('保存失败：' + (e.response?.data?.msg || e.message || '未知错误'))
   } finally {
     saving.value = false
+  }
+}
+
+async function downloadWordReport() {
+  if (!patientInfo.applyId) {
+    ElMessage.warning('缺少申请单ID，无法下载Word报告')
+    return
+  }
+  downloadingWord.value = true
+  try {
+    const data = await downloadResultWordReport(patientInfo.applyId)
+    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+    saveAs(blob, `检查报告_${patientInfo.applyId}.docx`)
+    ElMessage.success('Word报告已开始下载')
+  } catch (e) {
+    ElMessage.error('下载Word报告失败，请先保存诊断结果')
+  } finally {
+    downloadingWord.value = false
   }
 }
 

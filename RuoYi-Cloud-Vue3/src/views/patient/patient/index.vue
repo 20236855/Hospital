@@ -100,7 +100,7 @@
       </div>
     </section>
 
-    <el-form :model="queryParams" ref="queryRef" v-show="showSearch" label-width="90px">
+    <el-form :model="queryParams" ref="queryRef" v-show="showSearch" label-width="100px">
       <el-row :gutter="20">
         <el-col :span="6">
           <el-form-item label="病历号" prop="patientNo">

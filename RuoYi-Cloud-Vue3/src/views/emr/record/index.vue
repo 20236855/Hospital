@@ -59,16 +59,32 @@
 
     <el-table v-loading="loading" :data="recordList" @selection-change="handleSelectionChange">
       <el-table-column v-if="!isPatientUser" type="selection" width="55" align="center" />
-      <el-table-column label="病历ID" align="center" prop="recordId" />
-      <el-table-column label="接诊ID" align="center" prop="encounterId" />
-      <el-table-column label="主诉" align="center" prop="chiefComplaint" />
-      <el-table-column label="现病史" align="center" prop="presentIllness" />
-      <el-table-column label="既往史" align="center" prop="pastHistory" />
-      <el-table-column label="过敏史" align="center" prop="allergyHistory" />
-      <el-table-column label="体格检查" align="center" prop="physicalExam" />
-      <el-table-column label="诊断意见" align="center" prop="diagnosisOpinion" />
-      <el-table-column label="治疗方案" align="center" prop="treatmentPlan" />
-      <el-table-column label="医生建议" align="center" prop="doctorAdvice" />
+      <el-table-column label="病历ID" align="center" prop="recordId" width="80" />
+      <el-table-column label="接诊ID" align="center" prop="encounterId" width="80" />
+      <el-table-column label="主诉" align="center" prop="chiefComplaint" width="200">
+        <template #default="scope"><div class="cell-wrap">{{ scope.row.chiefComplaint }}</div></template>
+      </el-table-column>
+      <el-table-column label="现病史" align="center" prop="presentIllness" width="240">
+        <template #default="scope"><div class="cell-wrap">{{ scope.row.presentIllness }}</div></template>
+      </el-table-column>
+      <el-table-column label="既往史" align="center" prop="pastHistory" width="200">
+        <template #default="scope"><div class="cell-wrap">{{ scope.row.pastHistory }}</div></template>
+      </el-table-column>
+      <el-table-column label="过敏史" align="center" prop="allergyHistory" width="180">
+        <template #default="scope"><div class="cell-wrap">{{ scope.row.allergyHistory }}</div></template>
+      </el-table-column>
+      <el-table-column label="体格检查" align="center" prop="physicalExam" width="200">
+        <template #default="scope"><div class="cell-wrap">{{ scope.row.physicalExam }}</div></template>
+      </el-table-column>
+      <el-table-column label="诊断意见" align="center" prop="diagnosisOpinion" width="200">
+        <template #default="scope"><div class="cell-wrap">{{ scope.row.diagnosisOpinion }}</div></template>
+      </el-table-column>
+      <el-table-column label="治疗方案" align="center" prop="treatmentPlan" width="240">
+        <template #default="scope"><div class="cell-wrap">{{ scope.row.treatmentPlan }}</div></template>
+      </el-table-column>
+      <el-table-column label="医生建议" align="center" prop="doctorAdvice" width="200">
+        <template #default="scope"><div class="cell-wrap">{{ scope.row.doctorAdvice }}</div></template>
+      </el-table-column>
       <el-table-column v-if="!isPatientUser" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['emr:record:edit']">修改</el-button>
@@ -322,3 +338,12 @@ function handleExport() {
 
 getList()
 </script>
+
+<style scoped>
+.cell-wrap {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.5;
+  padding: 4px 0;
+}
+</style>

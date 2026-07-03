@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="90px">
       <el-form-item label="项目编码" prop="techCode">
         <el-input
           v-model="queryParams.techCode"
@@ -29,22 +29,6 @@
         <el-input
           v-model="queryParams.techPrice"
           placeholder="请输入单价"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="执行科室ID" prop="deptmentId">
-        <el-input
-          v-model="queryParams.deptmentId"
-          placeholder="请输入执行科室ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="拼音码(检索用)" prop="pyCode">
-        <el-input
-          v-model="queryParams.pyCode"
-          placeholder="请输入拼音码(检索用)"
           clearable
           @keyup.enter="handleQuery"
         />
@@ -112,12 +96,9 @@
       <el-table-column label="项目名称" align="center" prop="techName" />
       <el-table-column label="规格" align="center" prop="techFormat" />
       <el-table-column label="单价" align="center" prop="techPrice" />
-      <el-table-column label="项目类型：CHECK检查/INSPEC检验/DISPOSAL处置" align="center" prop="techType" />
-      <el-table-column label="费用分类" align="center" prop="priceType" />
-      <el-table-column label="执行科室ID" align="center" prop="deptmentId" />
-      <el-table-column label="拼音码(检索用)" align="center" prop="pyCode" />
+      <el-table-column label="项目类型" align="center" prop="techType" />
       <el-table-column label="排序号" align="center" prop="sort" />
-      <el-table-column label="状态 0正常 1停用" align="center" prop="status" />
+      <el-table-column label="状态" align="center" prop="status" />
       <el-table-column label="项目备注说明" align="center" prop="remark" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
@@ -157,16 +138,6 @@
           <el-col :span="24">
             <el-form-item label="单价" prop="techPrice">
               <el-input v-model="form.techPrice" placeholder="请输入单价" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="执行科室ID" prop="deptmentId">
-              <el-input v-model="form.deptmentId" placeholder="请输入执行科室ID" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="拼音码(检索用)" prop="pyCode">
-              <el-input v-model="form.pyCode" placeholder="请输入拼音码(检索用)" />
             </el-form-item>
           </el-col>
           <el-col :span="24">

@@ -130,6 +130,12 @@
           <span v-else style="color:#c0c4cc">-</span>
         </template>
       </el-table-column>
+      <el-table-column label="PDF报告" align="center" width="150">
+        <template #default="scope">
+          <el-button link type="primary" :disabled="!scope.row.applyId" @click="previewPdfReport(scope.row)">查看PDF</el-button>
+          <el-button link type="success" :disabled="!scope.row.applyId" @click="downloadPdfReport(scope.row)">下载</el-button>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['hisexam:result:edit']">修改</el-button>
@@ -251,7 +257,8 @@
 </template>
 
 <script setup name="Result">
-import { listResult, getResult, delResult, addResult, updateResult } from "@/api/hisexam/result"
+import { listResult, getResult, delResult, addResult, updateResult, downloadResultPdfReport } from "@/api/hisexam/result"
+import { saveAs } from 'file-saver'
 
 const { proxy } = getCurrentInstance()
 
@@ -270,6 +277,28 @@ const previewImageUrl = ref('')
 function previewImage(row) {
   previewImageUrl.value = row.imageUrl
   imagePreviewVisible.value = true
+}
+
+async function previewPdfReport(row) {
+  if (!row.applyId) {
+    proxy.$modal.msgWarning('缺少申请单ID，无法查看PDF报告')
+    return
+  }
+  const data = await downloadResultPdfReport(row.applyId)
+  const blob = new Blob([data], { type: 'application/pdf' })
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank')
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
+}
+
+async function downloadPdfReport(row) {
+  if (!row.applyId) {
+    proxy.$modal.msgWarning('缺少申请单ID，无法下载PDF报告')
+    return
+  }
+  const data = await downloadResultPdfReport(row.applyId)
+  const blob = new Blob([data], { type: 'application/pdf' })
+  saveAs(blob, `检查报告_${row.applyId}.pdf`)
 }
 
 const data = reactive({

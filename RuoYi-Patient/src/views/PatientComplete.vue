@@ -10,9 +10,6 @@
         <van-icon name="arrow-left" />
       </div>
       <div class="header-title">
-        <span class="title-icon float-animation">
-          <span class="title-cross"></span>
-        </span>
         <h1>{{ pageTitle }}</h1>
       </div>
     </div>
@@ -20,7 +17,6 @@
     <div class="content-section slide-up-animation">
       <div class="form-card">
         <div class="card-header">
-          <div class="header-icon">🏥</div>
           <div class="header-text">
             <h3>患者身份信息</h3>
             <p>{{ pageDesc }}</p>
@@ -505,55 +501,14 @@ onMounted(() => {
   }
 }
 
-.title-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 24px rgba(104, 199, 169, 0.2);
-}
-
-.title-cross {
-  position: relative;
-  width: 24px;
-  height: 24px;
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    background: linear-gradient(135deg, #68c7a9, #89dbc1);
-    border-radius: 6px;
-  }
-
-  &::before {
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 5px;
-    transform: translateY(-50%);
-  }
-
-  &::after {
-    top: 0;
-    left: 50%;
-    width: 5px;
-    height: 100%;
-    transform: translateX(-50%);
-  }
-}
-
 .content-section {
   padding: 0 16px;
 }
 
 .form-card {
-  background: rgba(255, 255, 255, 0.74);
-  border-radius: 24px;
-  padding: 24px;
+  background: rgba(255, 255, 255, 0.84);
+  border-radius: 16px;
+  padding: 24px 22px;
   border: 1px solid rgba(194, 228, 236, 0.72);
   box-shadow: var(--card-shadow);
   backdrop-filter: blur(8px);
@@ -562,31 +517,19 @@ onMounted(() => {
 .card-header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
   margin-bottom: 24px;
-  padding-bottom: 16px;
+  padding-bottom: 18px;
   border-bottom: 1px solid rgba(213, 237, 243, 0.6);
-}
-
-.header-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #e6f6fb, #fffaf4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
 }
 
 .header-text {
   flex: 1;
 
   h3 {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: #4f7380;
-    margin: 0 0 4px;
+    margin: 0 0 6px;
   }
 
   p {
@@ -603,13 +546,13 @@ onMounted(() => {
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #4f7380;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid rgba(133, 219, 194, 0.3);
-  margin-top: 8px;
+  padding: 10px 12px;
+  border-left: 4px solid #68c7a9;
+  background: rgba(230, 246, 251, 0.68);
+  margin-top: 10px;
 }
 
 .form-item {
@@ -635,7 +578,7 @@ onMounted(() => {
   align-items: center;
   min-height: 48px;
   padding: 0 16px;
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: inset 0 0 0 1px rgba(181, 221, 231, 0.9);
   transition: box-shadow 0.25s ease, background 0.25s ease, transform 0.25s ease;
@@ -684,7 +627,7 @@ onMounted(() => {
   align-items: center;
   min-height: 48px;
   padding: 0 16px;
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: inset 0 0 0 1px rgba(181, 221, 231, 0.9);
 
@@ -711,7 +654,7 @@ onMounted(() => {
   display: flex;
   min-height: 48px;
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: inset 0 0 0 1px rgba(181, 221, 231, 0.9);
 
@@ -735,15 +678,15 @@ onMounted(() => {
 
 .radio-group {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .radio-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 6px;
+  padding: 8px 12px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.6);
   border: 2px solid rgba(181, 221, 231, 0.9);

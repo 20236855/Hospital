@@ -17,7 +17,7 @@
     <div class="content-section">
       <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
         <van-list v-model:loading="loading" :finished="finished" :immediate-check="false" @load="onLoad">
-          <div v-if="recordList.length === 0 && !loading" class="empty-state slide-up-animation">
+          <div v-if="recordList.length === 0 && !loading" class="empty-state">
             <div class="empty-icon">
               <svg viewBox="0 0 120 120" class="empty-svg">
                 <defs>
@@ -43,12 +43,11 @@
             <div 
               v-for="(item, index) in recordList" 
               :key="item.recordId"
-              class="record-card slide-up-animation"
-              :style="{ animationDelay: `${index * 0.08}s` }"
+              class="record-card"
               @click="viewDetail(item)"
             >
               <div class="card-left">
-                <div class="date-badge float-animation" :style="{ animationDelay: `${index * 0.05}s` }">
+                <div class="date-badge">
                   <span class="date-day">{{ formatDate(item.date).day }}</span>
                   <span class="date-month">{{ formatDate(item.date).month }}</span>
                 </div>
@@ -308,18 +307,14 @@ onMounted(() => {
 <style scoped lang="scss">
 .record-page {
   min-height: 100vh;
-  background: var(--bg-gradient);
+  background: #f5f7fa;
   padding-bottom: 60px;
   position: relative;
   overflow-x: hidden;
 }
 
 .auth-bg-cross {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  opacity: 0.12;
-  animation: authCrossBreath 8s ease-in-out infinite;
+  display: none;
 
   &::before,
   &::after {
@@ -371,26 +366,29 @@ onMounted(() => {
 }
 
 .header-section {
-  padding: 16px 20px 20px;
+  padding: 16px 18px 14px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  background: #fff;
+  border-bottom: 1px solid #e6ebf1;
 }
 
 .header-back {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f2f6f8;
+  border: 1px solid #e2e8ef;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease;
 
   &:active {
-    transform: scale(0.96);
-    background: rgba(255, 255, 255, 0.8);
+    transform: scale(0.98);
+    background: #e8f1f3;
   }
 
   .van-icon {
@@ -405,9 +403,9 @@ onMounted(() => {
   gap: 12px;
 
   h1 {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
-    color: #4f7380;
+    color: #1f3440;
     margin: 0;
   }
 }
@@ -454,7 +452,7 @@ onMounted(() => {
 }
 
 .content-section {
-  padding: 0 16px;
+  padding: 14px 14px 18px;
 }
 
 .empty-state {
@@ -462,7 +460,11 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  min-height: calc(100vh - 220px);
+  padding: 56px 20px;
+  background: #fff;
+  border: 1px solid #e6ebf1;
+  border-radius: 12px;
 }
 
 .empty-icon {
@@ -470,9 +472,8 @@ onMounted(() => {
 }
 
 .empty-svg {
-  width: 140px;
-  height: 140px;
-  animation: floatSoft 4s ease-in-out infinite;
+  width: 112px;
+  height: 112px;
 }
 
 .empty-text {
@@ -481,7 +482,7 @@ onMounted(() => {
   h3 {
     font-size: 18px;
     font-weight: 700;
-    color: #4f7380;
+    color: #1f3440;
     margin: 0 0 8px;
   }
 
@@ -495,28 +496,27 @@ onMounted(() => {
 .record-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .record-card {
-  background: rgba(255, 255, 255, 0.74);
-  border-radius: 20px;
+  background: #fff;
+  border-radius: 12px;
   padding: 16px;
-  border: 1px solid rgba(194, 228, 236, 0.72);
-  box-shadow: var(--card-shadow);
-  backdrop-filter: blur(8px);
+  border: 1px solid #e4eaf0;
+  box-shadow: 0 6px 18px rgba(31, 52, 64, 0.06);
   display: flex;
   gap: 14px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 32px rgba(102, 170, 189, 0.18);
+    border-color: #b8d5dd;
+    box-shadow: 0 8px 22px rgba(31, 52, 64, 0.08);
   }
 
   &:active {
-    transform: translateY(0);
+    border-color: #8bb9c5;
   }
 }
 
@@ -525,27 +525,27 @@ onMounted(() => {
 }
 
 .date-badge {
-  width: 64px;
-  height: 72px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  width: 60px;
+  height: 68px;
+  border-radius: 10px;
+  background: #edf7f5;
+  border: 1px solid #cae7e1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 16px rgba(104, 199, 169, 0.25);
 
   .date-day {
-    font-size: 24px;
+    font-size: 23px;
     font-weight: 700;
-    color: white;
+    color: #207767;
     line-height: 1;
   }
 
   .date-month {
     font-size: 12px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
+    color: #5b8f87;
     margin-top: 4px;
   }
 }
@@ -571,14 +571,15 @@ onMounted(() => {
 .doctor-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #8ed6f2, #bfefff);
+  border-radius: 10px;
+  background: #e8f1f8;
+  border: 1px solid #d7e5ee;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
   font-weight: 700;
-  color: white;
+  color: #2d647b;
 }
 
 .doctor-details {
@@ -590,7 +591,7 @@ onMounted(() => {
 .doctor-name {
   font-size: 16px;
   font-weight: 700;
-  color: #4f7380;
+  color: #1f3440;
 }
 
 .dept-name {
@@ -605,10 +606,11 @@ onMounted(() => {
 .type-tag {
   font-size: 12px;
   font-weight: 600;
-  color: #68c7a9;
-  background: rgba(104, 199, 169, 0.12);
+  color: #207767;
+  background: #edf7f5;
+  border: 1px solid #cae7e1;
   padding: 4px 10px;
-  border-radius: 8px;
+  border-radius: 999px;
 }
 
 .card-body {
@@ -631,7 +633,7 @@ onMounted(() => {
 .diagnosis-text {
   font-size: 14px;
   font-weight: 500;
-  color: #5f7580;
+  color: #314a56;
   line-height: 1.6;
   flex: 1;
 }
@@ -641,7 +643,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding-top: 12px;
-  border-top: 1px solid rgba(213, 237, 243, 0.6);
+  border-top: 1px solid #edf1f5;
 }
 
 .visit-time {
@@ -662,7 +664,7 @@ onMounted(() => {
   gap: 4px;
   font-size: 13px;
   font-weight: 600;
-  color: #68c7a9;
+  color: #207767;
 
   .van-icon {
     font-size: 14px;
@@ -670,72 +672,63 @@ onMounted(() => {
 }
 
 .custom-tabbar {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(194, 228, 236, 0.72);
-}
-
-@keyframes authCrossBreath {
-  0%, 100% { opacity: 0.08; transform: scale(1); }
-  50% { opacity: 0.18; transform: scale(1.08); }
-}
-
-@keyframes floatSoft {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  background: #fff;
+  border-top: 1px solid #e6ebf1;
 }
 
 .detail-popup {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #f8fcfd;
+  background: #f5f7fa;
 }
 
 .detail-header {
   padding: 20px 24px;
-  background: linear-gradient(135deg, #68c7a9, #8ed6f2);
-  color: white;
+  background: #fff;
+  color: #1f3440;
+  border-bottom: 1px solid #e6ebf1;
   
   .detail-title {
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 700;
     margin-bottom: 6px;
   }
   
   .detail-date {
     font-size: 14px;
-    opacity: 0.9;
+    color: #71838d;
   }
 }
 
 .detail-content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .detail-section {
   background: white;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 2px 12px rgba(104, 199, 169, 0.08);
+  border: 1px solid #e4eaf0;
+  box-shadow: 0 4px 14px rgba(31, 52, 64, 0.04);
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: #4f7380;
+  color: #1f3440;
   margin-bottom: 12px;
   
   .van-icon {
-    color: #68c7a9;
+    color: #207767;
     font-size: 18px;
   }
 }
@@ -748,7 +741,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(213, 237, 243, 0.5);
+  border-bottom: 1px solid #edf1f5;
   
   &:last-child {
     border-bottom: none;
@@ -762,23 +755,23 @@ onMounted(() => {
 
 .info-value {
   font-size: 14px;
-  color: #4f7380;
+  color: #1f3440;
   font-weight: 500;
 }
 
 .text-content {
   font-size: 14px;
-  color: #5f7580;
+  color: #314a56;
   line-height: 1.8;
 }
 
 .diagnosis-box {
-  background: linear-gradient(135deg, rgba(104, 199, 169, 0.1), rgba(142, 214, 242, 0.1));
-  border-left: 4px solid #68c7a9;
+  background: #f7fbfa;
+  border-left: 4px solid #207767;
   padding: 16px;
   border-radius: 8px;
   font-size: 15px;
-  color: #4f7380;
+  color: #1f3440;
   font-weight: 500;
   line-height: 1.8;
 }

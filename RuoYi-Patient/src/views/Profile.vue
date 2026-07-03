@@ -10,9 +10,6 @@
         <van-icon name="arrow-left" />
       </div>
       <div class="header-title">
-        <span class="title-icon float-animation">
-          <span class="title-cross"></span>
-        </span>
         <h1>个人中心</h1>
       </div>
     </div>
@@ -24,11 +21,19 @@
             <span class="avatar-text">{{ (userName || '患').charAt(0) }}</span>
           </div>
           <div class="user-info">
+            <div class="patient-status">患者档案</div>
             <h2 class="user-name">{{ userName || '患者' }}</h2>
-            <p class="user-id">ID: {{ userId || '-' }}</p>
+            <p class="user-id">档案号：{{ patientProfile?.patientNo || patientProfile?.patientId || userId || '-' }}</p>
           </div>
           <div class="edit-btn" @click="goToInfo">
             <van-icon name="edit" />
+          </div>
+        </div>
+
+        <div class="profile-detail-grid">
+          <div v-for="item in patientMetaRows" :key="item.label" class="profile-detail-item">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
           </div>
         </div>
 
@@ -44,13 +49,37 @@
           </div>
           <div class="stat-divider"></div>
           <div class="stat-item">
-            <span class="stat-value">{{ stats.favorites }}</span>
-            <span class="stat-label">收藏</span>
+            <span class="stat-value">{{ profileCompletion }}%</span>
+            <span class="stat-label">档案完整度</span>
           </div>
         </div>
       </div>
 
-      <div class="menu-card slide-up-animation" style="animation-delay: 0.08s">
+      <div class="health-card slide-up-animation" style="animation-delay: 0.08s">
+        <div class="card-title-row">
+          <div>
+            <strong>健康档案</strong>
+            <span>就诊前请保持资料准确</span>
+          </div>
+          <button type="button" @click="goToInfo">完善</button>
+        </div>
+        <div class="health-info-list">
+          <div class="health-info-item">
+            <span>过敏史</span>
+            <strong>{{ patientProfile?.allergyHistory || '未填写' }}</strong>
+          </div>
+          <div class="health-info-item">
+            <span>既往史</span>
+            <strong>{{ patientProfile?.pastHistory || '未填写' }}</strong>
+          </div>
+          <div class="health-info-item">
+            <span>紧急联系人</span>
+            <strong>{{ emergencyContactText }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-card slide-up-animation" style="animation-delay: 0.16s">
         <div class="menu-section">
           <div class="menu-title">我的服务</div>
           <div class="menu-item" @click="goToInfo">
@@ -86,7 +115,7 @@
         </div>
       </div>
 
-      <div class="menu-card slide-up-animation" style="animation-delay: 0.16s">
+      <div class="menu-card slide-up-animation" style="animation-delay: 0.24s">
         <div class="menu-section">
           <div class="menu-title">其他</div>
           <div class="menu-item" @click="showToast('帮助中心功能开发中')">
@@ -122,7 +151,7 @@
         </div>
       </div>
 
-      <div class="logout-section slide-up-animation" style="animation-delay: 0.24s">
+      <div class="logout-section slide-up-animation" style="animation-delay: 0.32s">
         <van-button round block class="logout-btn" @click="doLogout">
           <van-icon name="log-out" />
           退出登录
@@ -154,11 +183,45 @@ const active = ref(3)
 
 const userName = ref('')
 const userId = ref('')
+const patientProfile = ref(null)
 
 const stats = ref({
   appointments: 0,
-  records: 0,
-  favorites: 0
+  records: 0
+})
+
+const emptyText = '待完善'
+
+const formatGender = (gender) => {
+  if (gender === '0' || gender === 0 || gender === '男') return '男'
+  if (gender === '1' || gender === 1 || gender === '女') return '女'
+  return emptyText
+}
+
+const maskPhone = (phone) => {
+  if (!phone) return emptyText
+  const value = String(phone)
+  return value.length >= 7 ? `${value.slice(0, 3)}****${value.slice(-4)}` : value
+}
+
+const patientMetaRows = computed(() => [
+  { label: '性别', value: formatGender(patientProfile.value?.gender) },
+  { label: '年龄', value: patientProfile.value?.age ? `${patientProfile.value.age}岁` : emptyText },
+  { label: '手机号', value: maskPhone(patientProfile.value?.phone) },
+  { label: '血型', value: patientProfile.value?.bloodType || emptyText }
+])
+
+const profileCompletion = computed(() => {
+  const fields = ['name', 'gender', 'birthday', 'phone', 'idCard', 'bloodType', 'emergencyContact', 'emergencyPhone']
+  const completed = fields.filter(field => patientProfile.value?.[field]).length
+  return Math.round((completed / fields.length) * 100)
+})
+
+const emergencyContactText = computed(() => {
+  const contact = patientProfile.value?.emergencyContact
+  const phone = patientProfile.value?.emergencyPhone
+  if (!contact && !phone) return '未填写'
+  return [contact, maskPhone(phone)].filter(Boolean).join(' / ')
 })
 
 const loadUserData = async () => {
@@ -174,6 +237,7 @@ const loadUserData = async () => {
       const patientRes = await getPatientByUserId(currentUserId)
       const patient = patientRes?.data
       if (patient) {
+        patientProfile.value = patient
         localStorage.setItem('patientId', patient.patientId)
         localStorage.setItem('patientName', patient.name)
         userName.value = patient.name
@@ -199,6 +263,7 @@ const loadUserData = async () => {
     if (savedUserId) {
       userId.value = savedUserId
     }
+    patientProfile.value = null
   }
 }
 
@@ -362,47 +427,6 @@ onMounted(() => {
   }
 }
 
-.title-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 24px rgba(104, 199, 169, 0.2);
-}
-
-.title-cross {
-  position: relative;
-  width: 24px;
-  height: 24px;
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    background: linear-gradient(135deg, #68c7a9, #89dbc1);
-    border-radius: 6px;
-  }
-
-  &::before {
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 5px;
-    transform: translateY(-50%);
-  }
-
-  &::after {
-    top: 0;
-    left: 50%;
-    width: 5px;
-    height: 100%;
-    transform: translateX(-50%);
-  }
-}
-
 .content-section {
   padding: 0 16px;
   display: flex;
@@ -411,8 +435,8 @@ onMounted(() => {
 }
 
 .profile-card {
-  background: rgba(255, 255, 255, 0.74);
-  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 16px;
   padding: 24px;
   border: 1px solid rgba(194, 228, 236, 0.72);
   box-shadow: var(--card-shadow);
@@ -429,7 +453,7 @@ onMounted(() => {
 .user-avatar {
   width: 72px;
   height: 72px;
-  border-radius: 20px;
+  border-radius: 18px;
   background: linear-gradient(135deg, #68c7a9, #89dbc1);
   display: flex;
   align-items: center;
@@ -454,6 +478,18 @@ onMounted(() => {
   font-weight: 700;
   color: #4f7380;
   margin: 0 0 4px;
+}
+
+.patient-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  margin-bottom: 6px;
+  border: 1px solid rgba(104, 199, 169, 0.32);
+  background: rgba(104, 199, 169, 0.1);
+  color: #4a9f87;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .user-id {
@@ -481,6 +517,33 @@ onMounted(() => {
   .van-icon {
     color: #68c7a9;
     font-size: 18px;
+  }
+}
+
+.profile-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.profile-detail-item {
+  min-height: 58px;
+  padding: 12px;
+  border: 1px solid rgba(213, 237, 243, 0.82);
+  background: rgba(255, 255, 255, 0.62);
+
+  span {
+    display: block;
+    margin-bottom: 5px;
+    color: #8e9fa8;
+    font-size: 12px;
+  }
+
+  strong {
+    color: #4f7380;
+    font-size: 15px;
+    font-weight: 700;
   }
 }
 
@@ -519,12 +582,83 @@ onMounted(() => {
 }
 
 .menu-card {
-  background: rgba(255, 255, 255, 0.74);
-  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 16px;
   padding: 20px 16px;
   border: 1px solid rgba(194, 228, 236, 0.72);
   box-shadow: var(--card-shadow);
   backdrop-filter: blur(8px);
+}
+
+.health-card {
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(194, 228, 236, 0.72);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(8px);
+}
+
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+
+  strong {
+    display: block;
+    color: #4f7380;
+    font-size: 17px;
+    margin-bottom: 4px;
+  }
+
+  span {
+    color: #8e9fa8;
+    font-size: 13px;
+  }
+
+  button {
+    border: none;
+    padding: 6px 12px;
+    background: rgba(104, 199, 169, 0.12);
+    color: #4a9f87;
+    font-weight: 700;
+    cursor: pointer;
+  }
+}
+
+.health-info-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(213, 237, 243, 0.78);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.health-info-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(213, 237, 243, 0.56);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  span {
+    flex-shrink: 0;
+    color: #8e9fa8;
+    font-size: 13px;
+  }
+
+  strong {
+    color: #4f7380;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+    line-height: 1.45;
+  }
 }
 
 .menu-section {
@@ -536,8 +670,6 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 700;
   color: #8e9fa8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   margin-bottom: 12px;
   padding-left: 8px;
 }
@@ -547,7 +679,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 14px 8px;
-  border-radius: 14px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
 
@@ -563,7 +695,7 @@ onMounted(() => {
 .menu-icon-wrapper {
   width: 44px;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
