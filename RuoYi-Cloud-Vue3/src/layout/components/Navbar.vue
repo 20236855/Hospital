@@ -4,8 +4,8 @@
 
     <div v-if="settingsStore.navType == 1" class="navbar-workspace">
       <div class="workspace-title">
-        <span>门诊 HIS 工作台</span>
-        <strong>Outpatient Operations</strong>
+        <span>云医智联 工作台</span>
+        <strong>AI-Driven Healthcare</strong>
       </div>
       <breadcrumb id="breadcrumb-container" class="breadcrumb-container" />
     </div>
@@ -224,9 +224,9 @@ async function toggleTheme(event) {
   align-items: center;
   box-sizing: border-box;
   padding: 0 16px 0 6px;
-  border-bottom: 1px solid rgba(110, 170, 150, 0.22);
+  border-bottom: 1px solid rgba(147, 197, 253, 0.22);
   background: var(--navbar-bg);
-  box-shadow: 0 8px 24px rgba(20, 70, 62, 0.08);
+  box-shadow: 0 8px 24px rgba(20, 56, 120, 0.08);
 
   .hamburger-container {
     display: flex;
@@ -235,15 +235,15 @@ async function toggleTheme(event) {
     height: 40px;
     margin-right: 12px;
     border-radius: 8px;
-    color: #2a4d45;
+    color: #1E3A5F;
     cursor: pointer;
     line-height: 58px;
     transition: background 0.2s, color 0.2s;
     -webkit-tap-highlight-color: transparent;
 
     &:hover {
-      background: #e6f5ee;
-      color: #1a6a62;
+      background: #EFF6FF;
+      color: #1D4ED8;
     }
   }
 
@@ -262,14 +262,14 @@ async function toggleTheme(event) {
     line-height: 1.2;
 
     span {
-      color: #183d36;
+      color: #1E3A5F;
       font-size: 16px;
       font-weight: 700;
     }
 
     strong {
       margin-top: 3px;
-      color: #6b8d82;
+      color: #64748B;
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0;
@@ -314,7 +314,7 @@ async function toggleTheme(event) {
       height: 36px;
       padding: 0 8px;
       border-radius: 8px;
-      color: #2a4d45;
+      color: #1E3A5F;
       font-size: 17px;
       vertical-align: text-bottom;
 
@@ -323,8 +323,8 @@ async function toggleTheme(event) {
         transition: background 0.2s, color 0.2s;
 
         &:hover {
-          background: #e6f5ee;
-          color: #1a6a62;
+          background: #EFF6FF;
+          color: #1D4ED8;
         }
       }
 
@@ -353,9 +353,9 @@ async function toggleTheme(event) {
           height: auto;
           min-height: 38px;
           padding: 6px 10px 6px 6px;
-          border: 1px solid rgba(110, 170, 150, 0.26);
+          border: 1px solid rgba(147, 197, 253, 0.26);
           border-radius: 8px;
-          background: #f3faf6;
+          background: #EFF6FF;
 
         .user-avatar {
           width: 30px;
@@ -372,7 +372,7 @@ async function toggleTheme(event) {
           
           .user-nickname {
             position: static;
-            color: #183d36;
+            color: #1E3A5F;
             font-size: 14px;
             font-weight: 700;
             line-height: 1.2;
@@ -380,7 +380,7 @@ async function toggleTheme(event) {
           
           .user-role {
             position: static;
-            color: #6b8d82;
+            color: #64748B;
             font-size: 11px;
             font-weight: 500;
             line-height: 1.2;
@@ -405,16 +405,16 @@ async function toggleTheme(event) {
   gap: 6px;
   height: 34px;
   padding: 0 12px;
-  border: 1px solid rgba(35, 114, 104, 0.20);
+  border: 1px solid rgba(37, 99, 235, 0.20);
   border-radius: 8px;
-  background: #e6f5ee;
-  color: #1a4d45;
+  background: #EFF6FF;
+  color: #143878;
   font-size: 13px;
   font-weight: 700;
 
   &--soft {
-    background: #f0faf5;
-    color: #237268;
+    background: #F0F4FF;
+    color: #1D4ED8;
   }
 }
 

@@ -139,7 +139,7 @@ const theme = ref(settingsStore.theme)
 const sideTheme = ref(settingsStore.sideTheme)
 const tagsViewPersist = ref(settingsStore.tagsViewPersist)
 const storeSettings = computed(() => settingsStore)
-const predefineColors = ref(["#237268", "#1a4d45", "#2d8a83", "#3a8d82", "#3d9a9a", "#68b3a5", "#49b99d", "#b7893f"])
+const predefineColors = ref(["#1D4ED8", "#143878", "#2563EB", "#3B82F6", "#60A5FA", "#93C5FD", "#0C2A60", "#D97706"])
 
 /** 是否需要dynamicTitle */
 function dynamicTitleChange() {

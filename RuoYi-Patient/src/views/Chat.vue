@@ -527,11 +527,11 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
-$mint-dark: #5f9e8c;
-$mint-bright: #68c7a9;
-$sky-blue: #5db8d8;
-$ink: #2d5a4e;
-$warm: #e89860;
+$blue-dark: #2D62C8;
+$blue-bright: #4A90E2;
+$sky-blue: #A0C8F0;
+$ink: #2C3E50;
+$warm: #e88050;
 
 .chat-page {
   position: relative;
@@ -540,7 +540,7 @@ $warm: #e89860;
   height: 100vh;
   overflow: hidden;
   background:
-    linear-gradient(155deg, rgba(232, 245, 240, .94) 0%, rgba(207, 232, 216, .74) 42%, rgba(224, 238, 248, .9) 100%),
+    linear-gradient(155deg, rgba(238, 243, 249, .94) 0%, rgba(215, 226, 242, .74) 42%, rgba(225, 235, 246, .9) 100%),
     var(--bg-gradient);
   color: var(--text-primary);
 }
@@ -550,8 +550,8 @@ $warm: #e89860;
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(95, 158, 140, .08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(93, 184, 216, .08) 1px, transparent 1px);
+    linear-gradient(rgba(45, 98, 200, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 144, 226, .08) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: linear-gradient(to bottom, rgba(0,0,0,.55), rgba(0,0,0,.08));
   animation: gridDrift 16s linear infinite;
@@ -563,7 +563,7 @@ $warm: #e89860;
   right: -12%;
   height: 2px;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(93, 184, 216, .52), rgba(232, 152, 96, .34), transparent);
+  background: linear-gradient(90deg, transparent, rgba(74, 144, 226, .52), rgba(74, 144, 226, .34), transparent);
   opacity: .55;
   filter: blur(.2px);
 }
@@ -591,10 +591,10 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 253, 248, .62);
-  border: 1px solid rgba(213, 237, 243, .76);
+  background: rgba(255, 255, 255, .62);
+  border: 1px solid rgba(74, 144, 226, .16);
   color: $ink;
-  box-shadow: 0 10px 26px rgba(102, 170, 189, .12);
+  box-shadow: 0 10px 26px rgba(74, 144, 226, .12);
 
   svg {
     width: 21px;
@@ -614,9 +614,9 @@ button {
   align-items: center;
   gap: 10px;
   padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-  background: rgba(255, 253, 248, .72);
-  border-bottom: 1px solid rgba(213, 237, 243, .68);
-  box-shadow: 0 12px 34px rgba(102, 170, 189, .12);
+  background: rgba(255, 255, 255, .72);
+  border-bottom: 1px solid rgba(74, 144, 226, .14);
+  box-shadow: 0 12px 34px rgba(74, 144, 226, .12);
   backdrop-filter: blur(18px);
 }
 
@@ -635,10 +635,10 @@ button {
   border-radius: 14px;
   display: grid;
   place-items: center;
-  color: $mint-dark;
-  background: linear-gradient(135deg, rgba(232, 245, 240, .96), rgba(224, 238, 248, .98));
-  border: 1px solid rgba(104, 199, 169, .24);
-  box-shadow: inset 0 0 18px rgba(104, 199, 169, .12), 0 14px 24px rgba(95, 158, 140, .12);
+  color: $blue-dark;
+  background: linear-gradient(135deg, rgba(238, 243, 249, .96), rgba(225, 235, 246, .98));
+  border: 1px solid rgba(74, 144, 226, .24);
+  box-shadow: inset 0 0 18px rgba(104, 199, 169, .12), 0 14px 24px rgba(45, 98, 200, .12);
 
   svg {
     position: relative;
@@ -683,7 +683,7 @@ button {
   align-items: center;
   gap: 5px;
   margin-top: 4px;
-  color: rgba(45, 90, 78, .62);
+  color: rgba(30, 64, 175, .62);
   font-size: 12px;
   font-weight: 700;
 
@@ -691,8 +691,8 @@ button {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: $mint-bright;
-    box-shadow: 0 0 0 5px rgba(104, 199, 169, .13);
+    background: $blue-bright;
+    box-shadow: 0 0 0 5px rgba(74, 144, 226, .13);
   }
 }
 
@@ -702,7 +702,7 @@ button {
 }
 
 .primary-action {
-  background: linear-gradient(135deg, rgba(95, 158, 140, .95), rgba(93, 184, 216, .95));
+  background: linear-gradient(135deg, rgba(45, 98, 200, .95), rgba(74, 144, 226, .95));
   color: #fff;
   border-color: rgba(255,255,255,.38);
 }
@@ -720,7 +720,7 @@ button {
   position: fixed;
   inset: 0;
   z-index: 25;
-  background: rgba(26, 77, 69, .18);
+  background: rgba(11, 37, 96, .18);
   backdrop-filter: blur(2px);
 }
 
@@ -735,8 +735,8 @@ button {
   flex-direction: column;
   padding: 14px;
   border-radius: 18px;
-  background: rgba(255, 253, 248, .86);
-  border: 1px solid rgba(213, 237, 243, .82);
+  background: rgba(255, 255, 255, .86);
+  border: 1px solid rgba(74, 144, 226, .18);
   box-shadow: 0 28px 70px rgba(45, 90, 78, .22);
   backdrop-filter: blur(20px);
   transform: translateX(0);
@@ -785,8 +785,8 @@ button {
   font-size: 14px;
   font-weight: 800;
   text-align: left;
-  background: linear-gradient(135deg, rgba(232, 245, 240, .95), rgba(224, 238, 248, .86));
-  border: 1px solid rgba(104, 199, 169, .18);
+  background: linear-gradient(135deg, rgba(238, 243, 249, .95), rgba(224, 238, 248, .86));
+  border: 1px solid rgba(74, 144, 226, .18);
 }
 
 .new-session-icon {
@@ -796,7 +796,7 @@ button {
   display: grid;
   place-items: center;
   color: #fff;
-  background: linear-gradient(135deg, $mint-dark, $sky-blue);
+  background: linear-gradient(135deg, $blue-dark, $sky-blue);
 
   svg {
     width: 18px;
@@ -823,20 +823,20 @@ button {
   padding: 11px;
   text-align: left;
   color: var(--text-primary);
-  background: rgba(255, 253, 248, .72);
-  border: 1px solid rgba(213, 237, 243, .62);
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(74, 144, 226, .12);
   transition: transform .2s ease, border-color .2s ease, background .2s ease;
 
   svg {
     width: 18px;
     height: 18px;
-    color: rgba(95, 158, 140, .64);
+    color: rgba(45, 98, 200, .64);
   }
 
   &.active {
-    background: rgba(232, 245, 240, .92);
-    border-color: rgba(95, 158, 140, .36);
-    box-shadow: inset 3px 0 0 $mint-dark;
+    background: rgba(238, 243, 249, .92);
+    border-color: rgba(45, 98, 200, .36);
+    box-shadow: inset 3px 0 0 $blue-dark;
   }
 
   &:active {
@@ -850,7 +850,7 @@ button {
   border-radius: 10px;
   display: grid;
   place-items: center;
-  color: $mint-dark;
+  color: $blue-dark;
   background: rgba(185, 225, 205, .22);
   font-size: 13px;
   font-weight: 900;
@@ -941,8 +941,8 @@ button {
   border-radius: 22px;
   display: grid;
   place-items: center;
-  color: $mint-dark;
-  background: rgba(255, 253, 248, .72);
+  color: $blue-dark;
+  background: rgba(255, 255, 255, .72);
   border: 1px solid rgba(213, 237, 243, .78);
   box-shadow: 0 22px 50px rgba(102, 170, 189, .16);
 
@@ -999,8 +999,8 @@ button {
   padding: 13px 14px;
   color: $ink;
   text-align: left;
-  background: rgba(255, 253, 248, .76);
-  border: 1px solid rgba(213, 237, 243, .76);
+  background: rgba(255, 255, 255, .76);
+  border: 1px solid rgba(74, 144, 226, .16);
   box-shadow: 0 14px 30px rgba(102, 170, 189, .1);
   transition: transform .18s ease, border-color .18s ease;
 
@@ -1019,7 +1019,7 @@ button {
 
   &:active {
     transform: scale(.985);
-    border-color: rgba(95, 158, 140, .36);
+    border-color: rgba(45, 98, 200, .36);
   }
 }
 
@@ -1048,7 +1048,7 @@ button {
   border-radius: 11px;
   display: grid;
   place-items: center;
-  box-shadow: 0 10px 24px rgba(102, 170, 189, .12);
+  box-shadow: 0 10px 24px rgba(74, 144, 226, .12);
 
   svg {
     width: 20px;
@@ -1057,8 +1057,8 @@ button {
 }
 
 .assistant-avatar {
-  color: $mint-dark;
-  background: rgba(255, 253, 248, .78);
+  color: $blue-dark;
+  background: rgba(255, 255, 255, .78);
   border: 1px solid rgba(104, 199, 169, .22);
 
   img {
@@ -1072,7 +1072,7 @@ button {
 
 .user-avatar {
   color: #fff;
-  background: linear-gradient(135deg, $sky-blue, $mint-bright);
+  background: linear-gradient(135deg, $sky-blue, $blue-bright);
 }
 
 .message-content {
@@ -1094,7 +1094,7 @@ button {
 
 .assistant .message-bubble {
   color: var(--text-primary);
-  background: rgba(255, 253, 248, .86);
+  background: rgba(255, 255, 255, .86);
   border: 1px solid rgba(213, 237, 243, .78);
   border-bottom-left-radius: 5px;
   box-shadow: 0 12px 30px rgba(102, 170, 189, .11);
@@ -1102,7 +1102,7 @@ button {
 
 .user .message-bubble {
   color: #fff;
-  background: #43b8b4;
+  background: #3880c8;
   border-bottom-right-radius: 5px;
   box-shadow: 0 14px 30px rgba(67, 184, 180, .22);
 }
@@ -1137,9 +1137,9 @@ button {
   position: relative;
   z-index: 22;
   padding: 9px 12px calc(10px + env(safe-area-inset-bottom));
-  background: rgba(255, 253, 248, .76);
+  background: rgba(255, 255, 255, .76);
   border-top: 1px solid rgba(213, 237, 243, .72);
-  box-shadow: 0 -12px 34px rgba(102, 170, 189, .12);
+  box-shadow: 0 -12px 34px rgba(74, 144, 226, .12);
   backdrop-filter: blur(18px);
 }
 
@@ -1154,7 +1154,7 @@ button {
   gap: 8px;
   padding: 5px 11px;
   color: $ink;
-  background: rgba(232, 245, 240, .92);
+  background: rgba(238, 243, 249, .92);
   border: 1px solid rgba(104, 199, 169, .2);
   font-size: 12px;
   font-weight: 800;
@@ -1169,7 +1169,7 @@ button {
     width: 3px;
     height: 10px;
     border-radius: 99px;
-    background: $mint-bright;
+    background: $blue-bright;
     animation: voiceBar .82s ease-in-out infinite;
 
     &:nth-child(2) { animation-delay: .12s; }
@@ -1212,13 +1212,13 @@ button {
 }
 
 .voice-btn {
-  color: $mint-dark;
-  background: rgba(255, 253, 248, .9);
-  border: 1px solid rgba(104, 199, 169, .18);
+  color: $blue-dark;
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid rgba(74, 144, 226, .18);
 
   &.recording {
     color: #fff;
-    background: linear-gradient(135deg, $warm, $mint-bright);
+    background: linear-gradient(135deg, $warm, $blue-bright);
     filter: drop-shadow(0 8px 18px rgba(232, 152, 96, .22));
     animation: micPulse 1.2s ease-in-out infinite;
   }
@@ -1245,7 +1245,7 @@ textarea {
 }
 
 .send-btn {
-  background: linear-gradient(135deg, $sky-blue, $mint-bright);
+  background: linear-gradient(135deg, $sky-blue, $blue-bright);
 
   &:disabled {
     opacity: .42;
@@ -1301,8 +1301,8 @@ textarea {
   .chat-page {
     max-width: 520px;
     margin: 0 auto;
-    border-left: 1px solid rgba(213, 237, 243, .62);
-    border-right: 1px solid rgba(213, 237, 243, .62);
+    border-left: 1px solid rgba(74, 144, 226, .12);
+    border-right: 1px solid rgba(74, 144, 226, .12);
   }
 
   .session-sidebar {

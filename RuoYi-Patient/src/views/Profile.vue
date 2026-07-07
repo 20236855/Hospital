@@ -340,7 +340,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: #68c7a9;
+    background: #4A90E2;
     border-radius: 8px;
   }
 
@@ -454,7 +454,7 @@ onMounted(() => {
   width: 72px;
   height: 72px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  background: linear-gradient(135deg, #4A90E2, #A8C8EC);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -487,7 +487,7 @@ onMounted(() => {
   margin-bottom: 6px;
   border: 1px solid rgba(104, 199, 169, 0.32);
   background: rgba(104, 199, 169, 0.1);
-  color: #4a9f87;
+  color: #357ABD;
   font-size: 12px;
   font-weight: 700;
 }
@@ -515,7 +515,7 @@ onMounted(() => {
   }
 
   .van-icon {
-    color: #68c7a9;
+    color: #4A90E2;
     font-size: 18px;
   }
 }
@@ -565,7 +565,7 @@ onMounted(() => {
 .stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #68c7a9;
+  color: #4A90E2;
   line-height: 1;
 }
 
@@ -622,7 +622,7 @@ onMounted(() => {
     border: none;
     padding: 6px 12px;
     background: rgba(104, 199, 169, 0.12);
-    color: #4a9f87;
+    color: #357ABD;
     font-weight: 700;
     cursor: pointer;
   }
@@ -709,7 +709,7 @@ onMounted(() => {
 .icon-info {
   background: linear-gradient(135deg, rgba(104, 199, 169, 0.15), rgba(104, 199, 169, 0.08));
   .van-icon {
-    color: #68c7a9;
+    color: #4A90E2;
   }
 }
 

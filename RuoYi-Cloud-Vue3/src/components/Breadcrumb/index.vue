@@ -100,7 +100,7 @@ getBreadcrumb()
 
   :deep(.el-breadcrumb__inner a),
   :deep(.el-breadcrumb__inner.is-link) {
-    color: #3a8d82 !important;
+    color: #2563EB !important;
     font-weight: 400 !important;
   }
 

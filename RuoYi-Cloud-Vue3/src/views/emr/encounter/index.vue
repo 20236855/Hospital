@@ -6,7 +6,7 @@
       subtitle="基于当前接诊列表实时计算待接诊、接诊中、完成率和AI辅助使用情况"
       tone="clinical"
       :focus-value="encounterDashboard.focusValue"
-      focus-label="完成率"
+      focus-label="总接诊数"
       :metrics="encounterDashboard.metrics"
       :lanes="encounterDashboard.lanes"
       :chips="encounterDashboard.chips"
@@ -57,8 +57,8 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="scope">
-            <el-button link type="primary" size="small" @click="openAIAssistant(scope.row)">
-              <el-icon><MagicStick /></el-icon>AI助手
+            <el-button link type="primary" size="small" @click="openConsultWorkbench(scope.row)">
+              <el-icon><FirstAidKit /></el-icon>会诊
             </el-button>
             <el-button link type="primary" size="small" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['emr:encounter:edit']">编辑</el-button>
             <el-button link type="danger" size="small" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['emr:encounter:remove']">删除</el-button>
@@ -146,11 +146,11 @@
       <template #header>
         <div class="ai-drawer-header">
           <div class="ai-header-icon">
-            <el-icon :size="24"><MagicStick /></el-icon>
+            <el-icon :size="24"><FirstAidKit /></el-icon>
           </div>
           <div class="ai-header-text">
-            <span class="ai-title">AI 诊疗助手</span>
-            <span class="ai-subtitle">辅助诊断 · 临床决策支持</span>
+            <span class="ai-title">会诊工作台</span>
+            <span class="ai-subtitle">AI辅助 · 开方 · 检查检验 · 病历书写</span>
           </div>
           <el-tag size="small" :type="aiConfigured ? 'success' : 'danger'">
             {{ aiConfigured ? '已连接' : '未配置API' }}
@@ -172,6 +172,21 @@
               <span>状态：{{ currentPatient.encounterStatus }}</span>
             </div>
           </div>
+        </div>
+
+        <div class="clinical-actions">
+          <button type="button" class="clinical-action prescription" @click="goPrescription">
+            <el-icon><Tickets /></el-icon>
+            <span>开处方</span>
+          </button>
+          <button type="button" class="clinical-action exam" @click="goExamApply">
+            <el-icon><Connection /></el-icon>
+            <span>检查检验</span>
+          </button>
+          <button type="button" class="clinical-action record" @click="openManualRecord">
+            <el-icon><EditPen /></el-icon>
+            <span>写病历</span>
+          </button>
         </div>
 
         <!-- 快捷操作 -->
@@ -264,7 +279,7 @@
     </el-drawer>
 
     <!-- ===== 病历生成预览弹窗 ===== -->
-    <el-dialog v-model="previewOpen" title="AI 生成病历预览" width="700px" append-to-body>
+    <el-dialog v-model="previewOpen" :title="recordDialogTitle" width="700px" append-to-body>
       <el-form :model="previewRecord" label-width="80px">
         <el-row :gutter="16">
           <el-col :span="12"><el-form-item label="主诉"><el-input v-model="previewRecord.chiefComplaint" type="textarea" :rows="2" /></el-form-item></el-col>
@@ -288,7 +303,7 @@
 <script setup name="Encounter">
 import { ref, reactive, toRefs, computed, getCurrentInstance, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { MagicStick, UserFilled, List, Connection, Document, Position, TrendCharts, Clock, CircleCheckFilled } from '@element-plus/icons-vue'
+import { MagicStick, UserFilled, List, Connection, Document, Position, TrendCharts, Clock, CircleCheckFilled, FirstAidKit, Tickets, EditPen } from '@element-plus/icons-vue'
 import DoctorInsightDashboard from '@/components/DoctorInsightDashboard/index.vue'
 import { listEncounter, getEncounter, delEncounter, addEncounter, updateEncounter } from "@/api/emr/encounter"
 import { saveRecord as saveRecordApi } from "@/api/emr/record"
@@ -299,6 +314,7 @@ import { aiChat } from "@/api/ai/assistant"
 import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
+const router = useRouter()
 const userStore = useUserStore()
 
 // ===== 接诊列表 =====
@@ -339,10 +355,10 @@ const encounterDashboard = computed(() => {
       { label: '已完成', value: done, note: `完成率 ${doneRate}%`, icon: CircleCheckFilled, state: 'good', progress: doneRate }
     ],
     lanes: [
-      { label: '待接诊', value: waiting, progress: percent(waiting, listTotal) },
-      { label: '接诊中', value: active, progress: percent(active, listTotal) },
-      { label: '已完成', value: done, progress: doneRate },
-      { label: '已取消', value: canceled, progress: percent(canceled, listTotal) }
+      { label: '待接诊', value: waiting, progress: percent(waiting, listTotal), color: '#f43f46' },
+      { label: '接诊中', value: active, progress: percent(active, listTotal), color: '#f97316' },
+      { label: '已完成', value: done, progress: doneRate, color: '#22c55e' },
+      { label: '已取消', value: canceled, progress: percent(canceled, listTotal), color: '#3b82f6' }
     ],
     chips: [
       { label: '急诊关注', value: urgent, type: urgent ? 'danger' : 'success' },
@@ -439,7 +455,7 @@ const aiConfigured = computed(() => {
   return true // 后端已配置 DeepSeek API Key
 })
 
-function openAIAssistant(row) {
+function openConsultWorkbench(row) {
   currentPatient.value = row
   aiMessages.value = []
   aiInput.value = ''
@@ -449,12 +465,51 @@ function openAIAssistant(row) {
   nextTick(() => scrollChat())
 }
 
+function openAIAssistant(row) {
+  openConsultWorkbench(row)
+}
+
 function openAIAssistantFirst() {
   if (encounterList.value.length > 0) {
-    openAIAssistant(encounterList.value[0])
+    openConsultWorkbench(encounterList.value[0])
   } else {
     ElMessage.info('暂无可接诊记录')
   }
+}
+
+function currentConsultQuery(extra = {}) {
+  const row = currentPatient.value || {}
+  return {
+    encounterId: row.encounterId,
+    registerId: row.registerId,
+    patientId: row.patientId,
+    doctorId: row.doctorId,
+    deptId: row.deptId,
+    patientName: row.patientName,
+    ...extra
+  }
+}
+
+function goPrescription() {
+  if (!currentPatient.value?.encounterId) {
+    ElMessage.warning('当前接诊记录缺少接诊ID')
+    return
+  }
+  router.push({
+    path: '/hisprescription/prescription',
+    query: currentConsultQuery({ autoOpen: '1' })
+  })
+}
+
+function goExamApply() {
+  if (!currentPatient.value?.registerId) {
+    ElMessage.warning('当前接诊记录缺少挂号ID')
+    return
+  }
+  router.push({
+    path: '/hisexam/apply-detail',
+    query: currentConsultQuery({ autoOpen: '1', applyType: 'CHECK' })
+  })
 }
 
 function aiQuickAsk(question) {
@@ -551,6 +606,7 @@ function scrollChat() {
 
 // ==================== AI生成病历 ====================
 const previewOpen = ref(false)
+const recordDialogTitle = ref('AI 生成病历预览')
 const previewRecord = reactive({
   encounterId: null, chiefComplaint: '', presentIllness: '', pastHistory: '',
   allergyHistory: '', physicalExam: '', diagnosisOpinion: '', treatmentPlan: '', doctorAdvice: ''
@@ -568,8 +624,19 @@ function resetPreviewRecord(encounterId = null) {
   previewRecord.doctorAdvice = ''
 }
 
+function openManualRecord() {
+  if (!currentPatient.value?.encounterId) {
+    ElMessage.warning('当前接诊记录缺少接诊ID')
+    return
+  }
+  recordDialogTitle.value = '书写电子病历'
+  resetPreviewRecord(currentPatient.value.encounterId)
+  previewOpen.value = true
+}
+
 async function aiGenerateFullRecord() {
   if (!currentPatient.value) return
+  recordDialogTitle.value = 'AI 生成病历预览'
   resetPreviewRecord(currentPatient.value.encounterId)
 
   // 收集对话中的问诊信息
@@ -731,6 +798,55 @@ getList(); getPatientOptions()
   .ai-patient-avatar { width: 44px; height: 44px; border-radius: 50%; background: #1A6B54; display: flex; align-items: center; justify-content: center; color: #fff; }
   .ai-patient-name { font-size: 15px; font-weight: 600; color: #1E293B; display: flex; align-items: center; gap: 8px; }
   .ai-patient-meta { font-size: 12px; color: #64748B; margin-top: 2px; display: flex; gap: 16px; }
+}
+
+.clinical-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #F1F5F9;
+  background: #fff;
+}
+
+.clinical-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  height: 38px;
+  border: 1px solid #dbe8e5;
+  border-radius: 10px;
+  background: #f8fbfa;
+  color: #244c47;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all .18s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(31, 73, 67, .12);
+  }
+
+  &.prescription {
+    border-color: #c8e7dc;
+    background: #f0faf6;
+    color: #047857;
+  }
+
+  &.exam {
+    border-color: #cfe3ff;
+    background: #f1f7ff;
+    color: #2563eb;
+  }
+
+  &.record {
+    border-color: #f4d6a6;
+    background: #fff8ec;
+    color: #b7791f;
+  }
 }
 
 .ai-quick-actions {

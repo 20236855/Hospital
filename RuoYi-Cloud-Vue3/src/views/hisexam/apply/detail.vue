@@ -393,7 +393,11 @@ function startHeroCarousel() {
 function stopHeroCarousel() {
   if (heroTimer) { clearInterval(heroTimer); heroTimer = null }
 }
-onMounted(() => { startHeroCarousel(); fetchList() })
+onMounted(() => {
+  startHeroCarousel()
+  fetchList()
+  openApplyFromConsultQuery()
+})
 onUnmounted(() => { stopHeroCarousel() })
 
 // ============ 返回 ============
@@ -484,6 +488,38 @@ const searchRegistersForDialog = (keyword) => {
     .finally(() => { regLoading.value = false })
 }
 
+function sameId(a, b) {
+  return String(a ?? '') === String(b ?? '')
+}
+
+function queryValue(key) {
+  const value = route.query[key]
+  return Array.isArray(value) ? value[0] : value
+}
+
+function upsertRegisterOption(option) {
+  if (!option?.registerId) return
+  const index = registerOptions.value.findIndex(r => sameId(r.registerId, option.registerId))
+  if (index >= 0) {
+    registerOptions.value[index] = { ...registerOptions.value[index], ...option }
+    return
+  }
+  registerOptions.value.unshift(option)
+}
+
+function ensureConsultRegisterOption() {
+  const registerId = queryValue('registerId')
+  if (!registerId) return
+  upsertRegisterOption({
+    registerId,
+    registerNo: queryValue('registerNo') || ('挂号#' + registerId),
+    patientId: queryValue('patientId'),
+    patientName: queryValue('patientName') || (queryValue('patientId') ? '患者' + queryValue('patientId') : '当前患者'),
+    doctorId: queryValue('doctorId'),
+    deptId: queryValue('deptId')
+  })
+}
+
 const onDialogRegisterChange = async (registerId) => {
   if (!registerId) return
   try {
@@ -510,6 +546,14 @@ const onDialogRegisterChange = async (registerId) => {
       }
       applyForm._doctorInfo = (data.doctorName || '') + ' (ID:' + (data.doctorId || '') + ')'
       applyForm._deptInfo = (data.deptName || '') + ' (ID:' + (data.deptId || '') + ')'
+      upsertRegisterOption({
+        registerId: data.registerId || registerId,
+        registerNo: data.registerNo || ('挂号#' + registerId),
+        patientId: data.patientId,
+        patientName: data.patientName,
+        doctorId: data.doctorId,
+        deptId: data.deptId
+      })
     }
   } catch (e) { console.error('获取挂号详情失败:', e) }
 }
@@ -537,6 +581,30 @@ function handleCreate() {
   dialogTitle.value = `新建${currentCategory.value?.name}申请单`
   loadDialogTechList()
   dialogOpen.value = true
+}
+
+function fillApplyFromConsultQuery() {
+  applyForm.registerId = queryValue('registerId') || applyForm.registerId
+  applyForm.encounterId = queryValue('encounterId') || applyForm.encounterId
+  applyForm.patientId = queryValue('patientId') || applyForm.patientId
+  applyForm.doctorId = queryValue('doctorId') || applyForm.doctorId
+  applyForm.deptId = queryValue('deptId') || applyForm.deptId
+  applyForm.operatorId = applyForm.doctorId || applyForm.operatorId
+  applyForm.inputerId = applyForm.doctorId || applyForm.inputerId
+  applyForm.examTime = applyForm.examTime || new Date().toISOString()
+  applyForm._doctorInfo = applyForm.doctorId ? `医生ID:${applyForm.doctorId}` : applyForm._doctorInfo
+  applyForm._deptInfo = applyForm.deptId ? `科室ID:${applyForm.deptId}` : applyForm._deptInfo
+}
+
+async function openApplyFromConsultQuery() {
+  if (queryValue('autoOpen') !== '1') return
+  handleCreate()
+  ensureConsultRegisterOption()
+  fillApplyFromConsultQuery()
+  if (applyForm.registerId) {
+    await onDialogRegisterChange(applyForm.registerId)
+    fillApplyFromConsultQuery()
+  }
 }
 
 function createApplyForItem(item) {

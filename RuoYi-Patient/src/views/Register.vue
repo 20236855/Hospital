@@ -1011,7 +1011,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: #68c7a9;
+    background: #4A90E2;
     border-radius: 8px;
   }
 
@@ -1118,7 +1118,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: linear-gradient(135deg, #68c7a9, #89dbc1);
+    background: linear-gradient(135deg, #4A90E2, #A8C8EC);
     border-radius: 6px;
   }
 
@@ -1181,9 +1181,9 @@ onMounted(() => {
   border: 2px solid transparent;
 
   .step-item.active & {
-    background: linear-gradient(135deg, #68c7a9, #89dbc1);
+    background: linear-gradient(135deg, #4A90E2, #A8C8EC);
     color: white;
-    border-color: #68c7a9;
+    border-color: #4A90E2;
     box-shadow: 0 4px 12px rgba(104, 199, 169, 0.3);
   }
 
@@ -1314,7 +1314,7 @@ onMounted(() => {
 
   &.selected {
     border-color: rgba(104, 199, 169, 0.75);
-    border-left-color: #68c7a9;
+    border-left-color: #4A90E2;
     background: linear-gradient(135deg, rgba(104, 199, 169, 0.12), rgba(255, 255, 255, 0.92));
     box-shadow: 0 8px 18px rgba(104, 199, 169, 0.12);
   }
@@ -1335,7 +1335,7 @@ onMounted(() => {
 
   &.selected {
     border-color: transparent;
-    border-left-color: #68c7a9;
+    border-left-color: #4A90E2;
     background: rgba(104, 199, 169, 0.08);
     box-shadow: none;
   }
@@ -1397,7 +1397,7 @@ onMounted(() => {
   }
 
   &.selected {
-    border-color: #68c7a9;
+    border-color: #4A90E2;
     background: linear-gradient(135deg, rgba(104, 199, 169, 0.08), rgba(255, 255, 255, 0.8));
   }
 }
@@ -1406,7 +1406,7 @@ onMounted(() => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  background: linear-gradient(135deg, #4A90E2, #A8C8EC);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1437,7 +1437,7 @@ onMounted(() => {
 .doctor-title {
   font-size: 12px;
   font-weight: 600;
-  color: #68c7a9;
+  color: #4A90E2;
   background: rgba(104, 199, 169, 0.12);
   padding: 2px 8px;
   border-radius: 8px;
@@ -1464,7 +1464,7 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  background: linear-gradient(135deg, #4A90E2, #A8C8EC);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1515,7 +1515,7 @@ onMounted(() => {
 
   small {
     font-size: 10px;
-    color: #68a895;
+    color: #4A90E2;
     line-height: 1.2;
   }
 
@@ -1567,7 +1567,7 @@ onMounted(() => {
   flex: 0 0 auto;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  background: linear-gradient(135deg, #4A90E2, #A8C8EC);
   color: #fff;
   display: grid;
   place-items: center;
@@ -1621,7 +1621,7 @@ onMounted(() => {
   em {
     flex: 0 0 auto;
     font-style: normal;
-    color: #68c7a9;
+    color: #4A90E2;
     background: rgba(104, 199, 169, 0.12);
     padding: 1px 6px;
     border-radius: 6px;
@@ -1672,7 +1672,7 @@ onMounted(() => {
 
   &.selected {
     border-color: rgba(104, 199, 169, 0.78);
-    border-left-color: #68c7a9;
+    border-left-color: #4A90E2;
     background: linear-gradient(135deg, rgba(104, 199, 169, 0.12), rgba(255, 255, 255, 0.92));
     box-shadow: 0 8px 18px rgba(104, 199, 169, 0.12);
   }
@@ -1704,7 +1704,7 @@ onMounted(() => {
 
 .slot-arrow {
   flex-shrink: 0;
-  color: #68a895;
+  color: #4A90E2;
   font-size: 18px;
 }
 
@@ -1724,7 +1724,7 @@ onMounted(() => {
   font-weight: 600;
 
   .status-available {
-    color: #68c7a9;
+    color: #4A90E2;
   }
 
   .status-full {
@@ -1760,7 +1760,7 @@ onMounted(() => {
   padding: 18px 20px;
   margin-bottom: 18px;
   border: 1px solid rgba(194, 228, 236, 0.88);
-  border-left: 4px solid #68c7a9;
+  border-left: 4px solid #4A90E2;
   background: linear-gradient(135deg, rgba(230, 246, 251, 0.82), rgba(255, 255, 255, 0.92));
 
   span {
@@ -1781,7 +1781,7 @@ onMounted(() => {
   em {
     font-size: 14px;
     font-style: normal;
-    color: #68a895;
+    color: #4A90E2;
     font-weight: 700;
   }
 }
@@ -1791,7 +1791,7 @@ onMounted(() => {
   padding: 5px 10px;
   border: 1px solid rgba(104, 199, 169, 0.34);
   background: rgba(104, 199, 169, 0.12);
-  color: #4a9f87;
+  color: #357ABD;
   font-size: 12px;
   font-weight: 700;
 }
@@ -1883,7 +1883,7 @@ onMounted(() => {
 
 .next-btn,
 .submit-btn {
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  background: linear-gradient(135deg, #4A90E2, #A8C8EC);
   color: white;
   box-shadow: 0 8px 24px rgba(104, 199, 169, 0.3);
 
@@ -2009,7 +2009,7 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 700;
   font-style: normal;
-  color: #68c7a9;
+  color: #4A90E2;
   background: rgba(104, 199, 169, 0.12);
   border-radius: 6px;
 }

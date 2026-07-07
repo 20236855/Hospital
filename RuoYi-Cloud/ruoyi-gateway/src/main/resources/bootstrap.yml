@@ -62,7 +62,7 @@ spring:
         - id: his-payment
           uri: lb://his-payment
           predicates:
-            - Path=/hispayment/**
+            - Path=/payment/**
           filters:
             - StripPrefix=1
     nacos:

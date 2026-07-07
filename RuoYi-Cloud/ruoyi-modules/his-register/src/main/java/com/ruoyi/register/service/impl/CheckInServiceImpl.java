@@ -1,8 +1,13 @@
 package com.ruoyi.register.service.impl;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import com.ruoyi.common.core.constant.SecurityConstants;
+import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.core.utils.DateUtils;
+import com.ruoyi.his.api.RemoteEncounterService;
 import com.ruoyi.register.domain.Register;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +45,9 @@ public class CheckInServiceImpl implements ICheckInService
     @Autowired
     private RedisTemplate<Object, Object> redisTemplate;
 
+    @Autowired
+    private RemoteEncounterService remoteEncounterService;
+
     @Override
     public CheckIn selectCheckInByCheckInId(Long checkInId)
     {
@@ -68,6 +76,14 @@ public class CheckInServiceImpl implements ICheckInService
     public int insertCheckIn(CheckIn checkIn)
     {
         checkIn.setCreateTime(DateUtils.getNowDate());
+        if (checkIn.getCheckInTime() == null)
+        {
+            checkIn.setCheckInTime(DateUtils.getNowDate());
+        }
+        if (checkIn.getStatus() == null)
+        {
+            checkIn.setStatus("已签到");
+        }
 
         // 如果调用方未传 queueNo，则自动计算
         if (checkIn.getQueueNo() == null)
@@ -75,7 +91,12 @@ public class CheckInServiceImpl implements ICheckInService
             Long queueNo = generateQueueNo(checkIn.getRegisterId());
             checkIn.setQueueNo(queueNo);
         }
-        return checkInMapper.insertCheckIn(checkIn);
+        int rows = checkInMapper.insertCheckIn(checkIn);
+        if (rows > 0)
+        {
+            syncEncounter(checkIn);
+        }
+        return rows;
     }
 
     /**
@@ -130,7 +151,45 @@ public class CheckInServiceImpl implements ICheckInService
     public int updateCheckIn(CheckIn checkIn)
     {
         checkIn.setUpdateTime(DateUtils.getNowDate());
-        return checkInMapper.updateCheckIn(checkIn);
+        int rows = checkInMapper.updateCheckIn(checkIn);
+        if (rows > 0)
+        {
+            CheckIn latest = checkIn.getCheckInId() != null ? checkInMapper.selectCheckInByCheckInId(checkIn.getCheckInId()) : checkIn;
+            syncEncounter(latest);
+        }
+        return rows;
+    }
+
+    private void syncEncounter(CheckIn checkIn)
+    {
+        if (checkIn == null || checkIn.getRegisterId() == null)
+        {
+            return;
+        }
+        Register register = registerMapper.selectRegisterByRegisterId(checkIn.getRegisterId());
+        if (register == null)
+        {
+            log.warn("签到后同步接诊失败：挂号记录不存在, registerId={}", checkIn.getRegisterId());
+            return;
+        }
+        if (register.getPatientId() == null || register.getDoctorId() == null || register.getDeptId() == null)
+        {
+            log.warn("签到后同步接诊失败：挂号记录缺少患者/医生/科室, registerId={}", checkIn.getRegisterId());
+            return;
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("registerId", register.getRegisterId());
+        data.put("patientId", register.getPatientId());
+        data.put("doctorId", register.getDoctorId());
+        data.put("deptId", register.getDeptId());
+        data.put("checkInTime", checkIn.getCheckInTime());
+        data.put("queueNo", checkIn.getQueueNo());
+        R<Boolean> result = remoteEncounterService.syncFromCheckIn(data, SecurityConstants.INNER);
+        if (result == null || R.isError(result) || !Boolean.TRUE.equals(result.getData()))
+        {
+            log.warn("签到后同步接诊失败：registerId={}, msg={}", checkIn.getRegisterId(), result == null ? "empty response" : result.getMsg());
+        }
     }
 
     @Override

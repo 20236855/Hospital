@@ -1,42 +1,42 @@
-// base color - 清新绿色系（更浅更亮）
-$blue: #3a8d82;
-$light-blue: #52a89a;
-$red: #b75050;
-$pink: #b66b83;
-$green: #3a8d82;
-$tiffany: #49b99d;
-$yellow: #c5a15b;
-$panGreen: #52a89a;
+// base color - 专业医疗蓝色系
+$blue: #2563EB;
+$light-blue: #60A5FA;
+$red: #DC2626;
+$pink: #DB2777;
+$green: #10B981;
+$tiffany: #3B82F6;
+$yellow: #D97706;
+$panGreen: #60A5FA;
 
-// 默认主题变量 - 清新绿色系（更亮更清晰）
-$menuText: rgba(245, 252, 250, 0.94);
+// 默认主题变量 - 专业医疗深蓝系（鲜艳皇家蓝）
+$menuText: rgba(230, 240, 255, 0.92);
 $menuActiveText: #ffffff;
-$menuBg: #1a4d45;
-$menuHover: rgba(120, 210, 180, 0.22);
+$menuBg: #1E3A8A;
+$menuHover: rgba(59, 130, 246, 0.22);
 
 // 浅色主题theme-light
-$menuLightBg: #fbfefc;
-$menuLightHover: #e8f5f0;
-$menuLightText: #2f5d55;
-$menuLightActiveText: #3a8d82;
+$menuLightBg: #F8FAFC;
+$menuLightHover: #EFF6FF;
+$menuLightText: #1E3A5F;
+$menuLightActiveText: #2563EB;
 
 // 基础变量
 $base-sidebar-width: 216px;
 $sideBarWidth: 216px;
 
-// 菜单暗色变量 - 清新绿色系（更亮更清晰）
-$base-menu-color: rgba(245,252,250,.94);
+// 菜单暗色变量 - 专业医疗深蓝系（鲜艳皇家蓝）
+$base-menu-color: rgba(230,240,255,.92);
 $base-menu-color-active: #ffffff;
-$base-menu-background: #1a4d45;
-$base-sub-menu-background: #123d36;
-$base-sub-menu-hover: rgba(120,210,180,.25);
+$base-menu-background: #1E3A8A;
+$base-sub-menu-background: #172e85;
+$base-sub-menu-hover: rgba(59,130,246,.24);
 
-// 组件变量 - 清新绿色系（更浅更亮）
-$--color-primary: #3a8d82;
-$--color-success: #3a8d82;
-$--color-warning: #b7893f;
-$--color-danger: #b75050;
-$--color-info: #516b78;
+// 组件变量 - 专业医疗蓝色系
+$--color-primary: #2563EB;
+$--color-success: #10B981;
+$--color-warning: #D97706;
+$--color-danger: #DC2626;
+$--color-info: #475569;
 
 :export {
   menuText: $menuText;
@@ -74,8 +74,8 @@ $--color-info: #516b78;
   --menu-active-text: #{$menuActiveText};
   
   --navbar-bg: #ffffff;
-  --navbar-text: #183d36;
-  --app-bg: #f3faf6;
+  --navbar-text: #1E3A5F;
+  --app-bg: #F0F4FF;
   
   /* splitpanes default-theme 变量 */
   --splitpanes-default-bg: #ffffff;
@@ -229,11 +229,11 @@ html.dark {
     &:not(.tags-view-container--chrome) .tags-view-wrapper .tags-view-item.active {
       background-color: var(--tags-card-active-bg) !important;
       border-color: var(--tags-card-active-border) !important;
-      color: var(--current-color, #237268) !important;
+      color: var(--current-color, #1D4ED8) !important;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 
       &::before {
-        background: var(--current-color, #237268) !important;
+        background: var(--current-color, #1D4ED8) !important;
       }
     }
   }
