@@ -39,6 +39,12 @@ public class RemoteRegisterFallbackFactory implements FallbackFactory<RemoteRegi
             {
                 return R.fail("Mark register paid failed: " + throwable.getMessage());
             }
+
+            @Override
+            public R<Map<String, Object>> createAgentRegister(Map<String, Object> register, String source)
+            {
+                return R.fail("Create agent register failed: " + throwable.getMessage());
+            }
         };
     }
 }

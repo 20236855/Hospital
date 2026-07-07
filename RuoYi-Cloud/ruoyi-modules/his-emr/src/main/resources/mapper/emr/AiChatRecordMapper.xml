@@ -98,4 +98,43 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by er.report_time desc, ea.apply_id desc, er.sort asc, er.result_id asc
         limit #{limit}
     </select>
+
+    <select id="selectRegisterDeptList" resultType="java.util.Map">
+        select dept_id as deptId, dept_name as deptName
+        from sys_dept
+        where del_flag = '0'
+          and status = '0'
+        order by order_num, dept_id
+    </select>
+
+    <select id="selectOpenAppointmentSlots" resultType="java.util.Map">
+        select ss.slot_id as slotId,
+               ss.schedule_id as scheduleId,
+               ss.doctor_id as doctorId,
+               d.doctor_name as doctorName,
+               d.dept_id as deptId,
+               sd.dept_name as deptName,
+               d.level_id as levelId,
+               rl.level_name as levelName,
+               rl.fee as fee,
+               date_format(ss.schedule_date, '%Y-%m-%d') as scheduleDate,
+               date_format(ss.start_time, '%H:%i') as startTime,
+               date_format(ss.end_time, '%H:%i') as endTime,
+               greatest(ifnull(ss.max_number, 0) - ifnull(ss.reserved_number, 0), 0) as availableNumber
+        from schedule_slot ss
+            inner join doctor d on d.doctor_id = ss.doctor_id
+            left join sys_dept sd on sd.dept_id = d.dept_id
+            left join regist_level rl on rl.level_id = d.level_id
+        <where>
+            ss.status = '0'
+            and ss.reserved_number &lt; ss.max_number
+            <if test="deptId != null"> and d.dept_id = #{deptId}</if>
+            <if test="scheduleDate != null and scheduleDate != ''"> and ss.schedule_date = #{scheduleDate}</if>
+            <if test="doctorName != null and doctorName != ''"> and d.doctor_name like concat('%', #{doctorName}, '%')</if>
+            <if test="startTime != null and startTime != ''"> and date_format(ss.start_time, '%H:%i') &gt;= #{startTime}</if>
+            <if test="endTime != null and endTime != ''"> and date_format(ss.end_time, '%H:%i') &lt;= #{endTime}</if>
+            <if test="roleId != null"> and exists (select 1 from sys_user_role ur where ur.user_id = d.user_id and ur.role_id = #{roleId})</if>
+        </where>
+        order by ss.schedule_date, ss.start_time, d.level_id desc, d.doctor_id
+    </select>
 </mapper>

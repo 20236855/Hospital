@@ -9,11 +9,19 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.Duration;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -34,6 +42,7 @@ import com.ruoyi.emr.service.IAiChatService;
 import com.ruoyi.emr.service.IEncounterService;
 import com.ruoyi.emr.service.IMedicalRecordService;
 import com.ruoyi.his.api.RemotePatientService;
+import com.ruoyi.his.api.RemoteRegisterService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -56,6 +65,12 @@ public class AiChatServiceImpl implements IAiChatService
     private static final int LONG_MEMORY_LIMIT = 10;
 
     private static final int EXAM_CONTEXT_LIMIT = 30;
+
+    private static final Long OUTPATIENT_DOCTOR_ROLE_ID = 5L;
+
+    private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
@@ -84,6 +99,9 @@ public class AiChatServiceImpl implements IAiChatService
 
     @Autowired
     private RemotePatientService remotePatientService;
+
+    @Autowired
+    private RemoteRegisterService remoteRegisterService;
 
     /**
      * 判断是否需要查询病历
@@ -114,20 +132,11 @@ public class AiChatServiceImpl implements IAiChatService
     public AiChatResponse consult(AiChatRequest request)
     {
         System.out.println("=== AI 咨询开始 ===");
-        System.out.println("请求消息: " + request.getMessage());
-        System.out.println("配置的 API Key: " + (StringUtils.isBlank(apiKey) ? "空" : "已配置 (长度: " + apiKey.length() + ")"));
-        
         if (request == null || StringUtils.isBlank(request.getMessage()))
         {
             throw new ServiceException("请输入问诊内容");
         }
-        
-        if (StringUtils.isBlank(apiKey))
-        {
-            apiKey = resolveApiKeyFromFile();
-        }
-        
-        System.out.println("最终使用的 API Key: " + (StringUtils.isBlank(apiKey) ? "空" : "已配置"));
+        System.out.println("请求消息: " + request.getMessage());
 
         Long loginUserId = SecurityUtils.getUserId();
         Map<String, Object> patient = getCurrentPatient(loginUserId, request.getPatientId());
@@ -144,6 +153,21 @@ public class AiChatServiceImpl implements IAiChatService
         List<AiChatRecord> recentRecords = aiChatRecordMapper.selectRecentRecords(patientId, sessionId, RECENT_CHAT_LIMIT);
         List<AiChatRecord> longMemories = aiChatRecordMapper.selectLongTermMemories(patientId, LONG_MEMORY_LIMIT);
         System.out.println("加载聊天历史 - recentRecords: " + recentRecords.size() + ", longMemories: " + longMemories.size());
+
+        String agentReply = handleRegistrationAgent(request.getMessage(), patientId, recentRecords);
+        if (!StringUtils.isBlank(agentReply))
+        {
+            insertRecord(userId, patientId, sessionId, "user", request.getMessage(), "short");
+            insertRecord(userId, patientId, sessionId, "assistant", agentReply, "short");
+            return buildChatResponse(sessionId, agentReply, patientId, false);
+        }
+
+        System.out.println("配置的 API Key: " + (StringUtils.isBlank(apiKey) ? "空" : "已配置 (长度: " + apiKey.length() + ")"));
+        if (StringUtils.isBlank(apiKey))
+        {
+            apiKey = resolveApiKeyFromFile();
+        }
+        System.out.println("最终使用的 API Key: " + (StringUtils.isBlank(apiKey) ? "空" : "已配置"));
         
         // 关键词拦截：判断是否需要查询病历
         List<MedicalRecord> medicalRecords = new java.util.ArrayList<>();
@@ -181,12 +205,7 @@ public class AiChatServiceImpl implements IAiChatService
         }
         insertRecord(userId, patientId, sessionId, "assistant", reply, "short");
 
-        AiChatResponse response = new AiChatResponse();
-        response.setSessionId(sessionId);
-        response.setReply(reply);
-        response.setPatientId(patientId);
-        response.setHasMedicalRecord(medicalRecords != null && !medicalRecords.isEmpty());
-        return response;
+        return buildChatResponse(sessionId, reply, patientId, medicalRecords != null && !medicalRecords.isEmpty());
     }
 
     @Override
@@ -215,6 +234,370 @@ public class AiChatServiceImpl implements IAiChatService
         }
         System.out.println("加载会话列表 - patientId: " + patientId);
         return aiChatRecordMapper.selectDistinctSessionByPatientId(patientId);
+    }
+
+    private String handleRegistrationAgent(String message, Long patientId, List<AiChatRecord> recentRecords)
+    {
+        if (!isRegistrationIntent(message))
+        {
+            return null;
+        }
+
+        String contextText = buildRegistrationContext(message, recentRecords);
+        // 日期只从当前消息解析，避免历史消息里的"今天"等关键词干扰
+        LocalDate date = parseAppointmentDate(message);
+        Map<String, Object> dept = resolveDept(contextText);
+        TimeRange range = parseTimeRange(message);
+        boolean booking = isBookingCommand(message);
+
+        if (date == null)
+        {
+            return "可以的。请告诉我想挂哪一天，例如：7月8号皮肤科有哪些可挂号医生。";
+        }
+        if (dept == null)
+        {
+            return "可以帮你查号源。请告诉我想挂哪个科室，例如：皮肤科、内科、外科。";
+        }
+
+        Long deptId = toLong(dept.get("deptId"));
+        String deptName = String.valueOf(dept.get("deptName"));
+        String dateText = date.format(DATE_FORMATTER);
+
+        if (booking)
+        {
+            if (range == null)
+            {
+                return "我可以帮你挂号。请再说一下具体时间段，例如：7月8号上午8点到9点半。";
+            }
+            String doctorName = resolveDoctorName(message, deptId, dateText);
+            List<Map<String, Object>> slots = aiChatRecordMapper.selectOpenAppointmentSlots(
+                    deptId, dateText, doctorName, range.startTime, range.endTime, OUTPATIENT_DOCTOR_ROLE_ID);
+            if (slots == null || slots.isEmpty())
+            {
+                return "没有查到" + deptName + dateText + " " + range.startTime + "-" + range.endTime + "可预约的号源。你可以换一个时间段，我再帮你查。";
+            }
+
+            Map<Long, List<Map<String, Object>>> byDoctor = groupSlotsByDoctor(slots);
+            if (byDoctor.size() > 1 && StringUtils.isBlank(doctorName))
+            {
+                return "这个时间段有多位医生可以预约，请再指定医生姓名：\n" + formatDoctorSlotGroups(byDoctor);
+            }
+
+            Map<String, Object> slot = slots.get(0);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("patientId", patientId);
+            payload.put("scheduleId", slot.get("scheduleId"));
+            payload.put("slotId", slot.get("slotId"));
+            payload.put("doctorId", slot.get("doctorId"));
+            payload.put("deptId", slot.get("deptId"));
+            payload.put("levelId", slot.get("levelId"));
+
+            R<Map<String, Object>> result = remoteRegisterService.createAgentRegister(payload, SecurityConstants.INNER);
+            if (result == null || R.isError(result))
+            {
+                String msg = result == null ? "挂号服务暂时不可用" : result.getMsg();
+                return "挂号没有成功：" + msg + "。你可以稍后再试，或换一个号源。";
+            }
+            return formatRegisterSuccess(result.getData(), dateText);
+        }
+
+        List<Map<String, Object>> slots = aiChatRecordMapper.selectOpenAppointmentSlots(
+                deptId, dateText, null, null, null, OUTPATIENT_DOCTOR_ROLE_ID);
+        if (slots == null || slots.isEmpty())
+        {
+            return "目前没有查到" + deptName + dateText + "可预约的医生。你可以换一天，我再帮你查。";
+        }
+        return "查到了，" + deptName + dateText + "可以预约的医生有：\n" + formatDoctorSlotGroups(groupSlotsByDoctor(slots))
+                + "\n如果要挂号，可以直接说：我要挂某月某日上午或下午某时间段的某某医生。";
+    }
+
+    private boolean isRegistrationIntent(String message)
+    {
+        if (StringUtils.isBlank(message))
+        {
+            return false;
+        }
+        String[] keywords = { "挂号", "预约", "号源", "排班", "可挂", "医生有哪些", "帮我挂", "我要挂" };
+        for (String keyword : keywords)
+        {
+            if (message.contains(keyword))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isBookingCommand(String message)
+    {
+        if (StringUtils.isBlank(message))
+        {
+            return false;
+        }
+        boolean action = message.contains("我要挂") || message.contains("帮我挂") || message.contains("预约")
+                || message.contains("挂这个") || message.contains("就挂") || message.contains("挂");
+        boolean query = message.contains("哪些") || message.contains("有什么") || message.contains("查询")
+                || message.contains("查一下") || message.contains("列出") || message.contains("可以挂号的医生");
+        return action && !query;
+    }
+
+    private String buildRegistrationContext(String message, List<AiChatRecord> recentRecords)
+    {
+        StringBuilder text = new StringBuilder(message);
+        if (recentRecords != null)
+        {
+            for (int i = recentRecords.size() - 1; i >= 0; i--)
+            {
+                AiChatRecord record = recentRecords.get(i);
+                if (record != null && "user".equals(record.getRole()) && StringUtils.isNotEmpty(record.getContent()))
+                {
+                    text.append(" ").append(record.getContent());
+                }
+            }
+        }
+        return text.toString();
+    }
+
+    private LocalDate parseAppointmentDate(String text)
+    {
+        String normalized = normalizeCnNumber(text);
+        LocalDate today = LocalDate.now(ZONE);
+        if (normalized.contains("后天"))
+        {
+            return today.plusDays(2);
+        }
+        if (normalized.contains("明天"))
+        {
+            return today.plusDays(1);
+        }
+        if (normalized.contains("今天"))
+        {
+            return today;
+        }
+
+        Matcher full = Pattern.compile("(20\\d{2})[年/-](\\d{1,2})[月/-](\\d{1,2})").matcher(normalized);
+        if (full.find())
+        {
+            return LocalDate.of(Integer.parseInt(full.group(1)), Integer.parseInt(full.group(2)), Integer.parseInt(full.group(3)));
+        }
+        Matcher monthDay = Pattern.compile("(\\d{1,2})月(\\d{1,2})[日号]?").matcher(normalized);
+        if (monthDay.find())
+        {
+            LocalDate date = LocalDate.of(today.getYear(), Integer.parseInt(monthDay.group(1)), Integer.parseInt(monthDay.group(2)));
+            if (date.isBefore(today.minusDays(1)))
+            {
+                date = date.plusYears(1);
+            }
+            return date;
+        }
+        return null;
+    }
+
+    private Map<String, Object> resolveDept(String text)
+    {
+        List<Map<String, Object>> depts = aiChatRecordMapper.selectRegisterDeptList();
+        if (depts == null)
+        {
+            return null;
+        }
+        for (Map<String, Object> dept : depts)
+        {
+            String deptName = String.valueOf(dept.get("deptName"));
+            String shortName = deptName.replace("科", "");
+            if (text.contains(deptName) || (!shortName.equals(deptName) && text.contains(shortName)))
+            {
+                return dept;
+            }
+        }
+        return null;
+    }
+
+    private String resolveDoctorName(String message, Long deptId, String dateText)
+    {
+        List<Map<String, Object>> slots = aiChatRecordMapper.selectOpenAppointmentSlots(
+                deptId, dateText, null, null, null, OUTPATIENT_DOCTOR_ROLE_ID);
+        if (slots == null)
+        {
+            return null;
+        }
+        for (Map<String, Object> slot : slots)
+        {
+            String doctorName = String.valueOf(slot.get("doctorName"));
+            if (StringUtils.isNotEmpty(doctorName) && message.contains(doctorName))
+            {
+                return doctorName;
+            }
+        }
+        return null;
+    }
+
+    private TimeRange parseTimeRange(String text)
+    {
+        String normalized = normalizeCnNumber(text);
+        Matcher rangeMatcher = Pattern.compile("(\\d{1,2})(?:[:点时])?([0-5]\\d|半)?\\s*(?:到|至|-|~|—)\\s*(\\d{1,2})(?:[:点时])?([0-5]\\d|半)?").matcher(normalized);
+        if (rangeMatcher.find())
+        {
+            int startHour = adjustHour(Integer.parseInt(rangeMatcher.group(1)), normalized);
+            int endHour = adjustHour(Integer.parseInt(rangeMatcher.group(3)), normalized);
+            int startMinute = parseMinute(rangeMatcher.group(2));
+            int endMinute = parseMinute(rangeMatcher.group(4));
+            return new TimeRange(formatTime(startHour, startMinute), formatTime(endHour, endMinute));
+        }
+
+        Matcher singleMatcher = Pattern.compile("(\\d{1,2})(?:[:点时])([0-5]\\d|半)?").matcher(normalized);
+        if (singleMatcher.find())
+        {
+            int startHour = adjustHour(Integer.parseInt(singleMatcher.group(1)), normalized);
+            int startMinute = parseMinute(singleMatcher.group(2));
+            LocalTime start = LocalTime.of(startHour, startMinute);
+            LocalTime end = start.plusMinutes(30);
+            return new TimeRange(start.toString(), end.toString());
+        }
+        return null;
+    }
+
+    private int adjustHour(int hour, String text)
+    {
+        if ((text.contains("下午") || text.contains("晚上")) && hour < 12)
+        {
+            return hour + 12;
+        }
+        return hour;
+    }
+
+    private int parseMinute(String value)
+    {
+        if (StringUtils.isBlank(value))
+        {
+            return 0;
+        }
+        if ("半".equals(value))
+        {
+            return 30;
+        }
+        return Integer.parseInt(value);
+    }
+
+    private String formatTime(int hour, int minute)
+    {
+        return String.format("%02d:%02d", hour, minute);
+    }
+
+    private String normalizeCnNumber(String text)
+    {
+        if (text == null)
+        {
+            return "";
+        }
+        return text.replace("十一", "11")
+                .replace("十二", "12")
+                .replace("十", "10")
+                .replace("九", "9")
+                .replace("八", "8")
+                .replace("七", "7")
+                .replace("六", "6")
+                .replace("五", "5")
+                .replace("四", "4")
+                .replace("三", "3")
+                .replace("二", "2")
+                .replace("两", "2")
+                .replace("一", "1")
+                .replace("零", "0");
+    }
+
+    private Map<Long, List<Map<String, Object>>> groupSlotsByDoctor(List<Map<String, Object>> slots)
+    {
+        Map<Long, List<Map<String, Object>>> grouped = new LinkedHashMap<>();
+        for (Map<String, Object> slot : slots)
+        {
+            Long doctorId = toLong(slot.get("doctorId"));
+            grouped.computeIfAbsent(doctorId, key -> new ArrayList<>()).add(slot);
+        }
+        return grouped;
+    }
+
+    private String formatDoctorSlotGroups(Map<Long, List<Map<String, Object>>> grouped)
+    {
+        StringBuilder builder = new StringBuilder();
+        int index = 1;
+        for (List<Map<String, Object>> doctorSlots : grouped.values())
+        {
+            if (doctorSlots == null || doctorSlots.isEmpty())
+            {
+                continue;
+            }
+            Map<String, Object> first = doctorSlots.get(0);
+            String start = String.valueOf(doctorSlots.get(0).get("startTime"));
+            String end = String.valueOf(doctorSlots.get(doctorSlots.size() - 1).get("endTime"));
+            long available = 0L;
+            for (Map<String, Object> slot : doctorSlots)
+            {
+                Long count = toLong(slot.get("availableNumber"));
+                available += count == null ? 0L : count;
+            }
+            builder.append(index++).append(". ")
+                    .append(first.get("doctorName")).append("，")
+                    .append(emptyDisplay(first.get("levelName"))).append("，")
+                    .append(start).append("-").append(end)
+                    .append("，剩余").append(available).append("个号");
+            if (first.get("fee") != null)
+            {
+                builder.append("，挂号费").append(first.get("fee")).append("元");
+            }
+            builder.append("\n");
+        }
+        return builder.toString().trim();
+    }
+
+    private String formatRegisterSuccess(Map<String, Object> data, String appointmentDate)
+    {
+        if (data == null)
+        {
+            return "挂号成功，请到我的预约中查看详情。";
+        }
+        // 格式化日期为用户友好的中文格式（7月6日）
+        String friendlyDate = appointmentDate;
+        try
+        {
+            LocalDate parsed = LocalDate.parse(appointmentDate, DATE_FORMATTER);
+            friendlyDate = parsed.getMonthValue() + "月" + parsed.getDayOfMonth() + "日";
+        }
+        catch (Exception ignored) {}
+        return "已为你挂号成功。\n"
+                + "挂号单号：" + emptyDisplay(data.get("registerNo")) + "\n"
+                + "科室：" + emptyDisplay(data.get("deptName")) + "\n"
+                + "医生：" + emptyDisplay(data.get("doctorName")) + "\n"
+                + "日期：" + friendlyDate + " " + emptyDisplay(data.get("startTime")) + "-" + emptyDisplay(data.get("endTime")) + "\n"
+                + "费用：" + emptyDisplay(data.get("registerFee")) + "元\n"
+                + "支付状态：" + ("paid".equalsIgnoreCase(String.valueOf(data.get("payStatus"))) ? "已支付" : "未支付，请在我的缴费中完成支付");
+    }
+
+    private String emptyDisplay(Object value)
+    {
+        return value == null || StringUtils.isBlank(String.valueOf(value)) ? "--" : String.valueOf(value);
+    }
+
+    private AiChatResponse buildChatResponse(String sessionId, String reply, Long patientId, boolean hasMedicalRecord)
+    {
+        AiChatResponse response = new AiChatResponse();
+        response.setSessionId(sessionId);
+        response.setReply(reply);
+        response.setPatientId(patientId);
+        response.setHasMedicalRecord(hasMedicalRecord);
+        return response;
+    }
+
+    private static class TimeRange
+    {
+        private final String startTime;
+
+        private final String endTime;
+
+        private TimeRange(String startTime, String endTime)
+        {
+            this.startTime = startTime;
+            this.endTime = endTime;
+        }
     }
 
     private JSONArray buildMessages(Map<String, Object> patient,

@@ -179,6 +179,42 @@ public class RegisterController extends BaseController
         return R.ok(registerService.markRegisterPaid(registerId) > 0);
     }
 
+    @InnerAuth
+    @PostMapping("/inner/agent")
+    public R<Map<String, Object>> agentRegister(@RequestBody Map<String, Object> payload)
+    {
+        Register register = new Register();
+        register.setPatientId(toLong(payload.get("patientId")));
+        register.setScheduleId(toLong(payload.get("scheduleId")));
+        register.setSlotId(toLong(payload.get("slotId")));
+        register.setDoctorId(toLong(payload.get("doctorId")));
+        register.setDeptId(toLong(payload.get("deptId")));
+        register.setLevelId(toLong(payload.get("levelId")));
+        register.setRegisterType("online");
+        register.setRemark("AI assistant register");
+
+        registerService.insertRegister(register);
+        Register saved = registerService.selectRegisterByRegisterId(register.getRegisterId());
+        Map<String, Object> result = new HashMap<>();
+        result.put("registerId", saved.getRegisterId());
+        result.put("registerNo", saved.getRegisterNo());
+        result.put("patientId", saved.getPatientId());
+        result.put("scheduleId", saved.getScheduleId());
+        result.put("slotId", saved.getSlotId());
+        result.put("doctorId", saved.getDoctorId());
+        result.put("doctorName", saved.getDoctorName());
+        result.put("deptId", saved.getDeptId());
+        result.put("deptName", saved.getDeptName());
+        result.put("levelName", saved.getLevelName());
+        result.put("registerFee", saved.getRegisterFee());
+        result.put("payStatus", saved.getPayStatus());
+        result.put("registerStatus", saved.getRegisterStatus());
+        result.put("registerTime", saved.getRegisterTime());
+        result.put("startTime", saved.getStartTime());
+        result.put("endTime", saved.getEndTime());
+        return R.ok(result);
+    }
+
     @RequiresPermissions("register:register:add")
     @Log(title = "Register", businessType = BusinessType.INSERT)
     @PostMapping

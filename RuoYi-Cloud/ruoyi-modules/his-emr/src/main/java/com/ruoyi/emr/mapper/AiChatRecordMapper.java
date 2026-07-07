@@ -23,4 +23,13 @@ public interface AiChatRecordMapper
 
     public List<Map<String, Object>> selectRecentExamResults(@Param("patientId") Long patientId,
                                                              @Param("limit") Integer limit);
+
+    public List<Map<String, Object>> selectRegisterDeptList();
+
+    public List<Map<String, Object>> selectOpenAppointmentSlots(@Param("deptId") Long deptId,
+                                                                @Param("scheduleDate") String scheduleDate,
+                                                                @Param("doctorName") String doctorName,
+                                                                @Param("startTime") String startTime,
+                                                                @Param("endTime") String endTime,
+                                                                @Param("roleId") Long roleId);
 }

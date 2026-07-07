@@ -233,7 +233,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showConfirmDialog, showToast } from 'vant'
+import { showConfirmDialog, showDialog, showToast } from 'vant'
 import { cancelPatientRegister, getRegisterList } from '@/api/register'
 
 const router = useRouter()
@@ -459,10 +459,15 @@ const handleCancelRegister = async () => {
     })
     cancelLoading.value = true
     await cancelPatientRegister(item.registerId)
-    showToast('退号成功')
     showDetailPopup.value = false
     currentAppointment.value = null
     await onRefresh()
+    showDialog({
+      title: '退号成功',
+      message: `挂号费 ¥${item.registerFee || 0} 已退回，将在 1-3 个工作日内原路返还。`,
+      confirmButtonText: '知道了',
+      className: 'unpaid-notice'
+    })
   } catch (error) {
     if (error && error !== 'cancel' && error !== 'close') {
       showToast(error?.message || '退号失败，请稍后重试')

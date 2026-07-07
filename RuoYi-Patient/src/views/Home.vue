@@ -138,8 +138,7 @@
             >
               <span class="time-pill">{{ formatAppointmentTime(appt) }}</span>
               <div class="detail-copy">
-                <strong>{{ appt.deptName || '门诊科室' }}</strong>
-                <span>{{ appt.doctorName || '接诊医生' }} · {{ getRegisterStatusText(appt.registerStatus) }}</span>
+                <span>{{ appt.deptName || '门诊科室' }}：{{ appt.doctorName || '接诊医生' }} · {{ getRegisterStatusText(appt.registerStatus) }}</span>
               </div>
             </div>
           </template>
@@ -1106,7 +1105,7 @@ button {
   position: relative;
   display: grid;
   grid-template-columns: 58px 1fr;
-  gap: 10px;
+  gap: 26px;
   align-items: center;
   min-height: 48px;
 
@@ -1117,7 +1116,7 @@ button {
 
 .time-pill {
   justify-self: start;
-  min-width: 50px;
+  min-width: 66px;
   height: 26px;
   border-radius: 6px;
   display: inline-flex;
@@ -1131,22 +1130,9 @@ button {
 
 .detail-copy {
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-
-  strong {
-    color: #2d5a4e;
-    font-size: 13px;
-    line-height: 1.2;
-    font-weight: 700;
-  }
-
-  span {
-    color: var(--text-regular);
-    font-size: 11px;
-    line-height: 1.35;
-  }
+  font-size: 13px;
+  color: #2d5a4e;
+  line-height: 1.4;
 }
 
 .empty-state {

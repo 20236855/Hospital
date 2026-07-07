@@ -296,6 +296,7 @@
     <!-- 预约成功弹窗 -->
     <van-dialog
       v-model:show="showSuccessDialog"
+      class="payment-reminder-dialog"
       title="预约成功"
       confirm-button-text="立即支付"
       cancel-button-text="稍后支付"
@@ -305,28 +306,31 @@
     >
       <div class="dialog-content">
         <div class="pay-alert">
-          请在30分钟内支付挂号费，超时未支付将自动取消预约并释放医生号源。
+          <van-icon name="clock-o" />
+          <span>请在30分钟内支付挂号费，超时未支付将自动取消预约并释放医生号源。</span>
         </div>
-        <div class="dialog-title">就诊信息</div>
-        <div class="dialog-item">
-          <span class="dialog-label">科室：</span>
-          <span class="dialog-value">{{ form.department || '未选择' }}</span>
-        </div>
-        <div class="dialog-item">
-          <span class="dialog-label">医生：</span>
-          <span class="dialog-value">{{ form.doctorName || '未选择' }}</span>
-        </div>
-        <div class="dialog-item">
-          <span class="dialog-label">就诊时间：</span>
-          <span class="dialog-value">{{ formatScheduleDate(selectedSlot?.scheduleDate || form.selectedDate) }} {{ selectedSlot ? `${selectedSlot.startTime}-${selectedSlot.endTime}` : '' }}</span>
-        </div>
-        <div class="dialog-item">
-          <span class="dialog-label">挂号类型：</span>
-          <span class="dialog-value">网上预约挂号</span>
-        </div>
-        <div class="dialog-item">
-          <span class="dialog-label">挂号费：</span>
-          <span class="dialog-value fee-value">{{ formatMoney(createdRegister?.registerFee) }}</span>
+        <div class="dialog-section">
+          <div class="dialog-title">就诊信息</div>
+          <div class="dialog-item">
+            <span class="dialog-label">科室</span>
+            <span class="dialog-value">{{ form.department || '未选择' }}</span>
+          </div>
+          <div class="dialog-item">
+            <span class="dialog-label">医生</span>
+            <span class="dialog-value">{{ form.doctorName || '未选择' }}</span>
+          </div>
+          <div class="dialog-item">
+            <span class="dialog-label">时间</span>
+            <span class="dialog-value">{{ formatScheduleDate(selectedSlot?.scheduleDate || form.selectedDate) }} {{ selectedSlot ? `${selectedSlot.startTime}-${selectedSlot.endTime}` : '' }}</span>
+          </div>
+          <div class="dialog-item">
+            <span class="dialog-label">类型</span>
+            <span class="dialog-value">网上预约挂号</span>
+          </div>
+          <div class="dialog-item fee-row">
+            <span class="dialog-label">挂号费</span>
+            <span class="dialog-value fee-value">{{ formatMoney(createdRegister?.registerFee) }}</span>
+          </div>
         </div>
       </div>
     </van-dialog>
@@ -1922,48 +1926,123 @@ onMounted(() => {
 
 /* 弹窗内容样式 */
 .dialog-content {
-  padding: 10px;
+  padding: 4px 18px 18px;
+}
+
+:global(.payment-reminder-dialog) {
+  width: min(86vw, 360px);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 22px 56px rgba(44, 73, 86, 0.18);
+}
+
+:global(.payment-reminder-dialog .van-dialog__header) {
+  padding-top: 22px;
+  color: #1f3f4a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+:global(.payment-reminder-dialog .van-dialog__content) {
+  color: #2c4652;
+}
+
+:global(.payment-reminder-dialog .van-dialog__footer) {
+  padding: 0 16px 16px;
+  gap: 10px;
+  border-top: 0;
+}
+
+:global(.payment-reminder-dialog .van-dialog__cancel),
+:global(.payment-reminder-dialog .van-dialog__confirm) {
+  height: 42px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+:global(.payment-reminder-dialog .van-dialog__cancel) {
+  background: #f2f7f8;
+  color: #607783;
+}
+
+:global(.payment-reminder-dialog .van-dialog__confirm) {
+  background: linear-gradient(135deg, #3f8f88, #4aa6a0);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(63, 143, 136, 0.22);
+}
+
+.dialog-section {
+  padding: 14px;
+  border: 1px solid rgba(153, 185, 196, 0.28);
+  border-radius: 16px;
+  background: #fbfdfd;
 }
 
 .dialog-title {
-  font-weight: bold;
-  font-size: 16px;
-  color: #333;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 12px;
+  color: #243f49;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .pay-alert {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(255, 152, 0, 0.1);
-  color: #b36b00;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(214, 153, 74, 0.18);
+  border-radius: 14px;
+  background: #fff8ec;
+  color: #8a5a1f;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
+
+  .van-icon {
+    margin-top: 2px;
+    color: #b7792b;
+    font-size: 16px;
+  }
 }
 
 .dialog-item {
   display: flex;
-  align-items: center;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(153, 185, 196, 0.18);
   font-size: 14px;
+
+  &:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+  }
 }
 
 .dialog-label {
-  color: #666;
-  min-width: 60px;
+  flex: 0 0 64px;
+  color: #718692;
+  font-weight: 600;
 }
 
 .dialog-value {
-  color: #333;
   flex: 1;
+  color: #263f49;
+  font-weight: 700;
+  text-align: right;
+  line-height: 1.45;
 }
 
 .fee-value {
-  color: #f05391;
-  font-weight: 700;
+  color: #b65f2a;
+  font-size: 17px;
+  font-weight: 800;
 }
 
 .time-card-header {

@@ -62,7 +62,7 @@
 <script setup>
 import { computed, defineComponent, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { showConfirmDialog, showToast } from 'vant'
+import { showConfirmDialog, showDialog, showToast } from 'vant'
 import { getRegisterList } from '@/api/register'
 import { payExamByRegister, payRegister } from '@/api/payment'
 import { getMyExamPayments } from '@/api/exam'
@@ -195,7 +195,12 @@ async function handlePay(item) {
     } else {
       await payRegister(item.registerId)
     }
-    showToast('缴费成功')
+    showDialog({
+      title: '缴费成功',
+      message: `已成功缴纳 ¥${formatAmount(item.amount)}`,
+      confirmButtonText: '确定',
+      className: 'unpaid-notice'
+    })
     await loadPayments()
   } catch (error) {
     if (error !== 'cancel') {
@@ -210,8 +215,20 @@ function goBack() {
   router.back()
 }
 
-onMounted(() => {
-  loadPayments()
+onMounted(async () => {
+  await loadPayments()
+  if (unpaidCount.value > 0) {
+    showDialog({
+      title: '缴费提醒',
+      message: `您有 ${unpaidCount.value} 笔费用尚未缴纳，共计 ¥${unpaidAmount.value}，请及时缴费以免影响就诊。`,
+      confirmButtonText: '去缴费',
+      cancelButtonText: '稍后再说',
+      showCancelButton: true,
+      className: 'unpaid-notice'
+    }).then(() => {
+      activeTab.value = 1
+    }).catch(() => {})
+  }
 })
 </script>
 
@@ -479,5 +496,51 @@ onMounted(() => {
   span {
     font-size: 13px;
   }
+}
+
+:global(.payment-notice-dialog) {
+  width: min(86vw, 350px);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 22px 56px rgba(44, 73, 86, 0.18);
+}
+
+:global(.payment-notice-dialog .van-dialog__header) {
+  padding-top: 22px;
+  color: #1f3f4a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+:global(.payment-notice-dialog .van-dialog__message) {
+  padding: 14px 24px 18px;
+  color: #526b76;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+:global(.payment-notice-dialog .van-dialog__footer) {
+  padding: 0 16px 16px;
+  gap: 10px;
+  border-top: 0;
+}
+
+:global(.payment-notice-dialog .van-dialog__cancel),
+:global(.payment-notice-dialog .van-dialog__confirm) {
+  height: 42px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+:global(.payment-notice-dialog .van-dialog__cancel) {
+  background: #f2f7f8;
+  color: #607783;
+}
+
+:global(.unpaid-notice .van-dialog__confirm) {
+  background: linear-gradient(135deg, #3f8f88, #4aa6a0);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(63, 143, 136, 0.22);
 }
 </style>
