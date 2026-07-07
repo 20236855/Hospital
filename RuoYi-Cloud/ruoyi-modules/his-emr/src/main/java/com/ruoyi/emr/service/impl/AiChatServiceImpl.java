@@ -795,7 +795,7 @@ public class AiChatServiceImpl implements IAiChatService
         body.put("messages", messages);
         body.put("stream", false);
         body.put("temperature", 0.7);
-        body.put("max_tokens", 8192);
+        body.put("max_tokens", 2048);
 
         System.out.println("请求体: " + body.toJSONString());
 

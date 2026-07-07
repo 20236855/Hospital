@@ -53,14 +53,22 @@
             <span>Age Distribution</span>
             <strong>年龄结构</strong>
           </div>
-          <div class="age-bars">
-            <div v-for="item in ageGroups" :key="item.label" class="age-row">
-              <span>{{ item.label }}</span>
-              <div>
-                <i :style="{ width: `${item.percent}%` }"></i>
-              </div>
-              <em>{{ item.count }}</em>
-            </div>
+          <div class="age-chart">
+            <svg :viewBox="`0 0 ${ageLineChart.w} ${ageLineChart.h}`" class="age-svg">
+              <defs>
+                <linearGradient id="ageArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1f54c8" stop-opacity="0.28" />
+                  <stop offset="100%" stop-color="#1f54c8" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <path :d="ageLineChart.area" fill="url(#ageArea)" stroke="none" />
+              <polyline :points="ageLineChart.line" fill="none" stroke="#1f54c8" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+              <g v-for="(p, idx) in ageLineChart.points" :key="idx">
+                <circle :cx="p.x" :cy="p.y" r="4" fill="#ffffff" stroke="#1f54c8" stroke-width="2.5" />
+                <text :x="p.x" :y="p.y - 12" text-anchor="middle" class="age-val">{{ p.count }}</text>
+                <text :x="p.x" :y="ageLineChart.h - 6" text-anchor="middle" class="age-label">{{ p.label }}</text>
+              </g>
+            </svg>
           </div>
         </div>
 
@@ -525,6 +533,25 @@ const ageGroups = computed(() => {
   }))
 })
 
+const ageLineChart = computed(() => {
+  const items = ageGroups.value
+  const w = 320, h = 170, padX = 28, padY = 30
+  const max = Math.max(...items.map(i => i.count), 1)
+  const innerW = w - padX * 2
+  const innerH = h - padY * 2
+  const step = items.length > 1 ? innerW / (items.length - 1) : 0
+  const bottomY = padY + innerH
+  const points = items.map((it, idx) => ({
+    x: padX + step * idx,
+    y: bottomY - (it.count / max) * innerH,
+    count: it.count,
+    label: it.label
+  }))
+  const line = points.map(p => `${p.x},${p.y}`).join(' ')
+  const area = `M ${padX} ${bottomY} L ` + points.map(p => `${p.x} ${p.y}`).join(' L ') + ` L ${points[points.length - 1].x} ${bottomY} Z`
+  return { w, h, points, line, area }
+})
+
 const bloodTypes = computed(() => {
   const source = dashboardPatients.value.length ? dashboardPatients.value : patientList.value
   const labels = ['A', 'B', 'AB', 'O', 'RH+', 'RH-']
@@ -793,17 +820,17 @@ getList()
 </script>
 
 <style scoped lang="scss">
-// ========== 主色调 ==========
-$mint: #4da88a;
-$mint-light: #6ec7a6;
-$sky: #5db8d8;
-$sky-light: #9dd8ed;
+// ========== 主色调（深蓝主色 + 多色点缀）==========
+$mint: #1f54c8;
+$mint-light: #4a7fe0;
+$sky: #2bb3c0;
+$sky-light: #7fd3dd;
 $white-card: rgba(255, 255, 255, 0.92);
-$border: rgba(160, 210, 220, 0.55);
-$text-primary: #3d5a66;
-$text-secondary: #5e727c;
-$text-light: #789099;
-$shadow: 0 12px 48px rgba(80, 160, 180, 0.08);
+$border: rgba(150, 185, 220, 0.55);
+$text-primary: #29405e;
+$text-secondary: #4a5b73;
+$text-light: #6b7c93;
+$shadow: 0 12px 48px rgba(31, 84, 200, 0.08);
 $radius: 8px;
 
 .patient-console {
@@ -832,8 +859,8 @@ $radius: 8px;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 15% 25%, rgba(77, 168, 138, 0.06) 0%, transparent 55%),
-    radial-gradient(circle at 85% 75%, rgba(93, 184, 216, 0.06) 0%, transparent 55%);
+    radial-gradient(circle at 15% 25%, rgba(31, 84, 200, 0.06) 0%, transparent 55%),
+    radial-gradient(circle at 85% 75%, rgba(43, 179, 192, 0.06) 0%, transparent 55%);
   border-radius: inherit;
 }
 
@@ -862,7 +889,7 @@ $radius: 8px;
   left: -30%;
   width: 34%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(104, 199, 169, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(74, 127, 224, 0.1), transparent);
   animation: scanMove 7s linear infinite;
 }
 
@@ -870,10 +897,10 @@ $radius: 8px;
   position: absolute;
   width: 240px;
   height: 240px;
-  border: 2px solid rgba(104, 199, 169, 0.18);
+  border: 2px solid rgba(74, 127, 224, 0.18);
   border-radius: 50%;
   animation: pulseScale 5s ease-in-out infinite;
-  box-shadow: 0 0 40px rgba(104, 199, 169, 0.06);
+  box-shadow: 0 0 40px rgba(74, 127, 224, 0.06);
 }
 
 .ring-one { right: 6%; top: -130px; }
@@ -920,7 +947,7 @@ $radius: 8px;
   height: 8px;
   border-radius: 50%;
   background: $mint;
-  box-shadow: 0 0 0 6px rgba(104, 199, 169, 0.2);
+  box-shadow: 0 0 0 6px rgba(74, 127, 224, 0.2);
   animation: livePulse 2s ease-in-out infinite;
 }
 
@@ -950,7 +977,7 @@ $radius: 8px;
 
   &:hover {
     transform: translateY(-3px) scale(1.03);
-    box-shadow: 0 10px 36px rgba(77, 168, 138, 0.14);
+    box-shadow: 0 10px 36px rgba(31, 84, 200, 0.14);
   }
 }
 
@@ -974,7 +1001,7 @@ $radius: 8px;
   height: 6px;
   border-radius: 999px;
   background: $mint;
-  box-shadow: 0 0 14px rgba(77, 168, 138, 0.35);
+  box-shadow: 0 0 14px rgba(31, 84, 200, 0.35);
   animation: barPulse 1.8s ease-in-out infinite;
 }
 
@@ -998,14 +1025,11 @@ $radius: 8px;
   border: 1px solid $border;
   border-radius: $radius;
   background: $white-card;
-  box-shadow: 0 3px 18px rgba(80, 160, 180, 0.05);
-  animation: cardRise 480ms ease both;
-  animation-delay: var(--delay);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 3px 18px rgba(31, 84, 200, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
-    transform: translateY(-4px) scale(1.03);
-    box-shadow: 0 10px 36px rgba(77, 168, 138, 0.15);
+    box-shadow: 0 6px 22px rgba(31, 84, 200, 0.12);
     border-color: $mint;
   }
 }
@@ -1018,13 +1042,11 @@ $radius: 8px;
   border-radius: $radius;
   color: #fff;
   font-size: 22px;
-  animation: iconFloat 3.2s ease-in-out infinite;
-  animation-delay: calc(var(--delay) * 1.5);
 
-  &.blue   { background: #4da88a; }
-  &.cyan   { background: #5db8d8; }
-  &.orange { background: #e89860; }
-  &.green  { background: #58b894; }
+  &.blue   { background: #1f54c8; }
+  &.cyan   { background: #2bb3c0; }
+  &.orange { background: #f0a23c; }
+  &.green  { background: #3bbf8a; }
 }
 
 .metric-copy span {
@@ -1061,13 +1083,10 @@ $radius: 8px;
 .metric-spark span {
   width: 5px;
   min-height: 8px;
-  border-radius: 999px;
+  border-radius: 3px;
   background: $mint;
-  opacity: 0.8;
-  animation: barPop 1.2s ease-in-out infinite;
+  opacity: 0.85;
 
-  &:nth-child(odd)  { animation-delay: 0.3s; }
-  &:nth-child(3n)   { animation-delay: 0.6s; }
   &:nth-child(4n+1) { background: $sky; }
 }
 
@@ -1092,7 +1111,7 @@ $radius: 8px;
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 32px rgba(77, 168, 138, 0.1);
+    box-shadow: 0 10px 32px rgba(31, 84, 200, 0.1);
   }
 }
 
@@ -1118,37 +1137,29 @@ $radius: 8px;
   font-weight: 700;
 }
 
-// ---------- 年龄结构 ----------
-.age-row {
-  display: grid;
-  grid-template-columns: 54px 1fr 36px;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 12px;
+// ---------- 年龄结构（折线图）----------
+.age-chart {
+  width: 100%;
+  height: 170px;
+  padding: 4px 2px 0;
 }
 
-.age-row span,
-.age-row em {
-  color: $text-secondary;
-  font-size: 13px;
-  font-style: normal;
-}
-
-.age-row div {
-  overflow: hidden;
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(77, 168, 138, 0.08);
-}
-
-.age-row i {
-  display: block;
+.age-svg {
+  width: 100%;
   height: 100%;
-  border-radius: inherit;
-  background: $mint;
-  box-shadow: 0 0 10px rgba(77, 168, 138, 0.25);
-  transition: width 0.45s ease;
-  animation: barShine 1.6s ease-in-out infinite;
+  display: block;
+  overflow: visible;
+}
+
+.age-val {
+  fill: #1f54c8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.age-label {
+  fill: #6b7c93;
+  font-size: 11px;
 }
 
 // ---------- 性别占比 ----------
@@ -1167,8 +1178,8 @@ $radius: 8px;
   place-items: center;
   border-radius: 50%;
   border: 6px solid;
-  border-color: $sky transparent #e89880 $sky;
-  box-shadow: 0 0 24px rgba(93, 184, 216, 0.12);
+  border-color: $sky transparent #f0a23c $sky;
+  box-shadow: 0 0 24px rgba(43, 179, 192, 0.12);
 }
 
 .gender-donut div { text-align: center; }
@@ -1198,7 +1209,7 @@ $radius: 8px;
 }
 
 .legend-list .male    { background: $sky; }
-.legend-list .female  { background: #f0a0b8; }
+.legend-list .female  { background: #f0a23c; }
 .legend-list .unknown { background: #a5b8c0; }
 
 // ---------- 血型分布 ----------

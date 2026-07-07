@@ -148,7 +148,7 @@
                 </div>
                 <div class="slot-field">
                   <span class="slot-label">余号数量</span>
-                  <strong>{{ schedule.availableNumber || Math.max(getScheduleMaxNumber(schedule) - getScheduleReservedNumber(schedule), 0) }}</strong>
+                  <strong>{{ getScheduleAvailableNumber(schedule) }}</strong>
                 </div>
                 <div class="slot-field slot-fee-field">
                   <span class="slot-label">挂号费用</span>
@@ -203,7 +203,7 @@
               </div>
               <div class="slot-field">
                 <span class="slot-label">余号数量</span>
-                <strong>余号 1</strong>
+                <strong>余号 {{ getScheduleAvailableNumber(slot) }}</strong>
               </div>
               <div class="slot-field slot-fee-field">
                 <span class="slot-label">挂号费用</span>
@@ -261,7 +261,7 @@
               <div class="section-title">费用信息</div>
               <div class="info-row">
                 <span class="info-label">余号数量</span>
-                <span class="info-value">余号 1</span>
+                <span class="info-value">余号 {{ getScheduleAvailableNumber(selectedSlot) }}</span>
               </div>
               <div class="info-row fee-row">
                 <span class="info-label">挂号费用</span>
@@ -620,7 +620,7 @@ const selectedDateSchedules = computed(() => {
 
 const getDayAvailableCount = (day) => {
   return day.schedules.reduce((total, schedule) => {
-    return total + Number(schedule?.availableNumber ?? schedule?.available_number ?? 0)
+    return total + getScheduleAvailableNumber(schedule)
   }, 0)
 }
 
@@ -648,6 +648,15 @@ const getScheduleMaxNumber = (schedule) => {
     return Math.max(Number(reserved) + Number(available), 0)
   }
   return 0
+}
+
+const getScheduleAvailableNumber = (schedule) => {
+  const max = getScheduleMaxNumber(schedule)
+  const reserved = getScheduleReservedNumber(schedule)
+  if (max > 0) {
+    return Math.max(max - reserved, 0)
+  }
+  return Number(schedule?.availableNumber ?? schedule?.available_number ?? 0)
 }
 
 const isScheduleFull = (schedule) => {
@@ -694,7 +703,7 @@ const isScheduleSelectable = (schedule) => !isSchedulePast(schedule) && !isSched
 const getScheduleAvailableText = (schedule) => {
   const max = getScheduleMaxNumber(schedule)
   const reserved = getScheduleReservedNumber(schedule)
-  const available = Number(schedule?.availableNumber ?? schedule?.available_number ?? Math.max(max - reserved, 0))
+  const available = getScheduleAvailableNumber(schedule)
   if (max <= 0) {
     return '余号 0'
   }
@@ -704,7 +713,7 @@ const getScheduleAvailableText = (schedule) => {
 const normalizeSchedule = (schedule) => {
   const max = getScheduleMaxNumber(schedule)
   const reserved = getScheduleReservedNumber(schedule)
-  const available = Number(schedule?.availableNumber ?? schedule?.available_number ?? Math.max(max - reserved, 0))
+  const available = getScheduleAvailableNumber(schedule)
   return {
     ...schedule,
     maxNumber: max,

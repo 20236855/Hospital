@@ -409,8 +409,8 @@ const categories = reactive([
     icon: View,
     description: '利用 CT、超声等影像设备进行医学诊断，包含颅内病变CT、肺部病变CT及皮肤病变等检查项目',
     images: [checkImg1, checkImg2, checkImg3],
-    color: '#1A6B54',
-    colorBg: '#E8F3EF',
+    color: '#3D5AB8',
+    colorBg: '#EAEDF8',
     items: ['颅内病变CT', '肺部病变CT', '皮肤病变'],
     itemCount: 3,
     currentIndex: 0,
@@ -424,8 +424,8 @@ const categories = reactive([
     icon: Monitor,
     description: '通过分析血液、体液等样本提供诊断依据，包含验血、生化分析等实验室检验项目',
     images: [inspecImg1, inspecImg2, inspecImg3],
-    color: '#1A6B54',
-    colorBg: '#E8F3EF',
+    color: '#3D5AB8',
+    colorBg: '#EAEDF8',
     items: ['验血', '生化检验', '免疫检验'],
     itemCount: 3,
     currentIndex: 0,
@@ -439,8 +439,8 @@ const categories = reactive([
     icon: FirstAidKit,
     description: '为患者提供直接的治疗与护理服务，包含手术、住院、注射等临床处置项目',
     images: [disposalImg1, disposalImg3, disposalImg1],
-    color: '#1A6B54',
-    colorBg: '#E8F3EF',
+    color: '#3D5AB8',
+    colorBg: '#EAEDF8',
     items: ['手术', '住院', '注射'],
     itemCount: 3,
     currentIndex: 0,
@@ -833,7 +833,7 @@ getList()
         display: block;
         width: 60px;
         height: 2px;
-        background: linear-gradient(90deg, transparent, #1A6B54, transparent);
+        background: linear-gradient(90deg, transparent, #2F4AA0, transparent);
         border-radius: 1px;
       }
 
@@ -841,19 +841,19 @@ getList()
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: #1A6B54;
+        background: #2F4AA0;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #fff;
-        box-shadow: 0 4px 15px rgba(26, 107, 84, 0.4);
+        box-shadow: 0 4px 15px rgba(47, 74, 160, 0.4);
         animation: pulseIcon 2s ease-in-out infinite;
       }
     }
 
     @keyframes pulseIcon {
-      0%, 100% { box-shadow: 0 4px 15px rgba(26, 107, 84, 0.3); }
-      50%      { box-shadow: 0 4px 25px rgba(26, 107, 84, 0.55); }
+      0%, 100% { box-shadow: 0 4px 15px rgba(47, 74, 160, 0.3); }
+      50%      { box-shadow: 0 4px 25px rgba(47, 74, 160, 0.55); }
     }
 
     .section-title {
@@ -918,7 +918,7 @@ getList()
       position: absolute;
       inset: 0;
       background-size: cover;
-      background-position: center;
+      background-position: center top;
       opacity: 0;
       transition: opacity 0.8s ease;
       &.active {

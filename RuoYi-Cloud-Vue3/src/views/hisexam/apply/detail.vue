@@ -10,7 +10,7 @@
 
     <!-- 顶部 Hero 区域 -->
     <div class="detail-hero" v-if="currentCategory">
-      <div class="hero-bg" :style="{ background: currentCategory.color }"></div>
+      <div class="hero-bg" :style="{ background: currentCategory.heroGradient || `linear-gradient(135deg, ${currentCategory.color} 0%, #17245F 55%, #08143E 100%)` }"></div>
       <div class="hero-pattern"></div>
       <div class="hero-content">
         <div class="hero-badge">{{ currentCategory.name }}</div>
@@ -328,8 +328,9 @@ const categoryMap = {
     subtitle: '影像学检查',
     description: '利用 CT、超声等影像设备进行医学诊断，包含颅内病变CT检查、肺部病变CT检查及皮肤病变检查等项目',
     images: [checkImg1, checkImg2, checkImg3],
-    color: '#1A6B54',
-    colorBg: '#E8F3EF',
+    color: '#3D5AB8',
+    heroGradient: 'linear-gradient(100deg, #155EC9 0%, #4C9BE8 28%, #EAF5FF 54%, #FFFFFF 100%)',
+    colorBg: '#EAEDF8',
     items: ['颅内病变CT', '肺部病变CT', '皮肤病变']
   },
   LAB: {
@@ -338,8 +339,9 @@ const categoryMap = {
     subtitle: '实验室检验',
     description: '通过分析血液、体液等样本提供诊断依据，包含验血、生化分析等实验室检验项目',
     images: [inspecImg1, inspecImg2, inspecImg3],
-    color: '#1A6B54',
-    colorBg: '#E8F3EF',
+    color: '#0876C9',
+    heroGradient: 'linear-gradient(100deg, #0876C9 0%, #37A9EA 28%, #E9F8FF 54%, #FFFFFF 100%)',
+    colorBg: '#EAEDF8',
     items: ['验血', '生化检验', '免疫检验']
   },
   DISPOSAL: {
@@ -348,8 +350,9 @@ const categoryMap = {
     subtitle: '临床处置',
     description: '为患者提供直接的治疗与护理服务，包含手术、住院、注射等临床处置项目',
     images: [disposalImg1, disposalImg3, disposalImg1],
-    color: '#1A6B54',
-    colorBg: '#E8F3EF',
+    color: '#0F65B8',
+    heroGradient: 'linear-gradient(100deg, #0F65B8 0%, #469CE1 28%, #ECF7FF 54%, #FFFFFF 100%)',
+    colorBg: '#EAEDF8',
     items: ['手术', '住院', '注射']
   }
 }
@@ -727,7 +730,7 @@ function submitApply() {
       align-items: center;
       gap: 6px;
       transition: color 0.3s;
-      &:hover { color: #1A6B54; }
+      &:hover { color: #1F54C8; }
     }
   }
 
@@ -812,11 +815,19 @@ function submitApply() {
       z-index: 2;
       width: 55%;
       min-height: 200px;
+      margin: 10px 12px 10px 0;
+      padding: 5px;
+      box-sizing: border-box;
+      border: 1px solid rgba(255, 255, 255, 0.86);
+      border-radius: 22px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.98) 100%);
+      box-shadow: 0 12px 28px rgba(55, 104, 206, 0.16);
       overflow: hidden;
 
       .hero-slide {
         position: absolute;
-        inset: 0;
+        inset: 5px;
+        border-radius: 17px;
         background-size: cover;
         background-position: center;
         opacity: 0;
@@ -928,7 +939,7 @@ function submitApply() {
           width: 4px;
           height: 20px;
           border-radius: 2px;
-          background: v-bind("currentCategory?.color || '#1A6B54'");
+          background: v-bind("currentCategory?.color || '#1F54C8'");
         }
       }
     }
@@ -1034,7 +1045,7 @@ function submitApply() {
           width: 4px;
           height: 20px;
           border-radius: 2px;
-          background: v-bind("currentCategory?.color || '#1A6B54'");
+          background: v-bind("currentCategory?.color || '#1F54C8'");
         }
       }
     }

@@ -22,7 +22,7 @@
               <svg viewBox="0 0 120 120" class="empty-svg">
                 <defs>
                   <linearGradient id="emptyGrad" x1="0" x2="1" y1="0" y2="1">
-                    <stop offset="0" stop-color="#4A90E2" />
+                    <stop offset="0" stop-color="#68c7a9" />
                     <stop offset="1" stop-color="#8ed6f2" />
                   </linearGradient>
                 </defs>
@@ -320,7 +320,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: #4A90E2;
+    background: #68c7a9;
     border-radius: 8px;
   }
 
@@ -427,7 +427,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: linear-gradient(135deg, #4A90E2, #A8C8EC);
+    background: linear-gradient(135deg, #68c7a9, #89dbc1);
     border-radius: 6px;
   }
 

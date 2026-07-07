@@ -63,7 +63,7 @@ const props = defineProps({
   chips: { type: Array, default: () => [] }
 })
 
-const palette = ['#f43f46', '#f97316', '#f59e0b', '#22c55e', '#14b8a6', '#3b82f6', '#a855f7']
+const palette = ['#3d6ea8', '#5b8fc0', '#4f97a6', '#6b8bb0', '#88a0bd']
 
 function toNumber(value) {
   const n = Number(value)
@@ -96,7 +96,7 @@ const totalText = computed(() => {
 
 const donutStyle = computed(() => {
   if (!distributionItems.value.length || total.value === 0) {
-    return { background: '#eef4f3' }
+    return { background: '#eef3f8' }
   }
   let start = 0
   const segments = distributionItems.value.map((item, index) => {
@@ -114,16 +114,16 @@ const donutStyle = computed(() => {
 
 <style scoped lang="scss">
 .doctor-insight {
-  --line: #e8efed;
-  --track: #edf4f3;
-  --text: #173f3a;
-  --muted: #7d918e;
+  --line: #e6edf3;
+  --track: #eef3f8;
+  --text: #1f3a52;
+  --muted: #6f8295;
   margin-bottom: 18px;
   padding: 22px 24px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
-  box-shadow: 0 16px 44px rgba(24, 58, 54, .08);
+  box-shadow: 0 16px 44px rgba(31, 58, 82, .08);
   color: var(--text);
 }
 
@@ -137,7 +137,7 @@ const donutStyle = computed(() => {
 .eyebrow {
   display: block;
   margin-bottom: 6px;
-  color: #8fa19e;
+  color: #8597a8;
   font-size: 12px;
   font-weight: 700;
 }
@@ -213,7 +213,7 @@ p {
   width: 188px;
   height: 188px;
   border-radius: 50%;
-  box-shadow: 0 18px 36px rgba(37, 57, 54, .12);
+  box-shadow: 0 18px 36px rgba(31, 58, 82, .12);
 
   &::after {
     position: absolute;
@@ -221,7 +221,7 @@ p {
     content: "";
     border-radius: 50%;
     background: #fff;
-    box-shadow: inset 0 0 0 1px #eef4f2;
+    box-shadow: inset 0 0 0 1px #eef3f8;
   }
 }
 
@@ -233,7 +233,7 @@ p {
   gap: 6px;
 
   strong {
-    color: #1d5a50;
+    color: #1f4a6e;
     font-size: 32px;
     line-height: 1;
     font-weight: 850;
@@ -241,7 +241,7 @@ p {
   }
 
   em {
-    color: #95aaa5;
+    color: #8aa0b3;
     font-size: 12px;
     font-style: normal;
     font-weight: 700;
@@ -265,7 +265,7 @@ p {
   }
 
   span {
-    color: #90a19e;
+    color: #8597a8;
     font-size: 13px;
   }
 }
@@ -286,7 +286,7 @@ p {
 
 .dist-name {
   overflow: hidden;
-  color: #244c47;
+  color: #244a63;
   font-size: 14px;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -294,7 +294,7 @@ p {
 }
 
 .dist-row strong {
-  color: #163f4a;
+  color: #1f3a52;
   font-size: 15px;
   font-weight: 850;
   text-align: right;
@@ -321,15 +321,15 @@ p {
   gap: 10px;
   margin-top: 18px;
   padding-top: 16px;
-  border-top: 1px solid #eef4f2;
+  border-top: 1px solid #eef3f8;
 }
 
 .insight-chip {
   padding: 8px 11px;
-  border: 1px solid #dce8e4;
+  border: 1px solid #dde6ef;
   border-radius: 8px;
-  background: #fbfdfc;
-  color: #637c77;
+  background: #fafcfe;
+  color: #5f7286;
   font-size: 12px;
   font-weight: 700;
 
@@ -339,9 +339,9 @@ p {
     font-variant-numeric: tabular-nums;
   }
 
-  &.success { border-color: #bdebd7; background: #f1fbf6; color: #047857; }
-  &.warning { border-color: #f5dfaa; background: #fffaf0; color: #9a6b16; }
-  &.danger { border-color: #f3c8c8; background: #fff5f5; color: #b42318; }
+  &.success { border-color: #c2dbe0; background: #f1f8f9; color: #2f6f73; }
+  &.warning { border-color: #e0d8b8; background: #fbf8ef; color: #8a6d2f; }
+  &.danger { border-color: #e0c8c8; background: #fbf5f5; color: #9e4034; }
 }
 
 @media (max-width: 1100px) {
