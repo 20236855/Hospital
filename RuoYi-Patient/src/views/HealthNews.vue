@@ -530,7 +530,7 @@ watch(() => route.query.articleId, () => {
 
   &.active {
     color: #fff;
-    background: #1f8a7d;
+    background: #357ABD;
   }
 }
 
@@ -559,8 +559,8 @@ watch(() => route.query.articleId, () => {
 
     &.active {
       color: #fff;
-      border-color: #1f8a7d;
-      background: #1f8a7d;
+      border-color: #357ABD;
+      background: #357ABD;
       box-shadow: 0 8px 18px rgba(31, 138, 125, .2);
     }
   }
@@ -797,7 +797,7 @@ watch(() => route.query.articleId, () => {
     height: 7px;
     border-radius: 50%;
     content: "";
-    background: #1f8a7d;
+    background: #357ABD;
   }
 }
 
@@ -862,7 +862,7 @@ watch(() => route.query.articleId, () => {
     border: 0;
     border-radius: 8px;
     color: #fff;
-    background: #1f8a7d;
+    background: #357ABD;
     font-size: 14px;
     font-weight: 900;
   }
@@ -905,7 +905,7 @@ watch(() => route.query.articleId, () => {
   height: 36px;
   border-radius: 8px;
   color: #fff;
-  background: linear-gradient(135deg, #1f8a7d, #77b9a8);
+  background: linear-gradient(135deg, #357ABD, #7BB3E8);
   place-items: center;
   font-size: 14px;
   font-weight: 900;
@@ -945,8 +945,8 @@ watch(() => route.query.articleId, () => {
 
     &.active {
       color: #fff;
-      border-color: #1f8a7d;
-      background: #1f8a7d;
+      border-color: #357ABD;
+      background: #357ABD;
     }
   }
 }

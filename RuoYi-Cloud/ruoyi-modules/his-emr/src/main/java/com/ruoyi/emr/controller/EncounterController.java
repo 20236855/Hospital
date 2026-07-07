@@ -18,6 +18,7 @@ import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
+import com.ruoyi.common.security.annotation.InnerAuth;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.emr.domain.Encounter;
@@ -106,6 +107,16 @@ public class EncounterController extends BaseController
         applyPatientScope(encounter);
         applyDoctorScope(encounter);
         return toAjax(encounterService.insertEncounter(encounter));
+    }
+
+    /**
+     * 内部接口：护士签到后同步创建/更新接诊。
+     */
+    @InnerAuth
+    @PostMapping("/inner/check-in")
+    public R<Boolean> innerSyncFromCheckIn(@RequestBody Map<String, Object> data)
+    {
+        return R.ok(encounterService.syncEncounterFromCheckIn(data) > 0);
     }
 
     /**

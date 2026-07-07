@@ -414,7 +414,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: #68c7a9;
+    background: #4A90E2;
     border-radius: 8px;
   }
 
@@ -550,7 +550,7 @@ onMounted(() => {
   font-weight: 700;
   color: #4f7380;
   padding: 10px 12px;
-  border-left: 4px solid #68c7a9;
+  border-left: 4px solid #4A90E2;
   background: rgba(230, 246, 251, 0.68);
   margin-top: 10px;
 }
@@ -728,7 +728,7 @@ onMounted(() => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  background: linear-gradient(135deg, #4A90E2, #A8C8EC);
 }
 
 .complete-btn {
@@ -739,7 +739,7 @@ onMounted(() => {
   color: #fff;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  background: linear-gradient(135deg, #4A90E2, #A8C8EC);
   box-shadow: 0 8px 24px rgba(104, 199, 169, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;

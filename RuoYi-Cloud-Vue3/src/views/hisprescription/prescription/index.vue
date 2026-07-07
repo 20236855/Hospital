@@ -278,6 +278,7 @@ import useUserStore from "@/store/modules/user"
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
 const router = useRouter()
+const route = useRoute()
 
 // 明细数据
 const items = ref([])
@@ -430,7 +431,7 @@ function loadEncounterOptions(deptId, doctorId) {
   const params = { deptId, pageNum: 1, pageSize: 200 }
   if (doctorId) params.doctorId = doctorId
   listEncounter(params).then(res => {
-    encounterOptions.value = (res.rows || []).map(e => ({
+    const options = (res.rows || []).map(e => ({
       encounterId: e.encounterId,
       registerId: e.registerId,
       patientId: e.patientId,
@@ -440,6 +441,41 @@ function loadEncounterOptions(deptId, doctorId) {
       patientName: e.patientName || ('患者' + e.patientId),
       doctorName: e.doctorName || ('医生' + e.doctorId)
     }))
+    options.forEach(upsertEncounterOption)
+  })
+}
+
+function sameId(a, b) {
+  return String(a ?? '') === String(b ?? '')
+}
+
+function queryValue(key) {
+  const value = route.query[key]
+  return Array.isArray(value) ? value[0] : value
+}
+
+function upsertEncounterOption(option) {
+  if (!option?.encounterId) return
+  const index = encounterOptions.value.findIndex(e => sameId(e.encounterId, option.encounterId))
+  if (index >= 0) {
+    encounterOptions.value[index] = { ...encounterOptions.value[index], ...option }
+    return
+  }
+  encounterOptions.value.unshift(option)
+}
+
+function ensureConsultEncounterOption() {
+  const encounterId = queryValue('encounterId')
+  if (!encounterId) return
+  upsertEncounterOption({
+    encounterId,
+    registerId: queryValue('registerId') || form.value.registerId,
+    patientId: queryValue('patientId') || form.value.patientId,
+    doctorId: queryValue('doctorId') || form.value.doctorId,
+    deptId: queryValue('deptId') || form.value.deptId,
+    encounterType: '门诊会诊',
+    patientName: queryValue('patientName') || (queryValue('patientId') ? '患者' + queryValue('patientId') : '当前患者'),
+    doctorName: queryValue('doctorId') ? '医生' + queryValue('doctorId') : '当前医生'
   })
 }
 
@@ -450,11 +486,29 @@ function handleEncounterChange(encounterId) {
     form.value.registerId = null
     return
   }
-  const selected = encounterOptions.value.find(e => e.encounterId === encounterId)
+  const selected = encounterOptions.value.find(e => sameId(e.encounterId, encounterId))
   if (selected) {
     form.value.patientId = selected.patientId
     form.value.registerId = selected.registerId
+    if (selected.doctorId) form.value.doctorId = selected.doctorId
+    if (selected.deptId) form.value.deptId = selected.deptId
   }
+}
+
+function fillPrescriptionFromConsultQuery() {
+  form.value.encounterId = queryValue('encounterId') || form.value.encounterId
+  form.value.registerId = queryValue('registerId') || form.value.registerId
+  form.value.patientId = queryValue('patientId') || form.value.patientId
+  form.value.doctorId = queryValue('doctorId') || form.value.doctorId
+  form.value.deptId = queryValue('deptId') || form.value.deptId
+  ensureConsultEncounterOption()
+  if (form.value.encounterId) handleEncounterChange(form.value.encounterId)
+}
+
+async function openPrescriptionFromConsultQuery() {
+  if (queryValue('autoOpen') !== '1') return
+  await handleAdd()
+  fillPrescriptionFromConsultQuery()
 }
 
 /** 修改按钮操作 */
@@ -587,6 +641,7 @@ function handleExport() {
 }
 
 getList()
+openPrescriptionFromConsultQuery()
 </script>
 
 <style scoped lang="scss">

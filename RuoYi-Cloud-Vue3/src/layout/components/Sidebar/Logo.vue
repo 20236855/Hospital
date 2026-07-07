@@ -8,10 +8,10 @@
         <span class="logo-title-wrapper">
           <img src="/logo3.png" alt="logo" class="brand-logo-img" />
           <span class="brand-title">
-            <strong>门诊 HIS</strong>
+            <strong>云医智联</strong>
           </span>
         </span>
-        <small class="brand-desc">医院门诊信息系统</small>
+        <small class="brand-desc">AI 驱动 · 温暖守护</small>
       </router-link>
     </transition>
   </div>
@@ -40,8 +40,8 @@ defineProps({
   height: auto;
   padding: 14px 0;
   overflow: hidden;
-  border-bottom: 1px solid rgba(165, 213, 196, 0.18);
-  background: #1a4d45;
+  border-bottom: 1px solid rgba(147, 197, 253, 0.18);
+  background: linear-gradient(180deg, #1E40AF, #1E3A8A);
 
   .sidebar-logo-link {
     display: flex;
@@ -82,7 +82,7 @@ defineProps({
   }
 
   .brand-desc {
-    color: rgba(221, 248, 242, 0.76);
+    color: rgba(191, 219, 254, 0.80);
     font-size: 12px;
     line-height: 1.4;
     padding-left: 52px; /* logo宽度 + gap */

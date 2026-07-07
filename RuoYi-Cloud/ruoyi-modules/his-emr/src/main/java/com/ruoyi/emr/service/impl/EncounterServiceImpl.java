@@ -1,6 +1,7 @@
 package com.ruoyi.emr.service.impl;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,7 @@ public class EncounterServiceImpl implements IEncounterService
     @Override
     public List<EncounterVo> selectEncounterList(Encounter encounter)
     {
+        encounterMapper.insertMissingCheckedInEncounters(encounter);
         List<Encounter> list = encounterMapper.selectEncounterList(encounter);
         List<EncounterVo> voList = new ArrayList<>();
         Map<Long, Map<String, Object>> patientCache = new HashMap<>();
@@ -254,6 +256,93 @@ public class EncounterServiceImpl implements IEncounterService
     {
         encounter.setCreateTime(DateUtils.getNowDate());
         return encounterMapper.insertEncounter(encounter);
+    }
+
+    @Override
+    public int syncEncounterFromCheckIn(Map<String, Object> data)
+    {
+        Long registerId = toLong(data.get("registerId"));
+        Long patientId = toLong(data.get("patientId"));
+        Long doctorId = toLong(data.get("doctorId"));
+        Long deptId = toLong(data.get("deptId"));
+        Date checkInTime = toDate(data.get("checkInTime"));
+        if (registerId == null || patientId == null || doctorId == null || deptId == null)
+        {
+            return 0;
+        }
+
+        Encounter encounter = encounterMapper.selectEncounterByRegisterId(registerId);
+        if (encounter == null)
+        {
+            encounter = new Encounter();
+            encounter.setRegisterId(registerId);
+            encounter.setPatientId(patientId);
+            encounter.setDoctorId(doctorId);
+            encounter.setDeptId(deptId);
+            encounter.setEncounterType("普通门诊");
+            encounter.setEncounterStatus("待接诊");
+            encounter.setVisitTime(checkInTime != null ? checkInTime : DateUtils.getNowDate());
+            encounter.setCreateTime(DateUtils.getNowDate());
+            return encounterMapper.insertEncounter(encounter);
+        }
+
+        encounter.setPatientId(patientId);
+        encounter.setDoctorId(doctorId);
+        encounter.setDeptId(deptId);
+        if (StringUtils.isEmpty(encounter.getEncounterType()))
+        {
+            encounter.setEncounterType("普通门诊");
+        }
+        if (StringUtils.isEmpty(encounter.getEncounterStatus()))
+        {
+            encounter.setEncounterStatus("待接诊");
+        }
+        if (encounter.getVisitTime() == null)
+        {
+            encounter.setVisitTime(checkInTime != null ? checkInTime : DateUtils.getNowDate());
+        }
+        encounter.setUpdateTime(DateUtils.getNowDate());
+        return encounterMapper.updateEncounter(encounter);
+    }
+
+    private Long toLong(Object value)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+        if (value instanceof Number)
+        {
+            return ((Number) value).longValue();
+        }
+        try
+        {
+            return Long.valueOf(value.toString());
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+    }
+
+    private Date toDate(Object value)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+        if (value instanceof Date)
+        {
+            return (Date) value;
+        }
+        try
+        {
+            return DateUtils.parseDate(value.toString());
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
     }
 
     /**

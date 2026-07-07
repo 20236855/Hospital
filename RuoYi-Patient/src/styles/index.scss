@@ -7,39 +7,39 @@ html, body, #app {
   background-color: var(--bg-color);
 }
 
-/* 底部导航栏样式 - 使用图一色调 */
+/* 底部导航栏样式 - 深海军蓝 */
 .van-tabbar {
-  background: rgb(26, 77, 69) !important;
+  background: #0B2560 !important;
   border-top: none !important;
-  box-shadow: 0 -4px 20px rgba(26, 77, 69, 0.2);
+  box-shadow: 0 -4px 28px rgba(11, 37, 96, 0.35);
 }
 
 .van-tabbar-item {
   background: transparent !important;
-  color: #a8c0b8 !important;
-  
+  color: rgba(255,255,255,.50) !important;
+
   .van-tabbar-item__icon {
-    color: #a8c0b8 !important;
+    color: rgba(255,255,255,.50) !important;
   }
-  
+
   &.van-tabbar-item--active {
     background: transparent !important;
-    color: #c8e6d9 !important;
-    
+    color: #ffffff !important;
+
     .van-tabbar-item__icon {
-      color: #c8e6d9 !important;
+      color: #ffffff !important;
     }
 
     .van-tabbar-item__text {
-      color: #c8e6d9 !important;
+      color: #ffffff !important;
     }
   }
 }
 
 :root {
-  --van-tabbar-item-active-color: #c8e6d9 !important;
-  --van-tabbar-item-text-color: #a8c0b8 !important;
-  --van-tabbar-background: rgb(26, 77, 69) !important;
+  --van-tabbar-item-active-color: #ffffff !important;
+  --van-tabbar-item-text-color: rgba(255,255,255,.50) !important;
+  --van-tabbar-background: #0B2560 !important;
   --van-tabbar-item-active-background: transparent !important;
 }
 

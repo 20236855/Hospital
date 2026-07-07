@@ -7,7 +7,7 @@
         :autoplay="4000"
         :duration="600"
         indicator-color="rgba(255,255,255,.7)"
-        indicator-active-color="#5f9e8c"
+        indicator-active-color="#357ABD"
         :show-indicators="true"
         @change="onBannerChange"
       >
@@ -488,11 +488,11 @@ const bannerSlides = [
     btnText: '立即预约',
     figure: doctor1,
     figureClass: '',
-    bgGradient: 'linear-gradient(155deg, #e8f5f0 0%, #d4ece2 35%, #c9e8da 68%, #dfefe6 100%)',
-    accentColor: '#5f9e8c',
-    btnBg: '#e8f5f0',
-    btnColor: '#4a8a7a',
-    glowColor: 'radial-gradient(circle, rgba(120,200,170,.35) 0%, transparent 70%)',
+    bgGradient: 'linear-gradient(135deg, #EEF1F7 0%, #D4DDF0 40%, #BAC9E8 70%, #D4DDF0 100%)',
+    accentColor: '#2D62C8',
+    btnBg: '#FFFFFF',
+    btnColor: '#1E40AF',
+    glowColor: 'radial-gradient(circle at 80% 50%, rgba(45,98,200,.16) 0%, transparent 60%)',
     action: () => router.push('/register')
   },
   {
@@ -504,11 +504,11 @@ const bannerSlides = [
     btnText: '在线问诊',
     figure: doctor2,
     figureClass: '',
-    bgGradient: 'linear-gradient(155deg, #e0eef8 0%, #cde4f2 35%, #d8ebf6 68%, #e8f2f8 100%)',
-    accentColor: '#5db8d8',
-    btnBg: '#e0eef8',
-    btnColor: '#3a809b',
-    glowColor: 'radial-gradient(circle, rgba(93,184,216,.3) 0%, transparent 70%)',
+    bgGradient: 'linear-gradient(135deg, #EFF7FE 0%, #DCEBFA 40%, #C4DDF5 70%, #DCEBFA 100%)',
+    accentColor: '#4A90E2',
+    btnBg: '#FFFFFF',
+    btnColor: '#357ABD',
+    glowColor: 'radial-gradient(circle at 85% 45%, rgba(45,98,200,.16) 0%, transparent 60%)',
     action: () => router.push('/chat')
   },
   {
@@ -520,11 +520,11 @@ const bannerSlides = [
     btnText: '查看报告',
     figure: nurse1,
     figureClass: '',
-    bgGradient: 'linear-gradient(155deg, #f0f4e8 0%, #e4ecd5 35%, #d8e5c9 68%, #eaf0e0 100%)',
-    accentColor: '#8a9e6b',
-    btnBg: '#f0f4e8',
-    btnColor: '#6b7d4e',
-    glowColor: 'radial-gradient(circle, rgba(138,158,107,.3) 0%, transparent 70%)',
+    bgGradient: 'linear-gradient(135deg, #EDF4F6 0%, #D2E8ED 35%, #B6DAE3 65%, #D2E8ED 100%)',
+    accentColor: '#1C8B99',
+    btnBg: '#FFFFFF',
+    btnColor: '#0C6B7A',
+    glowColor: 'radial-gradient(circle at 75% 55%, rgba(28,139,153,.16) 0%, transparent 60%)',
     action: () => router.push('/record')
   }
 ]
@@ -750,10 +750,10 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-$mint-dark: #5f9e8c;
-$mint-pale: #e8f5f0;
-$sky-blue: #5db8d8;
-$sky-pale: #e0eef8;
+$blue-dark: #4A90E2;
+$blue-pale: #E8F1FC;
+$sky-blue: #7BB3E8;
+$sky-pale: #E4F0F9;
 $orange-warm: #e89860;
 
 .home-page {
@@ -852,7 +852,7 @@ $orange-warm: #e89860;
   margin: 0 0 10px;
   font-size: 24px;
   font-weight: 800;
-  color: #2d5a4e;
+  color: #2C3E50;
   line-height: 1.2;
 }
 
@@ -871,7 +871,7 @@ $orange-warm: #e89860;
 .bm-number {
   font-size: 15px;
   font-weight: 800;
-  color: $mint-dark;
+  color: $blue-dark;
   line-height: 1;
 }
 
@@ -1002,7 +1002,7 @@ $orange-warm: #e89860;
   strong {
     font-size: 14px;
     font-weight: 800;
-    color: #2d5a4e;
+    color: #2C3E50;
     line-height: 1.2;
     white-space: nowrap;
   }
@@ -1057,7 +1057,7 @@ button {
 
   h2 {
     margin: 1px 0 0;
-    color: #2d5a4e;
+    color: #2C3E50;
     font-size: 15px;
     line-height: 1.2;
     font-weight: 800;
@@ -1123,16 +1123,29 @@ button {
   align-items: center;
   justify-content: center;
   background: rgba(185, 225, 205, .18);
-  color: #5f9e8c;
+  color: #357ABD;
   font-size: 11px;
   font-weight: 800;
 }
 
 .detail-copy {
   min-width: 0;
-  font-size: 13px;
-  color: #2d5a4e;
-  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  strong {
+    color: #2C3E50;
+    font-size: 13px;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+
+  span {
+    color: var(--text-regular);
+    font-size: 11px;
+    line-height: 1.35;
+  }
 }
 
 .empty-state {
@@ -1145,7 +1158,7 @@ button {
   strong, span { display: block; }
 
   strong {
-    color: #2d5a4e;
+    color: #2C3E50;
     font-size: 13px;
     margin-bottom: 4px;
     font-weight: 700;
@@ -1251,7 +1264,7 @@ button {
   align-items: center;
   gap: 4px;
   box-shadow: none;
-  color: #2d5a4e;
+  color: #2C3E50;
   transition: transform .2s ease;
 
   &:active {
@@ -1273,7 +1286,7 @@ button {
 
   > span {
     max-width: 100%;
-    color: #2d5a4e;
+    color: #2C3E50;
     font-size: 14px;
     line-height: 1.2;
     font-weight: 850;
@@ -1291,8 +1304,8 @@ button {
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: linear-gradient(145deg, #dff4ef, #d5edf3);
-  color: #276b63;
+  background: linear-gradient(145deg, #d8e8f8, #c8dcf0);
+  color: #1e4a8a;
   font-size: 30px;
   font-weight: 900;
 
@@ -1348,7 +1361,7 @@ button {
     border-radius: 10px;
     object-fit: cover;
     display: block;
-    background: #e8f5f0;
+    background: #E8F1FC;
   }
 }
 
@@ -1357,7 +1370,7 @@ button {
 
   h3 {
     margin: 0;
-    color: #2d5a4e;
+    color: #2C3E50;
     font-size: 15px;
     line-height: 1.35;
     font-weight: 850;
@@ -1400,21 +1413,21 @@ button {
 // ========== 患者信息完善弹窗 ==========
 .popup-complete {
   display: flex; flex-direction: column; height: 100%;
-  background: #f5faf8;
+  background: #F5F8FC;
 }
 .popup-header {
   padding: 24px 20px 12px; text-align: center; flex-shrink: 0;
-  h2 { margin: 0; font-size: 20px; font-weight: 800; color: #2d5a4e; }
-  p { margin: 6px 0 0; font-size: 13px; color: #6b9e8a; }
+  h2 { margin: 0; font-size: 20px; font-weight: 800; color: #2C3E50; }
+  p { margin: 6px 0 0; font-size: 13px; color: #4A90E2; }
 }
 .popup-body {
   flex: 1; overflow-y: auto; padding: 0 20px 16px;
   -webkit-overflow-scrolling: touch;
 }
 .popup-section-title {
-  font-size: 14px; font-weight: 800; color: #2d5a4e;
+  font-size: 14px; font-weight: 800; color: #2C3E50;
   margin: 16px 0 10px; padding-bottom: 6px;
-  border-bottom: 2px solid rgba(95,158,140,.2);
+  border-bottom: 2px solid rgba(74,144,226,.20);
 }
 .popup-field {
   margin-bottom: 12px;
@@ -1423,10 +1436,10 @@ button {
   input, select, textarea {
     width: 100%; box-sizing: border-box;
     min-height: 44px; padding: 10px 14px;
-    border: 1px solid rgba(181,221,231,.9); border-radius: 12px;
-    background: rgba(255,255,255,.82); font-size: 14px; color: #2d5a4e;
+    border: 1px solid rgba(74,144,226,.18); border-radius: 12px;
+    background: rgba(255,255,255,.82); font-size: 14px; color: #2C3E50;
     outline: none; font-family: inherit;
-    &:focus { border-color: #5f9e8c; background: #fff; box-shadow: 0 0 0 3px rgba(95,158,140,.1); }
+    &:focus { border-color: #4A90E2; background: #fff; box-shadow: 0 0 0 3px rgba(74,144,226,.08); }
   }
   textarea { resize: none; min-height: 60px; line-height: 1.5; }
   select { cursor: pointer; }
@@ -1434,19 +1447,19 @@ button {
 .popup-radio-row { display: flex; gap: 10px; }
 .popup-radio {
   padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
-  background: rgba(255,255,255,.6); border: 2px solid rgba(181,221,231,.9);
+  background: rgba(255,255,255,.6); border: 2px solid rgba(74,144,226,.18);
   color: #4f7380; cursor: pointer; transition: all .2s;
-  &.on { background: rgba(95,158,140,.12); border-color: #5f9e8c; color: #2d5a4e; }
+  &.on { background: rgba(74,144,226,.12); border-color: #4A90E2; color: #2C3E50; }
 }
 .popup-footer {
-  flex-shrink: 0; padding: 16px 20px 28px; background: #f5faf8;
-  border-top: 1px solid rgba(181,221,231,.4);
+  flex-shrink: 0; padding: 16px 20px 28px; background: #F5F8FC;
+  border-top: 1px solid rgba(74,144,226,.10);
 }
 .popup-submit {
   width: 100%; height: 50px; border: none; border-radius: 14px;
   color: #fff; font-size: 16px; font-weight: 800;
-  background: linear-gradient(135deg, #5f9e8c, #48c9b0);
-  box-shadow: 0 8px 24px rgba(95,158,140,.3); cursor: pointer;
+  background: linear-gradient(135deg, #357ABD, #4A90E2);
+  box-shadow: 0 8px 24px rgba(74,144,226,.25); cursor: pointer;
   &:active:not(:disabled) { transform: scale(.98); }
   &:disabled { opacity: .65; }
 }

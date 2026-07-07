@@ -309,7 +309,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .register-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #1a8a84 0%, #168079 35%, #1a8a84 68%, #168079 100%);
+  background: linear-gradient(180deg, #2558ba 0%, #1e4fab 35%, #2558ba 68%, #1e4fab 100%);
   color: #fff;
   padding-bottom: 20px;
   position: relative;
@@ -481,7 +481,7 @@ onMounted(() => {
   width: 44px;
   height: 44px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #e8f5f0, #f0faf7);
+  background: linear-gradient(135deg, #F5F9FE, #F5F8FC);
   border: 1px solid rgba(185, 225, 205, 0.6);
   display: flex;
   align-items: center;
@@ -495,7 +495,7 @@ onMounted(() => {
   h3 {
     font-size: 18px;
     font-weight: 700;
-    color: #2d5a4e;
+    color: #2C3E50;
     margin: 0 0 4px;
   }
 
@@ -560,7 +560,7 @@ onMounted(() => {
   border: none;
   outline: none;
   background: transparent;
-  color: #2d5a4e;
+  color: #2C3E50;
   font-size: 15px;
   font-weight: 500;
 
@@ -611,7 +611,7 @@ onMounted(() => {
   height: 48px;
   border: none;
   border-radius: 0;
-  color: #1a8a84;
+  color: #2558ba;
   font-size: 16px;
   font-weight: 700;
   background: #fff;
@@ -639,7 +639,7 @@ onMounted(() => {
   color: rgba(45, 90, 78, 0.5);
 
   span {
-    color: #1a8a84;
+    color: #2558ba;
     font-weight: 700;
     cursor: pointer;
   }

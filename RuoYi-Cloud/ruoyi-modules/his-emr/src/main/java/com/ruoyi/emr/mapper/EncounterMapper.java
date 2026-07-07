@@ -20,12 +20,28 @@ public interface EncounterMapper
     public Encounter selectEncounterByEncounterId(Long encounterId);
 
     /**
+     * 查询挂号对应接诊
+     *
+     * @param registerId 挂号主键
+     * @return 接诊
+     */
+    public Encounter selectEncounterByRegisterId(Long registerId);
+
+    /**
      * 查询接诊列表
      * 
      * @param encounter 接诊
      * @return 接诊集合
      */
     public List<Encounter> selectEncounterList(Encounter encounter);
+
+    /**
+     * 从已签到挂号补齐缺失接诊。
+     *
+     * @param encounter 查询范围
+     * @return 新增数量
+     */
+    public int insertMissingCheckedInEncounters(Encounter encounter);
 
     /**
      * 新增接诊

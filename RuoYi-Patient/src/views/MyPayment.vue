@@ -150,10 +150,12 @@ function formatDate(value) {
 async function loadPayments() {
   loading.value = true
   try {
-    const [registerRes, examRes] = await Promise.all([
+    const [registerResult, examResult] = await Promise.allSettled([
       getRegisterList({ pageNum: 1, pageSize: 100 }),
       getMyExamPayments()
     ])
+    const registerRes = registerResult.status === 'fulfilled' ? registerResult.value : { rows: [] }
+    const examRes = examResult.status === 'fulfilled' ? examResult.value : { data: [] }
     const registerPayments = (registerRes.rows || []).map((item) => ({
       ...item,
       paymentType: 'register',

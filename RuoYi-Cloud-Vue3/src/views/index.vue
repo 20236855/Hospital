@@ -152,19 +152,19 @@
                   <linearGradient id="areaG3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgb(34,197,94)" stop-opacity=".22"/><stop offset="100%" stop-color="rgb(34,197,94)" stop-opacity=".02"/></linearGradient>
                 </defs>
                 <!-- 网格 -->
-                <g stroke="#e2eeea" stroke-width="0.6" opacity=".8">
+                <g stroke="#DBEAFE" stroke-width="0.6" opacity=".8">
                   <line x1="56" y1="20" x2="708" y2="20"/><line x1="56" y1="64" x2="708" y2="64"/>
                   <line x1="56" y1="108" x2="708" y2="108"/><line x1="56" y1="152" x2="708" y2="152"/>
                   <line x1="56" y1="196" x2="708" y2="196"/><line x1="56" y1="240" x2="708" y2="240"/>
                 </g>
                 <!-- Y轴 -->
-                <g font-size="11" fill="#7ba89e" text-anchor="end" font-weight="500">
+                <g font-size="11" fill="#6B8BB8" text-anchor="end" font-weight="500">
                   <text x="48" y="25">7000</text><text x="48" y="69">6000</text>
                   <text x="48" y="113">5000</text><text x="48"y="157">4000</text>
                   <text x="48" y="201">3000</text><text x="48" y="245">2000</text>
                 </g>
                 <!-- X轴 -->
-                <g font-size="11" fill="#7ba89e" text-anchor="middle" font-weight="500">
+                <g font-size="11" fill="#6B8BB8" text-anchor="middle" font-weight="500">
                   <text x="76" y="264">1月</text><text x="132" y="264">2月</text><text x="188" y="264">3月</text>
                   <text x="244" y="264">4月</text><text x="300" y="264">5月</text><text x="356" y="264">6月</text>
                   <text x="412" y="264">7月</text><text x="468" y="264">8月</text><text x="524" y="264">9月</text>
@@ -252,8 +252,8 @@
             <div class="dash-body">
               <svg viewBox="0 0 320 260" preserveAspectRatio="xMidYMid meet" class="h-bar-svg">
                 <g v-for="(item, idx) in surgeryData" :key="item.name">
-                  <text :x="2" :y="22 + idx * 40" font-size="12.5" fill="#2d5a4e" font-weight="600">{{ item.name }}</text>
-                  <text :x="2" :y="37 + idx * 40" font-size="10" fill="#8ba8a0">{{ item.sub }} · {{ item.count }}台</text>
+                  <text :x="2" :y="22 + idx * 40" font-size="12.5" fill="#1E4060" font-weight="600">{{ item.name }}</text>
+                  <text :x="2" :y="37 + idx * 40" font-size="10" fill="#6B8BB8">{{ item.sub }} · {{ item.count }}台</text>
                   <rect :y="14 + idx * 40" x="110" :width="item.pct * 195" height="20" rx="5"
                     :fill="item.color" opacity=".6" />
                   <text :x="310 + item.pct * 195" :y="29 + idx * 40" font-size="13"
@@ -280,7 +280,7 @@
               <div class="donut-wrap">
                 <svg viewBox="0 0 180 180" class="donut-svg">
                   <!-- 环形底色 -->
-                  <circle cx="90" cy="90" r="72" fill="none" stroke="#eef5f3" stroke-width="22"/>
+                  <circle cx="90" cy="90" r="72" fill="none" stroke="#EFF4FF" stroke-width="22"/>
                   <!-- 各科室弧段 - 使用stroke-dasharray模拟 -->
                   <circle cx="90" cy="90" r="72" fill="none" stroke="#ef4444" stroke-width="22"
                     stroke-dasharray="113.1 452.39" stroke-dashoffset="0"
@@ -304,8 +304,8 @@
                     stroke-dasharray="57.91 452.39" stroke-dashoffset="-394.2"
                     transform="rotate(-90 90 90)" stroke-linecap="round"/>
                   <!-- 中心文字 -->
-                  <text x="90" y="82" text-anchor="middle" font-size="26" fill="#1a5248" font-weight="800">2,200</text>
-                  <text x="90" y="102" text-anchor="middle" font-size="11" fill="#7ba89e">总床位数</text>
+                  <text x="90" y="82" text-anchor="middle" font-size="26" fill="#1E3A5F" font-weight="800">2,200</text>
+                  <text x="90" y="102" text-anchor="middle" font-size="11" fill="#6B8BB8">总床位数</text>
                 </svg>
               </div>
               <div class="donut-list">
@@ -359,22 +359,22 @@
             <div class="dash-body">
               <svg viewBox="0 0 860 220" preserveAspectRatio="xMidYMid meet" class="stack-svg">
                 <!-- 背景 -->
-                <rect x="130" y="14" width="660" height="176" rx="6" fill="#f4faf8"/>
+                <rect x="130" y="14" width="660" height="176" rx="6" fill="#F0F4FF"/>
                 <!-- 网格线 -->
-                <g stroke="#dce8e4" stroke-width="0.5">
+                <g stroke="#DBEAFE" stroke-width="0.5">
                   <line x1="130" y1="52" x2="790" y2="52"/>
                   <line x1="130" y1="90" x2="790" y2="90"/>
                   <line x1="130" y1="128" x2="790" y2="128"/>
                   <line x1="130" y1="166" x2="790" y2="166"/>
                 </g>
                 <!-- 标签 -->
-                <g font-size="10.5" fill="#7ba89e" text-anchor="end">
+                <g font-size="10.5" fill="#6B8BB8" text-anchor="end">
                   <text x="122" y="36">100%</text><text x="122" y="74">75%</text>
                   <text x="122" y="112">50%</text><text x="122" y="150">25%</text>
                   <text x="122" y="184">0%</text>
                 </g>
                 <!-- 科室名 -->
-                <g font-size="11" fill="#2d5a4e" text-anchor="middle" font-weight="600">
+                <g font-size="11" fill="#1E4060" text-anchor="middle" font-weight="600">
                   <text v-for="(bd, bi) in bedData" :key="'label'+bi" :x="151 + bi * 56" y="208">{{ bd.name }}</text>
                 </g>
                 <!-- 堆叠柱状图 -->
@@ -566,7 +566,7 @@ const qualitySlides = [
 ]
 
 const services = [
-  { name: '日均门诊人次', desc: '含急诊与专科门诊', value: '5,200', pct: 1, color: '#6ba3a0' },
+  { name: '日均门诊人次', desc: '含急诊与专科门诊', value: '5,200', pct: 1, color: '#2563EB' },
   { name: '日均手术台次', desc: '含择期与急诊手术', value: '132', pct: 0.35, color: '#d4a878' },
   { name: '日均检查量', desc: 'CT/MRI/超声/检验', value: '2,860', pct: 0.72, color: '#6d8fad' },
   { name: '远程会诊/年', desc: '覆盖医联体单位', value: '3,400', pct: 0.82, color: '#bb8f95' }
@@ -715,9 +715,7 @@ const goToCompleteInfo = () => {
 .home-video-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; object-fit: cover; z-index: 0; }
 
 .home-video-overlay {
-  position: fixed; inset: 0; z-index: 0;
-  background: linear-gradient(135deg, rgba(120,180,165,.22), rgba(100,160,140,.18), rgba(60,120,100,.30));
-  pointer-events: none;
+  display: none;
 }
 
 /* === Hero === */
@@ -730,9 +728,9 @@ const goToCompleteInfo = () => {
 .hero-content { display: flex; flex-direction: column; align-items: flex-start; max-width: 720px; margin-top: 20px; }
 .hero-heading { display: flex; flex-wrap: wrap; gap: 0.25em; margin: 0; padding: 0; list-style: none; }
 .hero-word {
-  display: inline-block; font-size: clamp(26px, 3vw, 42px); font-weight: 700;
+  display: inline-block; font-size: clamp(32px, 3.5vw, 52px); font-weight: 800;
   line-height: 1.08; letter-spacing: -0.01em; color: #fff;
-  text-shadow: 0 2px 12px rgba(0,0,0,.3);
+  text-shadow: 0 2px 18px rgba(0,0,0,.35), 0 4px 30px rgba(0,0,0,.2);
   opacity: 0; transform: translateY(32px);
   animation: heroFadeUp .7s cubic-bezier(.22,1,.36,1) forwards;
 }
@@ -756,7 +754,7 @@ const goToCompleteInfo = () => {
 .home-resources {
   position: relative; z-index: 1;
   padding: 48px 32px 68px;
-  background: linear-gradient(180deg, rgba(240,249,250,.78) 0%, rgba(220,240,244,.66) 42%, rgba(187,219,225,.56) 100%);
+  background: linear-gradient(180deg, rgba(240,248,255,.82) 0%, rgba(224,242,254,.70) 42%, rgba(191,219,254,.58) 100%);
   backdrop-filter: blur(18px);
 }
 
@@ -765,15 +763,15 @@ const goToCompleteInfo = () => {
   display: flex; align-items: center; justify-content: space-between;
   max-width: 1300px; margin: 0 auto 24px; padding: 0 4px;
   h2 {
-    margin: 0; font-size: 22px; font-weight: 800; color: #173943;
+    margin: 0; font-size: 22px; font-weight: 800; color: #1E3A5F;
     display: flex; align-items: center;
     i { display:inline-flex;align-items:center; }
-    :deep(svg){display:inline-block;color:#1f9a8a;}
+    :deep(svg){display:inline-block;color:#2563EB;}
   }
   .resources-badge {
     padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
-    background: linear-gradient(135deg, rgba(39,174,128,.10), rgba(52,152,219,.06));
-    color: #1a7a66; border: 1px solid rgba(39,174,128,.18);
+    background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(59,130,246,.05));
+    color: #1D4ED8; border: 1px solid rgba(37,99,235,.15);
   }
 }
 
@@ -784,30 +782,30 @@ const goToCompleteInfo = () => {
 
 .res-card {
   position: relative; overflow: hidden; padding: 28px; border-radius: 16px;
-  border: 1px solid rgba(35,118,134,.14);
-  background: linear-gradient(145deg, rgba(255,255,255,.88), rgba(244,251,252,.70));
+  border: 1px solid rgba(37,99,235,.12);
+  background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(248,250,255,.78));
   backdrop-filter: blur(14px);
-  box-shadow: 0 18px 44px rgba(28,79,94,.14);
+  box-shadow: 0 18px 44px rgba(30,64,175,.08);
   transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
-  &::before { content:""; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #1f9a8a, #4ea3d8); }
-  &:hover { transform: translateY(-3px); border-color: rgba(35,118,134,.26); box-shadow: 0 22px 52px rgba(28,79,94,.18); }
-  h3 { margin: 0 0 18px; font-size: 18px; font-weight: 700; color: #173943;
+  &::before { content:""; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #2563EB, #60A5FA); }
+  &:hover { transform: translateY(-3px); border-color: rgba(37,99,235,.24); box-shadow: 0 22px 52px rgba(30,64,175,.12); }
+  h3 { margin: 0 0 18px; font-size: 18px; font-weight: 700; color: #1E3A5F;
     i { display:inline-flex; align-items:center; margin-right:6px; }
     :deep(svg){display:inline-block;}
   }
 }
-.dept-card::before { background: linear-gradient(90deg, #1f9a8a, #6bc7b4); }
+.dept-card::before { background: linear-gradient(90deg, #2563EB, #60A5FA); }
 .equip-card::before { background: linear-gradient(90deg, #367fc4, #6fb7e6); }
 .service-card::before { background: linear-gradient(90deg, #7b68c8, #46b4c8); }
 .teach-card::before { background: linear-gradient(90deg, #c0392b, #e67e22); }
-.quality-card::before { background: linear-gradient(90deg, #1f9a8a, #f0a33a); }
+.quality-card::before { background: linear-gradient(90deg, #2563EB, #60A5FA); }
 
 /* 轮播通用 */
 .dept-carousel { --el-carousel-indicator-width: 18px; }
 .dept-carousel :deep(.el-carousel__container) { border-radius: 12px; }
 .dept-carousel :deep(.el-carousel__indicators--outside) { margin-top: 8px; }
 .dept-carousel :deep(.el-carousel__button) { width:18px;height:4px;border-radius:999px;background:#cbd5e1;opacity:.34; }
-.dept-carousel :deep(.is-active .el-carousel__button) { width:28px; opacity:.9; background:#1f9a8a; }
+.dept-carousel :deep(.is-active .el-carousel__button) { width:28px; opacity:.9; background:#2563EB; }
 
 .equip-carousel { --el-carousel-indicator-width: 18px; }
 .equip-carousel :deep(.el-carousel__container) { border-radius: 12px; }
@@ -825,13 +823,13 @@ const goToCompleteInfo = () => {
 .quality-carousel :deep(.el-carousel__container) { border-radius: 12px; }
 .quality-carousel :deep(.el-carousel__indicators--outside) { margin-top: 8px; }
 .quality-carousel :deep(.el-carousel__button) { width:18px;height:4px;border-radius:999px;background:#cbd5e1;opacity:.34; }
-.quality-carousel :deep(.is-active .el-carousel__button) { width:28px; opacity:.9; background:#1f9a8a; }
+.quality-carousel :deep(.is-active .el-carousel__button) { width:28px; opacity:.9; background:#2563EB; }
 
-.dept-slide { position:relative; height:100%; overflow:hidden; border-radius:14px; background:#dcebee; }
+.dept-slide { position:relative; height:100%; overflow:hidden; border-radius:14px; background:#DBEAFE; }
 .dept-image { width:100%;height:100%;display:block;object-fit:cover;filter:brightness(1.15); }
 .dept-shade {
   position:absolute;inset:0;
-  background: linear-gradient(90deg, rgba(8,41,48,.45), rgba(8,41,48,.22) 46%, rgba(8,41,48,.04)),
+  background: linear-gradient(90deg, rgba(15,23,42,.45), rgba(15,23,42,.22) 46%, rgba(15,23,42,.04)),
     linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.15));
 }
 .dept-content { position:absolute; left:26px; right:26px; bottom:24px; color:#fff; }
@@ -867,15 +865,15 @@ const goToCompleteInfo = () => {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 22px; padding: 0 4px;
   h2 {
-    margin: 0; font-size: 22px; font-weight: 800; color: #173943;
+    margin: 0; font-size: 22px; font-weight: 800; color: #1E3A5F;
     display: flex; align-items: center;
     i { display:inline-flex;align-items:center; }
-    :deep(svg){display:inline-block;color:#1f9a8a}
+    :deep(svg){display:inline-block;color:#2563EB}
   }
   .dash-badge {
     padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
-    background: linear-gradient(135deg, rgba(39,174,128,.1), rgba(39,174,128,.06));
-    color: #1a7a66; border: 1px solid rgba(39,174,128,.18);
+    background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(59,130,246,.05));
+    color: #1D4ED8; border: 1px solid rgba(37,99,235,.15);
   }
 }
 
@@ -885,11 +883,11 @@ const goToCompleteInfo = () => {
 
 /* 卡片基础 */
 .dash-card {
-  border-radius: 16px; border: 1px solid rgba(35,118,134,.12);
-  background: linear-gradient(145deg, #ffffff, #f8fcfb);
-  box-shadow: 0 14px 38px rgba(28,79,94,.09);
+  border-radius: 16px; border: 1px solid rgba(37,99,235,.10);
+  background: linear-gradient(145deg, #ffffff, #F8FAFF);
+  box-shadow: 0 14px 38px rgba(30,64,175,.06);
   overflow: hidden; transition: transform .25s ease, box-shadow .25s ease;
-  &:hover { transform: translateY(-2px); box-shadow: 0 20px 48px rgba(28,79,94,.14); }
+  &:hover { transform: translateY(-2px); box-shadow: 0 20px 48px rgba(30,64,175,.10); }
 }
 .dash-main { /* 自动适应行宽 */ }
 .dash-side { /* 侧栏 */ }
@@ -901,19 +899,19 @@ const goToCompleteInfo = () => {
 .dash-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 22px 0;
-  h4 { margin: 0; font-size: 15px; font-weight: 700; color: #173943; }
-  .dash-unit { font-size: 11.5px; color: #8ba8a0; font-weight: 500; }
+  h4 { margin: 0; font-size: 15px; font-weight: 700; color: #1E3A5F; }
+  .dash-unit { font-size: 11.5px; color: #6B8BB8; font-weight: 500; }
   .dash-alert {
     padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700;
     background: rgba(231,76,60,.08); color: #c0392b; border: 1px solid rgba(231,76,60,.15);
   }
   .dash-title-group { display: flex; flex-direction: column; gap: 2px;
-    .dash-period { font-size: 11.5px; color: #8ba8a0; font-weight: 400; }
+    .dash-period { font-size: 11.5px; color: #6B8BB8; font-weight: 400; }
   }
 }
-.dash-tabs { display: flex; gap: 4px; background: #f0f6f4; padding: 3px; border-radius: 10px;
-  span { padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; color: #7ba89e; cursor:pointer; transition:.2s; }
-  span.active { background: #fff; color: #1a7a66; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.dash-tabs { display: flex; gap: 4px; background: #EFF4FF; padding: 3px; border-radius: 10px;
+  span { padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; color: #6B8BB8; cursor:pointer; transition:.2s; }
+  span.active { background: #fff; color: #1D4ED8; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
 }
 .dash-body { padding: 14px 22px 20px; }
 
@@ -921,32 +919,32 @@ const goToCompleteInfo = () => {
 .area-svg { width: 100%; height: auto; display: block; }
 .area-legend {
   display: flex; justify-content: center; gap: 20px; padding: 12px 0 8px;
-  .al-item { display:flex; align-items:center; gap:6px; font-size:12px; color:#5e7881; font-weight:500;
+  .al-item { display:flex; align-items:center; gap:6px; font-size:12px; color:#4A6288; font-weight:500;
     em{display:inline-block;width:12px;height:4px;border-radius:2px;}
   }
 }
 .area-summary {
   display: flex; align-items: center; justify-content: space-around;
   padding: 14px 20px; margin-top: 4px;
-  background: linear-gradient(135deg, rgba(39,174,128,.04), rgba(52,152,219,.03)); border-radius: 12px;
-  border: 1px solid rgba(39,174,128,.08);
+  background: linear-gradient(135deg, rgba(37,99,235,.04), rgba(59,130,246,.03)); border-radius: 12px;
+  border: 1px solid rgba(37,99,235,.08);
 }
 .as-col { text-align: center;
-  .as-num { font-size: 22px; font-weight: 800; color: #173943;
-    small { font-size: 13px; font-weight: 600; color: #7ba89e; margin-left: 2px; }
+  .as-num { font-size: 22px; font-weight: 800; color: #1E3A5F;
+    small { font-size: 13px; font-weight: 600; color: #6B8BB8; margin-left: 2px; }
   }
-  .as-label { font-size: 11px; color: #8ba8a0; margin-top: 2px; }
+  .as-label { font-size: 11px; color: #6B8BB8; margin-top: 2px; }
 }
-.as-divider { width: 1px; height: 36px; background: rgba(39,174,128,.12); }
+.as-divider { width: 1px; height: 36px; background: rgba(37,99,235,.10); }
 
 /* ====== 手术横向柱状图 ====== */
 .h-bar-svg { width: 100%; height: auto; display: block; }
 .surgery-total {
   text-align: center; padding: 12px 0 2px;
-  strong { font-size: 24px; font-weight: 800; color: #173943; }
-  span { font-size: 13px; color: #7ba89e; margin-left: 4px; font-weight: 500; }
-  small { display: block; font-size: 11px; color: #8ba8a0; margin-top: 2px;
-    em { color: #27ae80; font-style: normal; font-weight: 700; }
+  strong { font-size: 24px; font-weight: 800; color: #1E3A5F; }
+  span { font-size: 13px; color: #6B8BB8; margin-left: 4px; font-weight: 500; }
+  small { display: block; font-size: 11px; color: #6B8BB8; margin-top: 2px;
+    em { color: #2563EB; font-style: normal; font-weight: 700; }
   }
 }
 
@@ -957,9 +955,9 @@ const goToCompleteInfo = () => {
 .donut-list { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .dl-item { display: flex; align-items: center; gap: 8px; padding: 5px 0;
   .dl-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-  .dl-name { font-size: 12.5px; font-weight: 600; color: #2d5a4e; min-width: 72px; }
-  .dl-pct { font-size: 13px; font-weight: 800; color: #173943; min-width: 32px; text-align: right; }
-  .dl-bar-bg { flex:1;height:6px;border-radius:3px;background:#eef5f3;overflow:hidden;min-width:40px;
+  .dl-name { font-size: 12.5px; font-weight: 600; color: #1E4060; min-width: 72px; }
+  .dl-pct { font-size: 13px; font-weight: 800; color: #1E3A5F; min-width: 32px; text-align: right; }
+  .dl-bar-bg { flex:1;height:6px;border-radius:3px;background:#EFF4FF;overflow:hidden;min-width:40px;
     .dl-bar-fg { height:100%;border-radius:3px;transition:width .8s cubic-bezier(.22,1,.36,1);}
   }
 }
@@ -967,69 +965,69 @@ const goToCompleteInfo = () => {
 /* ====== KPI 卡片 ====== */
 .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .kpi-item {
-  padding: 14px; border-radius: 12px; background: #f8fcfa; border: 1px solid rgba(39,174,128,.07);
+  padding: 14px; border-radius: 12px; background: #F8FAFF; border: 1px solid rgba(37,99,235,.06);
   transition: transform .2s ease, box-shadow .2s ease;
   &:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.05); }
 }
 .kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
   .kpi-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
   .kpi-trend { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
-    &.up { color: #27ae80; background: rgba(39,174,128,.08); }
+    &.up { color: #16a34a; background: rgba(22,163,74,.08); }
     &.down { color: #e74c3c; background: rgba(231,76,60,.08); }
   }
 }
 .kpi-value { display: block; font-size: 20px; font-weight: 800; margin-bottom: 2px; }
-.kpi-label { font-size: 11px; color: #8ba8a0; display: block; margin-bottom: 6px; }
+.kpi-label { font-size: 11px; color: #6B8BB8; display: block; margin-bottom: 6px; }
 .sparkline { width: 100%; height: 24px; display: block;
-  &.up polyline { filter: drop-shadow(0 1px 2px rgba(39,174,128,.3)); }
+  &.up polyline { filter: drop-shadow(0 1px 2px rgba(59,130,246,.3)); }
   &:not(.up) polyline { filter: drop-shadow(0 1px 2px rgba(231,76,60,.3)); }
 }
 
 /* ====== 床位堆叠柱状图 ====== */
 .stack-svg { width: 100%; height: auto; display: block; }
 .stack-legend { display: flex; justify-content: center; gap: 16px; padding: 10px 0 2px; flex-wrap: wrap;
-  span { display:flex; align-items:center; gap:5px; font-size:11px;color:#7ba89e;
+  span { display:flex; align-items:center; gap:5px; font-size:11px;color:#6B8BB8;
     i{display:inline-block;width:10px;height:6px;border-radius:2px;}
   }
 }
 
 /* ====== 药品库存 ====== */
 .stock-body { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto;
-  &::-webkit-scrollbar{width:4px}&::-webkit-scrollbar-thumb{background:rgba(39,174,128,.2);border-radius:2px}
+  &::-webkit-scrollbar{width:4px}&::-webkit-scrollbar-thumb{background:rgba(37,99,235,.15);border-radius:2px}
 }
-.stock-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; background: #f8fcfa;
+.stock-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; background: #F8FAFF;
   border: 1px solid transparent; transition: all .2s;
   &.warn { border-color: rgba(243,156,18,.3); background: rgba(243,156,18,.04); }
   &.danger { border-color: rgba(231,76,60,.3); background: rgba(231,76,60,.04); }
   .stock-info { min-width: 110px; flex-shrink: 0;
-    strong{display:block;font-size:12.5px;font-weight:700;color:#173943}
-    span{font-size:10px;color:#8ba8a0}
+    strong{display:block;font-size:12.5px;font-weight:700;color:#1E3A5F}
+    span{font-size:10px;color:#6B8BB8}
   }
   .stock-bar-wrap { flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;
-    .stock-bar{height:8px;border-radius:4px;background:#eef5f3;overflow:hidden;
+    .stock-bar{height:8px;border-radius:4px;background:#EFF4FF;overflow:hidden;
       .stock-fill{height:100%;border-radius:4px;transition:width .6s ease}
     }
     .stock-pct{text-align:right;font-size:12px;font-weight:700}
   }
-  .stock-count{min-width:56px;text-align:right;font-size:12px;font-weight:700;color:#5e7881}
+  .stock-count{min-width:56px;text-align:right;font-size:12px;font-weight:700;color:#4A6288}
 }
 
 /* ====== 设备状态 ====== */
 .equip-body { display: flex; flex-direction: column; gap: 6px; }
-.equip-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 10px; background: #f8fcfa;
-  border: 1px solid rgba(39,174,128,.06); transition: background .2s;
-  &:hover { background: #f0f6f4; }
+.equip-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 10px; background: #F8FAFF;
+  border: 1px solid rgba(37,99,235,.05); transition: background .2s;
+  &:hover { background: #EFF4FF; }
   .equip-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
     &.online { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.5); animation: pulse 2s infinite; }
     &.offline { background: #94a3b8; }
     &.maintenance { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,.4); }
   }
   .equip-info { flex:1; min-width: 0;
-    strong{display:block;font-size:12px;font-weight:700;color:#173943}
-    span{font-size:10px;color:#8ba8a0}
+    strong{display:block;font-size:12px;font-weight:700;color:#1E3A5F}
+    span{font-size:10px;color:#6B8BB8}
   }
   .equip-meta { display:flex;flex-direction:column;align-items:flex-end;gap:2px;
-    .equip-run{font-size:10px;font-weight:600;color:#5e7881;&.online{color:#22c55e}&.maintenance{color:#f59e0b}}
+    .equip-run{font-size:10px;font-weight:600;color:#4A6288;&.online{color:#22c55e}&.maintenance{color:#f59e0b}}
     .equip-util{font-size:12px;font-weight:800}
   }
 }
@@ -1039,10 +1037,10 @@ const goToCompleteInfo = () => {
 .complete-info-content { text-align: center; padding: 20px 0; }
 .complete-info-icon {
   width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%;
-  background: linear-gradient(135deg, #73d8b9, #49b99d);
+  background: linear-gradient(135deg, #60A5FA, #3B82F6);
   display: flex; align-items: center; justify-content: center; color: #fff; font-size: 40px;
 }
-.complete-info-content p { font-size: 16px; color: #607f8c; margin: 0; }
+.complete-info-content p { font-size: 16px; color: #4A6288; margin: 0; }
 .complete-info-footer { display: flex; justify-content: center; gap: 12px; }
 
 /* 响应式 */

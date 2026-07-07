@@ -700,7 +700,7 @@ onMounted(() => {
       right: 12px;
       height: 3px;
       border-radius: 2px;
-      background: #68c7a9;
+      background: #4A90E2;
     }
   }
 }
@@ -895,7 +895,7 @@ onMounted(() => {
 }
 
 .registered {
-  color: #5f9e8c;
+  color: #357ABD;
   background: rgba(104, 199, 169, .14);
 }
 

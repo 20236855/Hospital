@@ -1,6 +1,7 @@
 package com.ruoyi.emr.service;
 
 import java.util.List;
+import java.util.Map;
 import com.ruoyi.emr.domain.Encounter;
 import com.ruoyi.emr.domain.vo.EncounterVo;
 
@@ -35,6 +36,14 @@ public interface IEncounterService
      * @return 结果
      */
     public int insertEncounter(Encounter encounter);
+
+    /**
+     * 护士签到后同步生成接诊。
+     *
+     * @param data 签到和挂号信息
+     * @return 结果
+     */
+    public int syncEncounterFromCheckIn(Map<String, Object> data);
 
     /**
      * 修改接诊

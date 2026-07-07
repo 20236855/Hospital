@@ -35,10 +35,41 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="finishTime != null "> and finish_time = #{finishTime}</if>
         </where>
     </select>
+
+    <insert id="insertMissingCheckedInEncounters" parameterType="Encounter">
+        insert into encounter
+            (register_id, patient_id, doctor_id, dept_id, encounter_type, encounter_status, visit_time, create_time)
+        select r.register_id,
+               r.patient_id,
+               r.doctor_id,
+               r.dept_id,
+               '普通门诊',
+               '待接诊',
+               coalesce(ci.check_in_time, now()),
+               now()
+        from check_in ci
+        inner join register r on r.register_id = ci.register_id
+        left join encounter e on e.register_id = r.register_id
+        where e.encounter_id is null
+          and r.patient_id is not null
+          and r.doctor_id is not null
+          and r.dept_id is not null
+          <if test="registerId != null "> and r.register_id = #{registerId}</if>
+          <if test="patientId != null "> and r.patient_id = #{patientId}</if>
+          <if test="doctorId != null "> and r.doctor_id = #{doctorId}</if>
+          <if test="deptId != null "> and r.dept_id = #{deptId}</if>
+          <if test="visitTime != null "> and date(ci.check_in_time) = date(#{visitTime})</if>
+    </insert>
     
     <select id="selectEncounterByEncounterId" parameterType="Long" resultMap="EncounterResult">
         <include refid="selectEncounterVo"/>
         where encounter_id = #{encounterId}
+    </select>
+
+    <select id="selectEncounterByRegisterId" parameterType="Long" resultMap="EncounterResult">
+        <include refid="selectEncounterVo"/>
+        where register_id = #{registerId}
+        limit 1
     </select>
 
     <insert id="insertEncounter" parameterType="Encounter" useGeneratedKeys="true" keyProperty="encounterId">

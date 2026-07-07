@@ -21,6 +21,9 @@
         />
       </el-menu>
     </el-scrollbar>
+    <div class="sidebar-bottom-image" v-if="!isCollapse">
+      <img src="@/assets/images/image.png" alt="sidebar decoration" />
+    </div>
   </div>
 </template>
 
@@ -58,12 +61,12 @@ const getMenuTextColor = computed(() => {
   return sideTheme.value === 'theme-dark' ? variables.menuText : variables.menuLightText
 })
 
-// 获取激活态文字颜色（清新绿色系，更浅更亮）
+// 获取激活态文字颜色
 const getActiveTextColor = computed(() => {
   if (sideTheme.value === 'theme-dark') {
     return '#ffffff'
   }
-  return '#3a8d82'
+  return '#1E3A5F'
 })
 
 const activeMenu = computed(() => {
@@ -77,10 +80,23 @@ const activeMenu = computed(() => {
 
 <style lang="scss" scoped>
 .sidebar-container {
+  display: flex;
+  flex-direction: column;
   background-color: v-bind(getMenuBackground);
 
   .scrollbar-wrapper {
     background-color: v-bind(getMenuBackground);
+  }
+
+  .el-scrollbar {
+    flex: 1;
+  }
+
+  &.has-logo {
+    .el-scrollbar {
+      flex: 1;
+      height: auto !important;
+    }
   }
 
   .el-menu {
@@ -90,7 +106,7 @@ const activeMenu = computed(() => {
 
     .el-menu-item, .el-sub-menu__title {
       &:hover {
-        background-color: rgba(120, 210, 180, 0.25) !important;
+        background-color: rgba(59, 130, 246, 0.20) !important;
         color: #ffffff !important;
       }
     }
@@ -100,12 +116,25 @@ const activeMenu = computed(() => {
 
       &.is-active {
         color: v-bind(getActiveTextColor) !important;
-        background-color: rgba(130, 220, 185, 0.28) !important;
+        background-color: rgba(37, 99, 235, 0.30) !important;
       }
     }
 
     .el-sub-menu__title {
       color: v-bind(getMenuTextColor);
+    }
+  }
+
+  .sidebar-bottom-image {
+    flex-shrink: 0;
+    overflow: hidden;
+    line-height: 0;
+    margin-top: 0;
+    
+    img {
+      width: 100%;
+      height: auto;
+      display: block;
     }
   }
 }

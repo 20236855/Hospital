@@ -1,19 +1,19 @@
 :root {
-  --primary-color: rgb(26, 77, 69);
-  --primary-light: #3a5d55;
-  --primary-dark: #1a3d35;
-  --secondary-color: #b9e1cd;
-  --secondary-light: #cfe8d8;
-  --bg-gradient: linear-gradient(135deg, rgb(223, 246, 239) 0%, rgb(200, 235, 225) 46%, rgb(235, 250, 245) 100%);
-  --bg-color: rgb(223, 246, 239);
-  --text-primary: #587180;
-  --text-regular: #7e98a4;
-  --text-light: #a5b8c0;
-  --card-shadow: 0 24px 60px rgba(102, 170, 189, .18);
-  --card-bg: rgba(255, 253, 248, .78);
-  --card-border: rgba(194, 228, 236, .72);
-  --glass-bg: rgba(255, 253, 248, .45);
-  --glass-border: rgba(213, 237, 243, .82);
+  --primary-color: #4A90E2;
+  --primary-light: #7BB3E8;
+  --primary-dark: #357ABD;
+  --secondary-color: #E8F1FC;
+  --secondary-light: #F5F9FE;
+  --bg-gradient: linear-gradient(180deg, #F5F8FC 0%, #EDF3F9 50%, #F5F8FC 100%);
+  --bg-color: #F5F8FC;
+  --text-primary: #2C3E50;
+  --text-regular: #5A6C7D;
+  --text-light: #8FA4B5;
+  --card-shadow: 0 4px 20px rgba(74, 144, 226, .10);
+  --card-bg: rgba(255, 255, 255, .88);
+  --card-border: rgba(74, 144, 226, .12);
+  --glass-bg: rgba(255, 255, 255, .55);
+  --glass-border: rgba(74, 144, 226, .18);
 }
 
 * {

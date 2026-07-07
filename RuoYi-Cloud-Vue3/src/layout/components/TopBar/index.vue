@@ -1,5 +1,5 @@
 <template>
-  <el-menu class="topbar-menu" :ellipsis="false" :default-active="activeMenu" :active-text-color="'#3a8d82'" mode="horizontal">
+  <el-menu class="topbar-menu" :ellipsis="false" :default-active="activeMenu" :active-text-color="'#2563EB'" mode="horizontal">
     <sidebar-item :key="route.path + index" v-for="(route, index) in topMenus" :item="route" :base-path="route.path" />
 
     <el-sub-menu index="more" class="el-sub-menu__hide-arrow" v-if="moreRoutes.length > 0">
@@ -23,7 +23,7 @@ const settingsStore = useSettingsStore()
 const permissionStore = usePermissionStore()
 
 const sidebarRouters = computed(() => permissionStore.sidebarRouters)
-const activeColor = '#3a8d82'
+const activeColor = '#2563EB'
 const device = computed(() => appStore.device)
 const activeMenu = computed(() => {
   const { meta, path } = route
@@ -73,12 +73,12 @@ onMounted(() => {
 }
 
 .el-sub-menu.is-active .svg-icon, .el-menu-item.is-active .svg-icon + span, .el-sub-menu.is-active .svg-icon + span, .el-sub-menu.is-active .el-sub-menu__title span {
-  color: #3a8d82 !important;
+  color: #2563EB !important;
 }
 
 .el-menu-item.is-active,
 .el-sub-menu.is-active > .el-sub-menu__title {
-  color: #3a8d82 !important;
+  color: #2563EB !important;
 }
 
 /* sub-menu item */

@@ -13,11 +13,11 @@
             <stop offset="1" stop-color="#dff4fb" />
           </linearGradient>
           <linearGradient id="mintGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#b9e1cd" />
-            <stop offset="1" stop-color="#24e192" />
+            <stop offset="0" stop-color="#a8c8e8" />
+            <stop offset="1" stop-color="#2498e8" />
           </linearGradient>
           <linearGradient id="blueGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stop-color="#cfe8d8" />
+            <stop offset="0" stop-color="#b8d4f0" />
             <stop offset="1" stop-color="#8ed6f2" />
           </linearGradient>
           <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -25,7 +25,7 @@
           </filter>
         </defs>
 
-        <g class="wave-lines" fill="none" stroke="#ccecf5" stroke-linecap="round" stroke-width="3">
+        <g class="wave-lines" fill="none" stroke="#b0d4f0" stroke-linecap="round" stroke-width="3">
           <path d="M34 380C148 332 230 430 330 374S522 328 608 390" />
           <path d="M60 418C176 370 238 448 342 406S510 380 586 432" />
           <path d="M80 456C188 422 250 470 360 440S502 420 566 466" />
@@ -40,19 +40,19 @@
 
         <g class="floating icon-card form-card" filter="url(#softShadow)">
           <rect x="82" y="225" width="112" height="130" rx="24" fill="#fffaf4" />
-          <rect x="112" y="248" width="52" height="14" rx="7" fill="#acdbe9" />
-          <rect x="108" y="282" width="68" height="10" rx="5" fill="#d9edf2" />
-          <rect x="108" y="306" width="58" height="10" rx="5" fill="#d9edf2" />
-          <path d="M126 334h28" stroke="#82d7bf" stroke-width="12" stroke-linecap="round" />
+          <rect x="112" y="248" width="52" height="14" rx="7" fill="#90c4f0" />
+          <rect x="108" y="282" width="68" height="10" rx="5" fill="#c8e0f8" />
+          <rect x="108" y="306" width="58" height="10" rx="5" fill="#c8e0f8" />
+          <path d="M126 334h28" stroke="#78b5dc" stroke-width="12" stroke-linecap="round" />
         </g>
 
         <g class="floating icon-card med-kit" filter="url(#softShadow)">
           <rect x="438" y="180" width="120" height="96" rx="22" fill="#fff7f1" />
-          <path d="M472 180v-22c0-8 7-15 15-15h22c8 0 15 7 15 15v22" fill="none" stroke="#b9e1cd" stroke-width="10" stroke-linecap="round" />
+          <path d="M472 180v-22c0-8 7-15 15-15h22c8 0 15 7 15 15v22" fill="none" stroke="#a8c8e8" stroke-width="10" stroke-linecap="round" />
           <path d="M498 206v46M475 229h46" stroke="#f0a5b8" stroke-width="12" stroke-linecap="round" />
         </g>
 
-        <g class="floating stethoscope" fill="none" stroke="#6fbacb" stroke-linecap="round" stroke-width="10">
+        <g class="floating stethoscope" fill="none" stroke="#64a5d8" stroke-linecap="round" stroke-width="10">
           <path d="M402 338v48c0 38-28 70-64 70s-64-32-64-70v-28" />
           <path d="M248 338v38c0 24-18 44-40 44s-40-20-40-44v-38" />
           <circle cx="402" cy="332" r="14" fill="#fffaf4" />
@@ -65,7 +65,7 @@
 
         <g class="pill pill-a">
           <rect x="210" y="130" width="86" height="34" rx="17" fill="#fffaf4" transform="rotate(-18 253 147)" />
-          <path d="M253 130v34" stroke="#a9e5d2" stroke-width="4" transform="rotate(-18 253 147)" />
+          <path d="M253 130v34" stroke="#9ac0e0" stroke-width="4" transform="rotate(-18 253 147)" />
         </g>
         <g class="pill pill-b">
           <rect x="484" y="360" width="76" height="30" rx="15" fill="#e6f6fb" transform="rotate(23 522 375)" />
@@ -73,32 +73,32 @@
         </g>
 
         <g class="hospital" filter="url(#softShadow)">
-          <path d="M146 494h388c18 0 32-14 32-32v-24H114v24c0 18 14 32 32 32Z" fill="#d8eef4" />
+          <path d="M146 494h388c18 0 32-14 32-32v-24H114v24c0 18 14 32 32 32Z" fill="#c8e0f8" />
           <rect x="174" y="284" width="292" height="210" rx="26" fill="#fffdf8" />
           <rect x="238" y="224" width="164" height="270" rx="28" fill="#f6fbfd" />
           <rect x="274" y="254" width="92" height="68" rx="18" fill="url(#blueGradient)" />
           <path d="M320 268v38M301 287h38" stroke="#fffdf8" stroke-width="12" stroke-linecap="round" />
-          <g fill="#b9e8f4">
+          <g fill="#a8d4f0">
             <rect x="208" y="326" width="42" height="38" rx="10" />
             <rect x="208" y="386" width="42" height="38" rx="10" />
             <rect x="410" y="326" width="42" height="38" rx="10" />
             <rect x="410" y="386" width="42" height="38" rx="10" />
           </g>
           <rect x="290" y="382" width="80" height="112" rx="18" fill="url(#mintGradient)" />
-          <path d="M330 382v112" stroke="#ecfff8" stroke-width="5" />
+          <path d="M330 382v112" stroke="#e8f4ff" stroke-width="5" />
         </g>
 
         <g class="plant plant-left">
-          <path d="M118 494c0-46 18-86 56-118" fill="none" stroke="#8bc9ae" stroke-width="8" stroke-linecap="round" />
-          <path d="M138 444c-28-6-44-24-48-52 30 1 52 18 60 48Z" fill="#b9e1cd" />
-          <path d="M157 405c5-27 24-45 56-54-2 33-21 56-52 66Z" fill="#9bd5bc" />
+          <path d="M118 494c0-46 18-86 56-118" fill="none" stroke="#82a5cc" stroke-width="8" stroke-linecap="round" />
+          <path d="M138 444c-28-6-44-24-48-52 30 1 52 18 60 48Z" fill="#a8c8e8" />
+          <path d="M157 405c5-27 24-45 56-54-2 33-21 56-52 66Z" fill="#8fb2d4" />
         </g>
         <g class="plant plant-right">
-          <path d="M550 494c-4-42-22-74-54-98" fill="none" stroke="#8bc9ae" stroke-width="8" stroke-linecap="round" />
-          <path d="M522 434c24-10 42-27 52-52-30-2-55 13-66 42Z" fill="#b9e1cd" />
+          <path d="M550 494c-4-42-22-74-54-98" fill="none" stroke="#82a5cc" stroke-width="8" stroke-linecap="round" />
+          <path d="M522 434c24-10 42-27 52-52-30-2-55 13-66 42Z" fill="#a8c8e8" />
         </g>
 
-        <g class="tiny-crosses" fill="none" stroke="#b9e1cd" stroke-linecap="round" stroke-width="5">
+        <g class="tiny-crosses" fill="none" stroke="#a8c8e8" stroke-linecap="round" stroke-width="5">
           <path d="M132 92v24M120 104h24" />
           <path d="M516 150v22M505 161h22" />
           <path d="M76 405v18M67 414h18" />
@@ -322,9 +322,9 @@ onMounted(() => {
   overflow: hidden;
   color: #1d3440;
   background:
-    radial-gradient(circle at 50% 9%, rgba(198, 248, 231, .5) 0 17%, transparent 18%),
-    radial-gradient(circle at 12% 82%, rgba(220, 246, 235, .42), transparent 32%),
-    linear-gradient(180deg, #006970 0%, #1f8a7d 36%, #eef9f4 36.2%, #f8fcfa 100%);
+    radial-gradient(circle at 50% 9%, rgba(74, 144, 226, .15) 0 17%, transparent 18%),
+    radial-gradient(circle at 12% 82%, rgba(74, 144, 226, .10), transparent 32%),
+    linear-gradient(180deg, #003366 0%, #357ABD 36%, #F5F9FE 36.2%, #F5F8FC 100%);
   align-items: stretch;
   justify-content: center;
 }
@@ -464,7 +464,7 @@ onMounted(() => {
     height: 4px;
     border-radius: 999px;
     content: "";
-    background: #8fd8cf;
+    background: #7db8e8;
     transform: translateX(-50%);
   }
 }
@@ -553,7 +553,7 @@ onMounted(() => {
   padding: 0 14px;
   border: 1px solid rgba(187, 223, 219, .9);
   border-radius: 8px;
-  color: #1d756e;
+  color: #1a50a0;
   background: rgba(237, 250, 248, .92);
   box-shadow: 0 8px 18px rgba(36, 111, 106, .1);
   align-items: center;
@@ -594,7 +594,7 @@ onMounted(() => {
 
   &:focus-within {
     background: #ffffff;
-    box-shadow: inset 0 0 0 1px #319c91, 0 0 0 4px rgba(49, 156, 145, .12);
+    box-shadow: inset 0 0 0 1px #2870c4, 0 0 0 4px rgba(49, 156, 145, .12);
     transform: translateY(-1px);
   }
 }
@@ -603,7 +603,7 @@ onMounted(() => {
   width: 18px;
   height: 18px;
   margin-right: 10px;
-  color: #247b73;
+  color: #1c56a8;
   flex-shrink: 0;
 }
 
@@ -678,7 +678,7 @@ onMounted(() => {
   input[type="checkbox"] {
     width: 16px;
     height: 16px;
-    accent-color: #1d8279;
+    accent-color: #1a5db0;
   }
 
   span {
@@ -699,13 +699,13 @@ onMounted(() => {
   color: #fff;
   font-size: 16px;
   font-weight: 900;
-  background: #197c75;
+  background: #357ABD;
   box-shadow: 0 12px 24px rgba(25, 124, 117, .26);
   cursor: pointer;
   transition: transform .25s ease, box-shadow .25s ease, opacity .25s ease;
 
   &:hover:not(:disabled) {
-    background: #156b65;
+    background: #124a8e;
     box-shadow: 0 16px 30px rgba(25, 124, 117, .3);
     transform: translateY(-2px);
   }
@@ -732,7 +732,7 @@ onMounted(() => {
   }
 
   span:last-child {
-    color: #197c75;
+    color: #357ABD;
     font-weight: 800;
     cursor: pointer;
     margin-left: 4px;
