@@ -324,6 +324,7 @@ onMounted(() => {
 .profile-page {
   min-height: 100vh;
   background: var(--bg-gradient);
+  padding-top: 60px;
   padding-bottom: 60px;
   position: relative;
   overflow-x: hidden;
@@ -386,17 +387,24 @@ onMounted(() => {
 }
 
 .header-section {
-  padding: 16px 20px 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 8px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
+  background: #1250af;
+  color: #fff;
 }
 
 .header-back {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -405,12 +413,12 @@ onMounted(() => {
 
   &:active {
     transform: scale(0.96);
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.32);
   }
 
   .van-icon {
-    color: #5f7580;
-    font-size: 20px;
+    color: #fff;
+    font-size: 18px;
   }
 }
 
@@ -420,15 +428,15 @@ onMounted(() => {
   gap: 12px;
 
   h1 {
-    font-size: 24px;
+    font-size: 17px;
     font-weight: 700;
-    color: #4f7380;
+    color: #fff;
     margin: 0;
   }
 }
 
 .content-section {
-  padding: 0 16px;
+  padding: 0 10px;
   display: flex;
   flex-direction: column;
   gap: 16px;

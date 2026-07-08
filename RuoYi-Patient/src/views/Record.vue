@@ -22,7 +22,7 @@
               <svg viewBox="0 0 120 120" class="empty-svg">
                 <defs>
                   <linearGradient id="emptyGrad" x1="0" x2="1" y1="0" y2="1">
-                    <stop offset="0" stop-color="#68c7a9" />
+                    <stop offset="0" stop-color="#4A90E2" />
                     <stop offset="1" stop-color="#8ed6f2" />
                   </linearGradient>
                 </defs>
@@ -308,6 +308,7 @@ onMounted(() => {
 .record-page {
   min-height: 100vh;
   background: var(--bg-gradient);
+  padding-top: 60px;
   padding-bottom: 60px;
   position: relative;
   overflow-x: hidden;
@@ -320,7 +321,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: #68c7a9;
+    background: #4A90E2;
     border-radius: 8px;
   }
 
@@ -366,17 +367,24 @@ onMounted(() => {
 }
 
 .header-section {
-  padding: 16px 20px 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 8px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
+  background: #1250af;
+  color: #fff;
 }
 
 .header-back {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -385,12 +393,12 @@ onMounted(() => {
 
   &:active {
     transform: scale(0.96);
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.32);
   }
 
   .van-icon {
-    color: #5f7580;
-    font-size: 20px;
+    color: #fff;
+    font-size: 18px;
   }
 }
 
@@ -400,9 +408,9 @@ onMounted(() => {
   gap: 12px;
 
   h1 {
-    font-size: 24px;
+    font-size: 17px;
     font-weight: 700;
-    color: #4f7380;
+    color: #fff;
     margin: 0;
   }
 }
@@ -415,7 +423,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(104, 199, 169, 0.2);
+  box-shadow: 0 8px 24px rgba(74, 144, 226, 0.2);
 }
 
 .title-cross {
@@ -427,7 +435,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: linear-gradient(135deg, #68c7a9, #89dbc1);
+    background: linear-gradient(135deg, #4A90E2, #7BB3E8);
     border-radius: 6px;
   }
 
@@ -449,7 +457,7 @@ onMounted(() => {
 }
 
 .content-section {
-  padding: 14px 14px 18px;
+  padding: 0 10px;
 }
 
 .empty-state {
@@ -525,8 +533,8 @@ onMounted(() => {
   width: 60px;
   height: 68px;
   border-radius: 10px;
-  background: #edf7f5;
-  border: 1px solid #cae7e1;
+  background: #f0f4fa;
+  border: 1px solid #c8d8f0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -535,14 +543,14 @@ onMounted(() => {
   .date-day {
     font-size: 23px;
     font-weight: 700;
-    color: #207767;
+    color: #2558ba;
     line-height: 1;
   }
 
   .date-month {
     font-size: 12px;
     font-weight: 600;
-    color: #5b8f87;
+    color: #5a7d9e;
     margin-top: 4px;
   }
 }
@@ -603,9 +611,9 @@ onMounted(() => {
 .type-tag {
   font-size: 12px;
   font-weight: 600;
-  color: #207767;
-  background: #edf7f5;
-  border: 1px solid #cae7e1;
+  color: #2558ba;
+  background: #f0f4fa;
+  border: 1px solid #c8d8f0;
   padding: 4px 10px;
   border-radius: 999px;
 }
@@ -661,7 +669,7 @@ onMounted(() => {
   gap: 4px;
   font-size: 13px;
   font-weight: 600;
-  color: #207767;
+  color: #2558ba;
 
   .van-icon {
     font-size: 14px;
@@ -725,7 +733,7 @@ onMounted(() => {
   margin-bottom: 12px;
   
   .van-icon {
-    color: #207767;
+    color: #2558ba;
     font-size: 18px;
   }
 }
@@ -763,8 +771,8 @@ onMounted(() => {
 }
 
 .diagnosis-box {
-  background: #f7fbfa;
-  border-left: 4px solid #207767;
+  background: #f5f7fc;
+  border-left: 4px solid #2558ba;
   padding: 16px;
   border-radius: 8px;
   font-size: 15px;

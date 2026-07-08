@@ -235,7 +235,7 @@ onMounted(async () => {
 <style scoped lang="scss">
 .payment-page {
   min-height: 100vh;
-  padding: 14px 14px 36px;
+  padding: 60px 14px 36px;
   background:
     linear-gradient(180deg, rgba(232, 248, 246, .96) 0%, rgba(247, 250, 252, 1) 42%),
     #f7fafc;
@@ -243,14 +243,21 @@ onMounted(async () => {
 }
 
 .page-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 2px 12px;
+  padding: 8px 14px;
+  background: #1250af;
+  color: #fff;
 
   p {
-    margin: 0 0 2px;
-    color: #6f93a0;
+    margin: 0 0 1px;
+    color: rgba(255, 255, 255, .75);
     font-size: 10px;
     font-weight: 800;
     letter-spacing: 0;
@@ -258,20 +265,20 @@ onMounted(async () => {
 
   h1 {
     margin: 0;
-    color: #173e48;
-    font-size: 24px;
+    color: #fff;
+    font-size: 17px;
     line-height: 1.2;
   }
 }
 
 .back-btn {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, .9);
-  color: #315f68;
-  box-shadow: 0 8px 22px rgba(81, 137, 151, .13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .2);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, .2);
 }
 
 .payment-summary {

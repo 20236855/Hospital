@@ -607,17 +607,35 @@ button {
 }
 
 .chat-header {
-  position: relative;
-  z-index: 20;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
   display: grid;
-  grid-template-columns: 44px 1fr auto;
+  grid-template-columns: 32px 1fr auto;
   align-items: center;
   gap: 10px;
-  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-  background: rgba(255, 255, 255, .72);
-  border-bottom: 1px solid rgba(74, 144, 226, .14);
-  box-shadow: 0 12px 34px rgba(74, 144, 226, .12);
+  padding: calc(8px + env(safe-area-inset-top)) 14px 8px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, .1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .06);
   backdrop-filter: blur(18px);
+}
+
+.chat-header .icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, .04);
+  color: #374151;
+  border-color: rgba(0, 0, 0, .08);
+}
+
+.chat-header .primary-action {
+  background: #1250af;
+  color: #fff;
+  border-color: transparent;
 }
 
 .header-title {
@@ -671,7 +689,7 @@ button {
 
   h2 {
     margin: 0;
-    color: $ink;
+    color: #1e3a5f;
     font-size: 17px;
     font-weight: 800;
     line-height: 1.2;
@@ -714,6 +732,7 @@ button {
   min-height: 0;
   display: flex;
   overflow: hidden;
+  padding-top: calc(60px + env(safe-area-inset-top));
 }
 
 .history-mask {

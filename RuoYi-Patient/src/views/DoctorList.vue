@@ -64,7 +64,7 @@
       </div>
 
       <div v-if="loading" class="loading-state">
-        <van-loading color="#347b70" />
+        <van-loading color="#2563eb" />
         <span>正在加载医生资源</span>
       </div>
 
@@ -269,43 +269,50 @@ onMounted(() => {
 <style scoped lang="scss">
 .resource-page {
   min-height: 100vh;
-  padding: 14px 14px 34px;
+  padding: 75px 14px 34px;
   background:
-    linear-gradient(180deg, rgba(232, 248, 246, .96) 0%, rgba(247, 250, 252, 1) 42%),
-    #f7fafc;
-  color: #183f4a;
+    linear-gradient(180deg, rgba(231, 242, 255, .9) 0%, rgba(247, 251, 255, 1) 44%),
+    #f4f9ff;
+  color: #1e3a5f;
 }
 
 .top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 2px 12px;
+  padding: 8px 14px;
+  background: #1250af;
+  color: #fff;
 
   p {
-    margin: 0 0 2px;
-    font-size: 10px;
-    font-weight: 800;
-    color: #6f93a0;
-    letter-spacing: 0;
+    margin: 0 0 1px;
+    font-size: 15px;
+    line-height: 1.2;
+    color: #fff;
   }
 
   h1 {
     margin: 0;
-    font-size: 24px;
+    font-size: 17px;
     line-height: 1.2;
-    color: #173e48;
+    color: #fff;
   }
 }
 
 .back-btn {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, .86);
-  color: #315f68;
-  box-shadow: 0 8px 22px rgba(81, 137, 151, .13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .18);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 12px rgba(15, 40, 80, .2);
 }
 
 .summary-panel {
@@ -313,9 +320,9 @@ onMounted(() => {
   padding: 16px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .76)),
-    linear-gradient(120deg, rgba(108, 181, 194, .18), rgba(123, 207, 170, .2));
-  border: 1px solid rgba(206, 232, 238, .9);
-  box-shadow: 0 18px 44px rgba(75, 132, 145, .13);
+    linear-gradient(120deg, rgba(96, 165, 250, .18), rgba(59, 130, 246, .2));
+  border: 1px solid rgba(191, 219, 254, .9);
+  box-shadow: 0 18px 44px rgba(37, 99, 235, .13);
 }
 
 .summary-copy {
@@ -330,7 +337,7 @@ onMounted(() => {
     padding: 4px 8px;
     border-radius: 8px;
     background: rgba(52, 123, 112, .1);
-    color: #347b70;
+    color: #2563eb;
     font-size: 11px;
     font-weight: 800;
   }
@@ -339,12 +346,12 @@ onMounted(() => {
     margin-top: 10px;
     font-size: 18px;
     line-height: 1.35;
-    color: #173e48;
+    color: #1e3a5f;
   }
 
   p {
     margin: 7px 0 0;
-    color: #607982;
+    color: #64748b;
     font-size: 13px;
     line-height: 1.55;
   }
@@ -360,13 +367,13 @@ onMounted(() => {
     min-height: 58px;
     border-radius: 12px;
     padding: 10px;
-    background: rgba(255, 255, 255, .72);
-    border: 1px solid rgba(206, 232, 238, .72);
+    background: rgba(219, 234, 254, .72);
+    border: 1px solid rgba(191, 219, 254, .72);
   }
 
   strong {
     display: block;
-    color: #276b63;
+    color: #1d4ed8;
     font-size: 19px;
     line-height: 1;
   }
@@ -374,7 +381,7 @@ onMounted(() => {
   span {
     display: block;
     margin-top: 7px;
-    color: #718b94;
+    color: #64748b;
     font-size: 11px;
     font-weight: 700;
   }
@@ -413,13 +420,13 @@ onMounted(() => {
   border-radius: 999px;
   padding: 0 13px;
   background: #fff;
-  color: #55727b;
+  color: #475569;
   font-size: 12px;
   font-weight: 800;
 
   &.active {
-    border-color: #347b70;
-    background: #347b70;
+    border-color: #2563eb;
+    background: #2563eb;
     color: #fff;
   }
 }
@@ -435,7 +442,7 @@ onMounted(() => {
   margin-bottom: 10px;
 
   span {
-    color: #7f98a0;
+    color: #64748b;
     font-size: 10px;
     font-weight: 800;
     letter-spacing: 0;
@@ -443,13 +450,13 @@ onMounted(() => {
 
   h2 {
     margin: 2px 0 0;
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 18px;
   }
 
   em {
     font-style: normal;
-    color: #347b70;
+    color: #2563eb;
     font-size: 12px;
     font-weight: 800;
   }
@@ -478,10 +485,10 @@ onMounted(() => {
   height: 76px;
   border-radius: 14px;
   overflow: hidden;
-  background: linear-gradient(145deg, #dff4ef, #d5edf3);
+  background: linear-gradient(145deg, #dbeafe, #bfdbfe);
   display: grid;
   place-items: center;
-  color: #276b63;
+  color: #1d4ed8;
   font-size: 25px;
   font-weight: 900;
   border: 1px solid rgba(255, 255, 255, .78);
@@ -505,14 +512,14 @@ onMounted(() => {
 
   h3 {
     margin: 0;
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 17px;
     line-height: 1.25;
   }
 
   p {
     margin: 4px 0 0;
-    color: #657f88;
+    color: #64748b;
     font-size: 12px;
     line-height: 1.35;
   }
@@ -526,13 +533,13 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   background: rgba(52, 123, 112, .1);
-  color: #347b70;
+  color: #2563eb;
   font-size: 11px;
   font-weight: 900;
 
   &.off {
     background: rgba(151, 164, 170, .14);
-    color: #7a8a90;
+    color: #64748b;
   }
 }
 
@@ -547,8 +554,8 @@ onMounted(() => {
     min-height: 22px;
     border-radius: 7px;
     padding: 4px 7px;
-    background: #f3f8f9;
-    color: #6a848d;
+    background: #f0f5ff;
+    color: #64748b;
     font-size: 11px;
     line-height: 1.2;
   }
@@ -557,7 +564,7 @@ onMounted(() => {
 .specialty,
 .intro {
   margin: 9px 0 0;
-  color: #4c666e;
+  color: #334155;
   font-size: 13px;
   line-height: 1.55;
   display: -webkit-box;
@@ -576,7 +583,7 @@ onMounted(() => {
 
 .intro {
   -webkit-line-clamp: 2;
-  color: #748b93;
+  color: #64748b;
 }
 
 .card-footer {
@@ -585,7 +592,7 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 3px;
   margin-top: 10px;
-  color: #347b70;
+  color: #2563eb;
   font-size: 12px;
   font-weight: 900;
 }
@@ -600,18 +607,18 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #6f8790;
+  color: #64748b;
   gap: 10px;
 }
 
 .empty-state {
   .van-icon {
-    color: #6fbacb;
+    color: #60a5fa;
     font-size: 42px;
   }
 
   strong {
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 16px;
   }
 
@@ -629,7 +636,7 @@ onMounted(() => {
     border: 0;
     border-radius: 999px;
     padding: 0 22px;
-    background: #347b70;
+    background: #2563eb;
     color: #fff;
     font-size: 13px;
     font-weight: 900;

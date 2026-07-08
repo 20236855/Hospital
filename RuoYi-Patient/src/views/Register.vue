@@ -1008,6 +1008,7 @@ onMounted(() => {
 .register-page {
   min-height: 100vh;
   background: var(--bg-gradient);
+  padding-top: 60px;
   padding-bottom: 60px;
   position: relative;
   overflow-x: hidden;
@@ -1070,17 +1071,24 @@ onMounted(() => {
 }
 
 .header-section {
-  padding: 16px 20px 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 8px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
+  background: #1250af;
+  color: #fff;
 }
 
 .header-back {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1089,12 +1097,12 @@ onMounted(() => {
 
   &:active {
     transform: scale(0.96);
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.32);
   }
 
   .van-icon {
-    color: #5f7580;
-    font-size: 20px;
+    color: #fff;
+    font-size: 18px;
   }
 }
 
@@ -1104,28 +1112,28 @@ onMounted(() => {
   gap: 12px;
 
   h1 {
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 700;
-    color: #4f7380;
+    color: #fff;
     margin: 0;
   }
 }
 
 .title-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(104, 199, 169, 0.2);
+  box-shadow: 0 4px 12px rgba(104, 199, 169, 0.2);
 }
 
 .title-cross {
   position: relative;
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
 
   &::before,
   &::after {
@@ -1217,7 +1225,7 @@ onMounted(() => {
 .step-label {
   font-size: 11px;
   line-height: 1;
-  color: #7e98a4;
+  color: #64748b;
   font-weight: 500;
   white-space: nowrap;
 
@@ -1547,7 +1555,7 @@ onMounted(() => {
 
 .date-week {
   font-size: 11px;
-  color: #7e98a4;
+  color: #64748b;
   line-height: 1.2;
 }
 
@@ -1779,7 +1787,7 @@ onMounted(() => {
   span {
     display: block;
     font-size: 13px;
-    color: #7e98a4;
+    color: #64748b;
     margin-bottom: 6px;
   }
 
@@ -1971,7 +1979,7 @@ onMounted(() => {
 }
 
 :global(.payment-reminder-dialog .van-dialog__cancel) {
-  background: #f2f7f8;
+  background: #f0f5ff;
   color: #607783;
 }
 
@@ -2003,7 +2011,7 @@ onMounted(() => {
   padding: 11px 12px;
   border: 1px solid rgba(214, 153, 74, 0.18);
   border-radius: 14px;
-  background: #fff8ec;
+  background: #f0f5ff;
   color: #8a5a1f;
   font-size: 13px;
   line-height: 1.55;

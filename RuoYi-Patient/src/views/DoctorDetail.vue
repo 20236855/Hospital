@@ -203,9 +203,9 @@ onMounted(() => {
   height: 38px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, .9);
-  color: #315f68;
-  box-shadow: 0 8px 22px rgba(81, 137, 151, .13);
+  background: #1250af;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(30, 64, 175, .25);
 }
 
 .profile-panel {

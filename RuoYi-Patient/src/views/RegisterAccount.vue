@@ -311,6 +311,7 @@ onMounted(() => {
   min-height: 100vh;
   background: linear-gradient(180deg, #2558ba 0%, #1e4fab 35%, #2558ba 68%, #1e4fab 100%);
   color: #fff;
+  padding-top: 60px;
   padding-bottom: 20px;
   position: relative;
   overflow-x: hidden;
@@ -373,16 +374,23 @@ onMounted(() => {
 }
 
 .header-section {
-  padding: 16px 20px 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 8px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
+  background: #1250af;
+  color: #fff;
 }
 
 .header-back {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
@@ -397,7 +405,7 @@ onMounted(() => {
 
   .van-icon {
     color: #fff;
-    font-size: 20px;
+    font-size: 18px;
   }
 }
 
@@ -407,7 +415,7 @@ onMounted(() => {
   gap: 12px;
 
   h1 {
-    font-size: 24px;
+    font-size: 17px;
     font-weight: 700;
     color: #fff;
     margin: 0;
@@ -415,9 +423,9 @@ onMounted(() => {
 }
 
 .title-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.22);
   display: flex;
   align-items: center;
@@ -427,8 +435,8 @@ onMounted(() => {
 
 .title-cross {
   position: relative;
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
 
   &::before,
   &::after {

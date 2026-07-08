@@ -357,17 +357,17 @@ watch(() => route.query.articleId, () => {
   min-height: 100vh;
   padding-bottom: calc(78px + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 16% 0%, rgba(190, 236, 220, .55), transparent 32%),
-    linear-gradient(180deg, #e9f6f1 0%, #f8fbfa 44%, #eef6f3 100%);
-  color: #213f3b;
+    radial-gradient(circle at 16% 0%, rgba(96, 165, 250, .4), transparent 32%),
+    linear-gradient(180deg, #e6f0ff 0%, #f4f9ff 44%, #e6f0ff 100%);
+  color: #1e3a5f;
 }
 
 .health-hero {
   position: relative;
-  min-height: 256px;
+  min-height: 200px;
   padding: 18px 16px 16px;
   overflow: hidden;
-  background: linear-gradient(145deg, #135b53 0%, #237c70 58%, #78b9a6 100%);
+  background: #1250af;
 
   &::before {
     position: absolute;
@@ -375,7 +375,7 @@ watch(() => route.query.articleId, () => {
     right: -86px;
     width: 220px;
     height: 220px;
-    border: 1px solid rgba(230, 255, 247, .2);
+    border: 1px solid rgba(255, 255, 255, .2);
     border-radius: 50%;
     content: "";
   }
@@ -388,7 +388,7 @@ watch(() => route.query.articleId, () => {
     height: 180px;
     border-radius: 50%;
     content: "";
-    background: rgba(236, 255, 249, .1);
+    background: rgba(255, 255, 255, .1);
   }
 }
 
@@ -398,10 +398,10 @@ watch(() => route.query.articleId, () => {
   display: grid;
   width: 38px;
   height: 38px;
-  border: 1px solid rgba(239, 255, 250, .35);
+  border: 1px solid rgba(255, 255, 255, .35);
   border-radius: 8px;
   color: #fff;
-  background: rgba(8, 64, 58, .28);
+  background: rgba(15, 40, 80, .28);
   place-items: center;
   font-size: 19px;
 }
@@ -422,7 +422,7 @@ watch(() => route.query.articleId, () => {
   p {
     max-width: 260px;
     margin: 0;
-    color: rgba(245, 255, 252, .82);
+    color: rgba(255, 255, 255, .82);
     font-size: 14px;
     line-height: 1.45;
     font-weight: 600;
@@ -430,7 +430,7 @@ watch(() => route.query.articleId, () => {
 }
 
 .eyebrow {
-  color: rgba(216, 250, 239, .85);
+  color: rgba(255, 255, 255, .8);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: .14em;
@@ -503,8 +503,8 @@ watch(() => route.query.articleId, () => {
   height: 42px;
   padding: 0 12px;
   border-radius: 8px;
-  background: #f2faf7;
-  color: #4c8f82;
+  background: #f0f5ff;
+  color: #3b82f6;
   align-items: center;
   gap: 8px;
 
@@ -514,7 +514,7 @@ watch(() => route.query.articleId, () => {
     border: 0;
     outline: 0;
     background: transparent;
-    color: #203f3b;
+    color: #1e3a5f;
     font-size: 14px;
     font-weight: 700;
   }
@@ -523,8 +523,8 @@ watch(() => route.query.articleId, () => {
 .fav-filter {
   border: 0;
   border-radius: 8px;
-  color: #557b73;
-  background: #eef7f4;
+  color: #475569;
+  background: #eff6ff;
   font-size: 12px;
   font-weight: 800;
 
@@ -552,7 +552,7 @@ watch(() => route.query.articleId, () => {
     padding: 0 14px;
     border: 1px solid rgba(191, 224, 216, .8);
     border-radius: 8px;
-    color: #527b73;
+    color: #475569;
     background: rgba(255, 255, 255, .82);
     font-size: 13px;
     font-weight: 800;
@@ -583,7 +583,7 @@ watch(() => route.query.articleId, () => {
   position: relative;
   height: 162px;
   overflow: hidden;
-  background: #dcefe9;
+  background: #dbeafe;
 
   img {
     width: 100%;
@@ -611,7 +611,7 @@ watch(() => route.query.articleId, () => {
 
   h2 {
     margin: 8px 0 8px;
-    color: #203f3b;
+    color: #1e3a5f;
     font-size: 18px;
     line-height: 1.35;
     font-weight: 900;
@@ -619,7 +619,7 @@ watch(() => route.query.articleId, () => {
 
   p {
     margin: 0;
-    color: #6c8580;
+    color: #64748b;
     font-size: 13px;
     line-height: 1.6;
     font-weight: 600;
@@ -630,14 +630,14 @@ watch(() => route.query.articleId, () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #71938b;
+  color: #64748b;
   font-size: 11px;
   font-weight: 800;
 
   span {
     padding: 3px 7px;
     border-radius: 8px;
-    background: #edf7f4;
+    background: #eff6ff;
   }
 }
 
@@ -651,8 +651,8 @@ watch(() => route.query.articleId, () => {
     height: 38px;
     border: 1px solid rgba(198, 226, 219, .8);
     border-radius: 8px;
-    color: #477d73;
-    background: #f8fcfb;
+    color: #2563eb;
+    background: #f8fafc;
     font-size: 13px;
     font-weight: 800;
   }
@@ -664,16 +664,16 @@ watch(() => route.query.articleId, () => {
   place-items: center;
   align-content: center;
   gap: 8px;
-  color: #79938d;
+  color: #64748b;
   text-align: center;
 
   .van-icon {
     font-size: 34px;
-    color: #79b9aa;
+    color: #93c5fd;
   }
 
   strong {
-    color: #315a53;
+    color: #1e3a5f;
     font-size: 16px;
   }
 
@@ -685,7 +685,7 @@ watch(() => route.query.articleId, () => {
 .detail-sheet {
   min-height: 100%;
   padding-bottom: 74px;
-  background: #f8fbfa;
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
 }
 
 .sheet-handle {
@@ -703,7 +703,7 @@ watch(() => route.query.articleId, () => {
 .detail-cover {
   position: relative;
   height: 224px;
-  background: #dcefe9;
+  background: #dbeafe;
 
   img {
     width: 100%;
@@ -740,7 +740,7 @@ watch(() => route.query.articleId, () => {
 
   h2 {
     margin: 10px 0 10px;
-    color: #203f3b;
+    color: #1e3a5f;
     font-size: 23px;
     line-height: 1.28;
     font-weight: 900;
@@ -749,7 +749,7 @@ watch(() => route.query.articleId, () => {
 
 .detail-summary {
   margin: 0;
-  color: #667f7a;
+  color: #64748b;
   font-size: 14px;
   line-height: 1.65;
   font-weight: 600;
@@ -767,7 +767,7 @@ watch(() => route.query.articleId, () => {
 
   h3 {
     margin: 0 0 12px;
-    color: #24544d;
+    color: #1e3a5f;
     font-size: 16px;
     font-weight: 900;
   }
@@ -784,7 +784,7 @@ watch(() => route.query.articleId, () => {
 .key-points li {
   position: relative;
   padding-left: 18px;
-  color: #4f706a;
+  color: #475569;
   font-size: 14px;
   line-height: 1.5;
   font-weight: 700;
@@ -803,7 +803,7 @@ watch(() => route.query.articleId, () => {
 
 .detail-section p {
   margin: 0;
-  color: #506c66;
+  color: #475569;
   font-size: 14px;
   line-height: 1.75;
   font-weight: 600;
@@ -819,8 +819,8 @@ watch(() => route.query.articleId, () => {
   margin-top: 14px;
   padding: 0 12px;
   border-radius: 8px;
-  color: #1f8176;
-  background: #edf8f5;
+  color: #1d4ed8;
+  background: #eff6ff;
   align-items: center;
   justify-content: space-between;
   font-size: 13px;
@@ -834,7 +834,7 @@ watch(() => route.query.articleId, () => {
   justify-content: space-between;
 
   span {
-    color: #7b9690;
+    color: #64748b;
     font-size: 12px;
     font-weight: 800;
   }
@@ -852,8 +852,8 @@ watch(() => route.query.articleId, () => {
     border: 1px solid rgba(198, 226, 219, .9);
     border-radius: 8px;
     outline: 0;
-    color: #203f3b;
-    background: #f8fcfb;
+    color: #1e3a5f;
+    background: #f8fafc;
     font-size: 14px;
     font-weight: 700;
   }
@@ -880,20 +880,20 @@ watch(() => route.query.articleId, () => {
   gap: 10px;
 
   strong {
-    color: #315a53;
+    color: #1e3a5f;
     font-size: 13px;
     font-weight: 900;
   }
 
   p {
     margin: 4px 0;
-    color: #516e68;
+    color: #475569;
     font-size: 14px;
     line-height: 1.45;
   }
 
   time {
-    color: #9aaca8;
+    color: #94a3b8;
     font-size: 11px;
     font-weight: 700;
   }
@@ -915,8 +915,8 @@ watch(() => route.query.articleId, () => {
   margin-top: 14px;
   padding: 14px;
   border-radius: 8px;
-  color: #7b9690;
-  background: #f3faf8;
+  color: #64748b;
+  background: #f0f5ff;
   font-size: 13px;
   text-align: center;
 }
@@ -938,8 +938,8 @@ watch(() => route.query.articleId, () => {
     height: 44px;
     border: 1px solid rgba(198, 226, 219, .88);
     border-radius: 8px;
-    color: #477d73;
-    background: #f8fcfb;
+    color: #2563eb;
+    background: #f8fafc;
     font-size: 14px;
     font-weight: 900;
 

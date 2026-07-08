@@ -31,7 +31,7 @@
       </div>
     </section>
 
-    <van-tabs v-model:active="activeTab" sticky color="#347b70" title-active-color="#173e48">
+    <van-tabs v-model:active="activeTab" sticky color="#2563eb" title-active-color="#1e3a5f">
       <van-tab title="全部">
         <ExamList :items="reports" :loading="loading" @open="openDetail" />
       </van-tab>
@@ -234,22 +234,29 @@ onMounted(loadReports)
 <style scoped lang="scss">
 .exam-page {
   min-height: 100vh;
-  padding: 14px 14px 36px;
+  padding: 60px 14px 36px;
   background:
-    linear-gradient(180deg, rgba(232, 248, 246, .96) 0%, rgba(247, 250, 252, 1) 42%),
-    #f7fafc;
-  color: #183f4a;
+    linear-gradient(180deg, rgba(231, 242, 255, .9) 0%, rgba(247, 251, 255, 1) 44%),
+    #f4f9ff;
+  color: #1e3a5f;
 }
 
 .page-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 2px 12px;
+  padding: 8px 14px;
+  background: #1250af;
+  color: #fff;
 
   p {
-    margin: 0 0 2px;
-    color: #6f93a0;
+    margin: 0 0 1px;
+    color: rgba(255, 255, 255, .75);
     font-size: 10px;
     font-weight: 800;
     letter-spacing: 0;
@@ -257,20 +264,21 @@ onMounted(loadReports)
 
   h1 {
     margin: 0;
-    color: #173e48;
-    font-size: 24px;
+    color: #fff;
+    font-size: 17px;
     line-height: 1.2;
   }
 }
 
 .back-btn {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, .9);
-  color: #315f68;
-  box-shadow: 0 8px 22px rgba(81, 137, 151, .13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .18);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 12px rgba(15, 40, 80, .2);
 }
 
 .exam-summary {
@@ -284,9 +292,9 @@ onMounted(loadReports)
     padding: 14px;
     background:
       linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .78)),
-      linear-gradient(120deg, rgba(108, 181, 194, .18), rgba(123, 207, 170, .2));
-    border: 1px solid rgba(206, 232, 238, .9);
-    box-shadow: 0 14px 34px rgba(75, 132, 145, .12);
+      linear-gradient(120deg, rgba(96, 165, 250, .18), rgba(59, 130, 246, .2));
+    border: 1px solid rgba(191, 219, 254, .9);
+    box-shadow: 0 14px 34px rgba(37, 99, 235, .12);
   }
 
   span,
@@ -296,21 +304,21 @@ onMounted(loadReports)
   }
 
   span {
-    color: #6f8790;
+    color: #64748b;
     font-size: 12px;
     font-weight: 800;
   }
 
   strong {
     margin-top: 10px;
-    color: #276b63;
+    color: #1d4ed8;
     font-size: 26px;
     line-height: 1;
   }
 
   em {
     margin-top: 9px;
-    color: #7d9299;
+    color: #64748b;
     font-size: 11px;
     font-style: normal;
   }
@@ -324,7 +332,7 @@ onMounted(loadReports)
   margin-top: 12px;
   padding: 12px;
   border-radius: 14px;
-  background: #fff8ec;
+  background: #f0f5ff;
   border: 1px solid rgba(217, 128, 34, .18);
   color: #b66b16;
 
@@ -388,14 +396,14 @@ onMounted(loadReports)
 
   h3 {
     margin: 0;
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 16px;
     line-height: 1.3;
   }
 
   p {
     margin: 5px 0 0;
-    color: #687f87;
+    color: #64748b;
     font-size: 12px;
   }
 }
@@ -412,11 +420,11 @@ onMounted(loadReports)
 
   &.ok {
     background: rgba(52, 123, 112, .1);
-    color: #347b70;
+    color: #2563eb;
   }
 
   &.warn {
-    background: #fff4e3;
+    background: #eff6ff;
     color: #c46e14;
   }
 }
@@ -428,8 +436,8 @@ onMounted(loadReports)
   margin-top: 12px;
   padding: 10px;
   border-radius: 12px;
-  background: #f5fafb;
-  color: #708890;
+  background: #f5f8ff;
+  color: #64748b;
   font-size: 12px;
 }
 
@@ -444,14 +452,14 @@ onMounted(loadReports)
     padding: 6px 8px;
     border-radius: 999px;
     background: rgba(52, 123, 112, .08);
-    color: #347b70;
+    color: #2563eb;
     font-size: 11px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 
     &.abnormal {
-      background: #fff4e3;
+      background: #eff6ff;
       color: #c46e14;
     }
   }
@@ -465,17 +473,17 @@ onMounted(loadReports)
   margin-top: 12px;
 
   strong {
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 22px;
   }
 
   span {
-    color: #708890;
+    color: #64748b;
     font-size: 12px;
   }
 
   .van-icon {
-    color: #9ab1b8;
+    color: #94a3b8;
   }
 }
 
@@ -489,15 +497,15 @@ onMounted(loadReports)
   align-items: center;
   justify-content: center;
   gap: 9px;
-  color: #6f8790;
+  color: #64748b;
 
   .van-icon {
-    color: #6fbacb;
+    color: #60a5fa;
     font-size: 42px;
   }
 
   strong {
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 16px;
   }
 
@@ -509,28 +517,28 @@ onMounted(loadReports)
 .exam-detail {
   min-height: 100%;
   padding: 22px 16px 32px;
-  background: #f7fafc;
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
 }
 
 .detail-header {
   padding-right: 28px;
 
   span {
-    color: #6f93a0;
+    color: #64748b;
     font-size: 11px;
     font-weight: 900;
   }
 
   h2 {
     margin: 6px 0 6px;
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 22px;
     line-height: 1.25;
   }
 
   p {
     margin: 0;
-    color: #78919a;
+    color: #64748b;
     font-size: 12px;
   }
 }
@@ -550,14 +558,14 @@ onMounted(loadReports)
 
   span {
     display: block;
-    color: #78919a;
+    color: #64748b;
     font-size: 12px;
   }
 
   strong {
     display: block;
     margin-top: 8px;
-    color: #276b63;
+    color: #1d4ed8;
     font-size: 20px;
 
   }
@@ -572,13 +580,13 @@ onMounted(loadReports)
 
   h3 {
     margin: 0 0 10px;
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 15px;
   }
 
   p {
     margin: 6px 0 0;
-    color: #607b84;
+    color: #64748b;
     font-size: 13px;
     line-height: 1.6;
   }
@@ -596,12 +604,12 @@ onMounted(loadReports)
   gap: 8px;
   padding: 14px;
   border-radius: 14px;
-  background: #f5fafb;
-  color: #708890;
+  background: #f5f8ff;
+  color: #64748b;
   font-size: 13px;
 
   .van-icon {
-    color: #6fbacb;
+    color: #60a5fa;
     font-size: 18px;
   }
 }
@@ -609,11 +617,11 @@ onMounted(loadReports)
 .result-detail-item {
   padding: 12px;
   border-radius: 14px;
-  background: #f5fafb;
+  background: #f5f8ff;
   border: 1px solid rgba(218, 235, 239, .9);
 
   &.abnormal {
-    background: #fff9ef;
+    background: #f5f8ff;
     border-color: rgba(217, 128, 34, .2);
   }
 
@@ -631,13 +639,13 @@ onMounted(loadReports)
   gap: 10px;
 
   strong {
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 14px;
   }
 
   span {
     flex: 0 0 auto;
-    color: #347b70;
+    color: #2563eb;
     font-size: 12px;
     font-weight: 900;
   }
@@ -645,13 +653,13 @@ onMounted(loadReports)
 
 .item-value {
   margin-top: 8px;
-  color: #173e48;
+  color: #1e3a5f;
   font-size: 22px;
   font-weight: 900;
 
   small {
     margin-left: 4px;
-    color: #78919a;
+    color: #64748b;
     font-size: 12px;
   }
 }

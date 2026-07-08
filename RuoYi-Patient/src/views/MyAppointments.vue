@@ -493,38 +493,46 @@ onMounted(() => {
 <style scoped lang="scss">
 .appointments-page {
   min-height: 100vh;
-  background: var(--bg-gradient);
+  background: linear-gradient(180deg, rgba(231, 242, 255, .9) 0%, rgba(247, 251, 255, 1) 50%, rgba(231, 242, 255, .9) 100%), #f4f9ff;
+  padding-top: 60px;
   padding-bottom: 60px;
   position: relative;
   overflow-x: hidden;
 }
 
 .header-section {
-  padding: 16px 20px 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
   gap: 16px;
+  background: #1250af;
+  color: #fff;
 }
 
 .header-back {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  &:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.8); }
-  .van-icon { color: #5f7580; font-size: 20px; }
+  &:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.32); }
+  .van-icon { color: #fff; font-size: 18px; }
 }
 
 .header-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  h1 { font-size: 24px; font-weight: 700; color: #4f7380; margin: 0; }
+  h1 { font-size: 17px; font-weight: 700; color: #fff; margin: 0; }
 }
 
 .page-header,
@@ -537,15 +545,15 @@ onMounted(() => {
   border-radius: 12px;
   padding: 16px 16px 4px;
   background: #fff;
-  border: 1px solid #e4eaf0;
+  border: 1px solid #e2e8f0;
   box-shadow: 0 6px 18px rgba(31, 52, 64, 0.06);
   margin-bottom: 12px;
 }
 
 .overview-copy {
-  p { color: #7e98a4; font-size: 12px; font-weight: 600; margin: 0 0 4px; }
-  h2 { color: #1f3440; font-size: 20px; margin: 0 0 4px; line-height: 1.3; }
-  span { color: #7e98a4; font-size: 13px; display: block; }
+  p { color: #64748b; font-size: 12px; font-weight: 600; margin: 0 0 4px; }
+  h2 { color: #1e3a5f; font-size: 20px; margin: 0 0 4px; line-height: 1.3; }
+  span { color: #64748b; font-size: 13px; display: block; }
 }
 
 .overview-stats {
@@ -553,20 +561,20 @@ onMounted(() => {
   align-items: center;
   margin-top: 14px;
   padding: 12px 0;
-  border-top: 1px solid #edf1f5;
+  border-top: 1px solid #e2e8f0;
   text-align: center;
 }
 
 .os-item {
   flex: 1;
-  strong { display: block; font-size: 22px; font-weight: 700; color: #1f3440; line-height: 1; }
-  span { display: block; font-size: 11px; color: #7e98a4; margin-top: 3px; font-weight: 600; }
+  strong { display: block; font-size: 22px; font-weight: 700; color: #1e3a5f; line-height: 1; }
+  span { display: block; font-size: 11px; color: #64748b; margin-top: 3px; font-weight: 600; }
 }
 
 .os-divider {
   width: 1px;
   height: 36px;
-  background: #edf1f5;
+  background: #e2e8f0;
 }
 
 .content-section {
@@ -638,7 +646,7 @@ onMounted(() => {
   place-items: center;
   background: rgba(255, 253, 248, .74);
   border: 1px solid rgba(213, 237, 243, .72);
-  color: #6fbacb;
+  color: #60a5fa;
   font-size: 28px;
   box-shadow: 0 16px 32px rgba(102, 170, 189, .14);
 }
@@ -653,7 +661,7 @@ onMounted(() => {
     height: 44px;
     border: 0;
     border-radius: 12px;
-    background: rgba(255, 253, 248, .76);
+    background: rgba(219, 234, 254, .76);
     color: var(--primary-color);
     font-size: 14px;
     font-weight: 800;
@@ -661,7 +669,7 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    box-shadow: 0 14px 30px rgba(102, 170, 189, .1);
+    box-shadow: 0 14px 30px rgba(37, 99, 235, .1);
   }
 }
 
@@ -669,7 +677,7 @@ onMounted(() => {
   display: flex;
   gap: 0;
   padding: 8px 0 12px;
-  border-bottom: 1px solid #e4eaf0;
+  border-bottom: 1px solid #e2e8f0;
   overflow-x: auto;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
@@ -681,7 +689,7 @@ onMounted(() => {
   height: 36px;
   border: none;
   background: none;
-  color: #7e98a4;
+  color: #64748b;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -690,7 +698,7 @@ onMounted(() => {
   padding: 0 12px;
 
   &.active {
-    color: #4f7380;
+    color: #475569;
     font-weight: 700;
     &::after {
       content: '';
@@ -700,7 +708,7 @@ onMounted(() => {
       right: 12px;
       height: 3px;
       border-radius: 2px;
-      background: #68c7a9;
+      background: #3b82f6;
     }
   }
 }
@@ -750,7 +758,7 @@ onMounted(() => {
   display: grid;
   place-items: center;
   position: relative;
-  color: #6fbacb;
+  color: #60a5fa;
   font-size: 36px;
   background: rgba(185, 225, 205, .18);
 }
@@ -773,7 +781,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 16px;
   background: #fff;
-  border: 1px solid #e4eaf0;
+  border: 1px solid #e2e8f0;
   box-shadow: 0 6px 18px rgba(31, 52, 64, 0.06);
   position: relative;
   overflow: hidden;
@@ -895,18 +903,18 @@ onMounted(() => {
 }
 
 .registered {
-  color: #5f9e8c;
-  background: rgba(104, 199, 169, .14);
+  color: #3b82f6;
+  background: rgba(59, 130, 246, .14);
 }
 
 .completed,
 .paid {
-  color: #4f9fb4;
+  color: #3b82f6;
   background: rgba(142, 214, 242, .16);
 }
 
 .cancel {
-  color: #8fa5ad;
+  color: #94a3b8;
   background: rgba(165, 184, 192, .14);
 }
 
@@ -989,7 +997,7 @@ onMounted(() => {
   font-size: 12px;
 
   .van-icon {
-    color: #6fbacb;
+    color: #60a5fa;
     flex: 0 0 auto;
   }
 }
@@ -1000,7 +1008,7 @@ onMounted(() => {
 
 .detail-popup {
   min-height: 100%;
-  background: var(--bg-gradient);
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
 }
 
 .detail-hero {
@@ -1010,9 +1018,9 @@ onMounted(() => {
   justify-content: space-between;
   gap: 14px;
   background:
-    linear-gradient(135deg, rgba(255, 253, 248, .9), rgba(255, 253, 248, .58)),
-    linear-gradient(120deg, rgba(185, 225, 205, .48), rgba(142, 214, 242, .28));
-  border-bottom: 1px solid rgba(213, 237, 243, .72);
+    linear-gradient(135deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .58)),
+    linear-gradient(120deg, rgba(96, 165, 250, .48), rgba(59, 130, 246, .28));
+  border-bottom: 1px solid rgba(191, 219, 254, .72);
 
   span,
   h2,
@@ -1105,7 +1113,7 @@ onMounted(() => {
   margin-bottom: 10px;
 
   .van-icon {
-    color: #6fbacb;
+    color: #60a5fa;
     font-size: 18px;
   }
 }
@@ -1134,7 +1142,7 @@ onMounted(() => {
 }
 
 .paid-text {
-  color: #4f9fb4 !important;
+  color: #3b82f6 !important;
 }
 
 .unpaid-text {

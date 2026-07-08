@@ -482,7 +482,7 @@ const homeHealthArticles = [
 // Banner 轮播数据
 const bannerSlides = [
   {
-    // 第一张：蓝色
+    // 第一张：深蓝
     title: '预约挂号不用等',
     data1: '2000+',
     data1Label: '三甲医院',
@@ -491,21 +491,21 @@ const bannerSlides = [
     btnText: '立即预约',
     figure: doctor1,
     figureClass: '',
-    bgGradient: 'linear-gradient(155deg, #eaf1fc 0%, #d6e2f7 35%, #c6d7f2 68%, #eef3fc 100%)',
-    accentColor: '#3b82f6',
-    titleColor: '#1e3a5f',
-    numberColor: '#3b82f6',
-    labelColor: 'rgba(30, 58, 95, .6)',
-    dividerColor: 'rgba(30, 58, 95, .15)',
+    bgGradient: 'linear-gradient(155deg, #d4e5ff 0%, #b0cffe 35%, #8db8fa 68%, #e0edff 100%)',
+    accentColor: '#1d4ed8',
+    titleColor: '#0f2b52',
+    numberColor: '#1d4ed8',
+    labelColor: 'rgba(15, 43, 82, .55)',
+    dividerColor: 'rgba(15, 43, 82, .12)',
     btnBg: '#ffffff',
-    btnColor: '#3b82f6',
-    shadow: '0 4px 18px rgba(59, 130, 246, .18)',
-    shadowColor: 'rgba(59, 130, 246, .2)',
-    glowColor: 'radial-gradient(circle, rgba(59, 130, 246, .35) 0%, transparent 70%)',
+    btnColor: '#1d4ed8',
+    shadow: '0 4px 18px rgba(29, 78, 216, .18)',
+    shadowColor: 'rgba(29, 78, 216, .20)',
+    glowColor: 'radial-gradient(circle, rgba(29, 78, 216, .35) 0%, transparent 70%)',
     action: () => router.push('/register')
   },
   {
-    // 第二张：紫偏蓝
+    // 第二张：深橙
     title: '在线问诊更便捷',
     data1: 'AI',
     data1Label: '智能导诊',
@@ -514,21 +514,21 @@ const bannerSlides = [
     btnText: '在线问诊',
     figure: doctor2,
     figureClass: '',
-    bgGradient: 'linear-gradient(155deg, #f1ebfa 0%, #e2d2f6 35%, #d3bef0 68%, #f5effc 100%)',
-    accentColor: '#8b5cf6',
-    titleColor: '#2e1065',
-    numberColor: '#8b5cf6',
-    labelColor: 'rgba(46, 16, 101, .6)',
-    dividerColor: 'rgba(46, 16, 101, .15)',
+    bgGradient: 'linear-gradient(155deg, #ffedd4 0%, #ffd9a8 35%, #fcc47a 68%, #fff4e6 100%)',
+    accentColor: '#ea580c',
+    titleColor: '#5c1a06',
+    numberColor: '#ea580c',
+    labelColor: 'rgba(92, 26, 6, .50)',
+    dividerColor: 'rgba(92, 26, 6, .10)',
     btnBg: '#ffffff',
-    btnColor: '#8b5cf6',
-    shadow: '0 4px 18px rgba(139, 92, 246, .18)',
-    shadowColor: 'rgba(139, 92, 246, .2)',
-    glowColor: 'radial-gradient(circle, rgba(139, 92, 246, .35) 0%, transparent 70%)',
+    btnColor: '#ea580c',
+    shadow: '0 4px 18px rgba(234, 88, 12, .15)',
+    shadowColor: 'rgba(234, 88, 12, .18)',
+    glowColor: 'radial-gradient(circle, rgba(234, 88, 12, .28) 0%, transparent 70%)',
     action: () => router.push('/chat')
   },
   {
-    // 第三张：绿偏蓝
+    // 第三张：深青
     title: '健康档案随时看',
     data1: '电子',
     data1Label: '病历报告',
@@ -537,17 +537,17 @@ const bannerSlides = [
     btnText: '查看报告',
     figure: nurse1,
     figureClass: '',
-    bgGradient: 'linear-gradient(155deg, #e9f8f5 0%, #d0ede8 35%, #bde4dd 68%, #effbf9 100%)',
-    accentColor: '#0d9488',
-    titleColor: '#134e4a',
-    numberColor: '#0d9488',
-    labelColor: 'rgba(19, 78, 74, .6)',
-    dividerColor: 'rgba(19, 78, 74, .15)',
+    bgGradient: 'linear-gradient(155deg, #d3f5f2 0%, #a8e8e0 35%, #7cd9cf 68%, #e0f9f7 100%)',
+    accentColor: '#0891b2',
+    titleColor: '#164e63',
+    numberColor: '#0891b2',
+    labelColor: 'rgba(22, 78, 99, .55)',
+    dividerColor: 'rgba(22, 78, 99, .12)',
     btnBg: '#ffffff',
-    btnColor: '#0d9488',
-    shadow: '0 4px 18px rgba(13, 148, 136, .18)',
-    shadowColor: 'rgba(13, 148, 136, .2)',
-    glowColor: 'radial-gradient(circle, rgba(13, 148, 136, .35) 0%, transparent 70%)',
+    btnColor: '#0891b2',
+    shadow: '0 4px 18px rgba(8, 145, 178, .15)',
+    shadowColor: 'rgba(8, 145, 178, .18)',
+    glowColor: 'radial-gradient(circle, rgba(8, 145, 178, .25) 0%, transparent 70%)',
     action: () => router.push('/record')
   }
 ]
@@ -795,7 +795,7 @@ $orange-warm: #e89860;
   border-radius: 16px;
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 0 16px rgba(59, 130, 246, .12), 0 4px 20px rgba(0, 0, 0, .04);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
 }
 
 .banner-area {
@@ -985,7 +985,8 @@ $orange-warm: #e89860;
   padding: 12px 12px;
   min-height: 0;
   background: #fff;
-  box-shadow: 0 0 12px rgba(59, 130, 246, .10), 0 4px 16px rgba(0, 0, 0, .04);
+  border: 1px solid rgba(184, 211, 242, .72);
+  box-shadow: 0 8px 24px rgba(74, 144, 226, .10);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -993,12 +994,12 @@ $orange-warm: #e89860;
 
   &:active {
     transform: scale(.97);
-    box-shadow: 0 0 8px rgba(59, 130, 246, .08), 0 2px 8px rgba(0, 0, 0, .04);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, .08);
   }
 }
 
-.card-register { border: 1px solid rgba(59, 130, 246, .10); }
-.card-consult  { border: 1px solid rgba(59, 130, 246, .10); }
+.card-register { }
+.card-consult  { }
 
 .fc-body {
   display: flex;
@@ -1119,8 +1120,8 @@ button {
   border-radius: 10px;
   padding: 12px;
   background: #fff;
-  border: 1px solid rgba(59, 130, 246, .12);
-  box-shadow: 0 0 12px rgba(59, 130, 246, .10), 0 4px 16px rgba(0, 0, 0, .04);
+  border: 1px solid rgba(184, 211, 242, .72);
+  box-shadow: 0 8px 24px rgba(74, 144, 226, .10);
 }
 
 .timeline-glow {
@@ -1210,11 +1211,11 @@ button {
 .service-item {
   min-width: 0;
   min-height: 56px;
-  border: 1px solid rgba(59, 130, 246, .10);
+  border: 1px solid rgba(184, 211, 242, .72);
   border-radius: 10px;
   padding: 10px;
   background: #fff;
-  box-shadow: 0 0 10px rgba(59, 130, 246, .08), 0 4px 16px rgba(0, 0, 0, .04);
+  box-shadow: 0 8px 24px rgba(74, 144, 226, .10);
   display: flex;
   align-items: center;
   gap: 9px;
@@ -1327,6 +1328,7 @@ button {
   color: #3a5a7a;
   font-size: 30px;
   font-weight: 900;
+  border: none;
 
   img {
     width: 100%;
@@ -1338,14 +1340,14 @@ button {
 
 .expert-empty {
   min-height: 96px;
-  border: 1px solid rgba(59, 130, 246, .10);
+  border: 1px solid rgba(184, 211, 242, .72);
   border-radius: 14px;
   display: grid;
   place-items: center;
   align-content: center;
   gap: 6px;
   background: #fff;
-  box-shadow: 0 0 8px rgba(59, 130, 246, .06), 0 4px 16px rgba(0, 0, 0, .04);
+  box-shadow: 0 8px 24px rgba(74, 144, 226, .10);
   color: var(--text-regular);
   font-size: 13px;
 
@@ -1357,10 +1359,10 @@ button {
 
 .home-news-list {
   overflow: hidden;
-  border: 1px solid rgba(59, 130, 246, .10);
+  border: 1px solid rgba(184, 211, 242, .72);
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 0 12px rgba(59, 130, 246, .08), 0 4px 16px rgba(0, 0, 0, .04);
+  box-shadow: 0 8px 24px rgba(74, 144, 226, .10);
 }
 
 .home-news-item {
