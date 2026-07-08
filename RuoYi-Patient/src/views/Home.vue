@@ -1,13 +1,14 @@
 <template>
   <div class="home-page">
     <!-- ========== 模块1：全屏轮播 Banner ========== -->
+    <div class="banner-card">
     <div class="banner-area">
       <van-swipe
         class="banner-swipe"
         :autoplay="4000"
         :duration="600"
         indicator-color="rgba(255,255,255,.7)"
-        indicator-active-color="#5f9e8c"
+        :indicator-active-color="bannerSlides[currentBanner]?.accentColor || '#4a90e2'"
         :show-indicators="true"
         @change="onBannerChange"
       >
@@ -31,19 +32,19 @@
 
             <!-- 左侧文案区 -->
             <div class="banner-text">
-              <h1 class="banner-title">{{ slide.title }}</h1>
+              <h1 class="banner-title" :style="{ color: slide.titleColor }">{{ slide.title }}</h1>
               <div class="banner-metrics">
                 <div class="banner-metric">
-                  <span class="bm-number">{{ slide.data1 }}</span>
-                  <span class="bm-label">{{ slide.data1Label }}</span>
+                  <span class="bm-number" :style="{ color: slide.numberColor }">{{ slide.data1 }}</span>
+                  <span class="bm-label" :style="{ color: slide.labelColor }">{{ slide.data1Label }}</span>
                 </div>
-                <div class="banner-divider"></div>
+                <div class="banner-divider" :style="{ background: slide.dividerColor }"></div>
                 <div class="banner-metric">
-                  <span class="bm-number">{{ slide.data2 }}</span>
-                  <span class="bm-label">{{ slide.data2Label }}</span>
+                  <span class="bm-number" :style="{ color: slide.numberColor }">{{ slide.data2 }}</span>
+                  <span class="bm-label" :style="{ color: slide.labelColor }">{{ slide.data2Label }}</span>
                 </div>
               </div>
-              <button class="banner-cta" :style="{ background: slide.btnBg, color: slide.btnColor }" @click="slide.action">
+              <button class="banner-cta" :style="{ background: slide.btnBg, color: slide.btnColor, boxShadow: slide.shadow }" @click="slide.action">
                 {{ slide.btnText }}
                 <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
                   <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
@@ -53,7 +54,7 @@
 
             <!-- 右侧人物图 -->
             <div class="banner-figure">
-              <img :src="slide.figure" :class="['banner-person', slide.figureClass]" alt="医生" />
+              <img :src="slide.figure" :class="['banner-person', slide.figureClass]" :style="{ filter: `drop-shadow(0 8px 24px ${slide.shadowColor})` }" alt="医生" />
               <!-- 人物光环 -->
               <span class="figure-glow" :style="{ background: slide.glowColor }"></span>
             </div>
@@ -61,6 +62,7 @@
           </div>
         </van-swipe-item>
       </van-swipe>
+    </div>
     </div>
 
     <!-- ========== 模块2：核心功能双卡片入口区 ========== -->
@@ -480,6 +482,7 @@ const homeHealthArticles = [
 // Banner 轮播数据
 const bannerSlides = [
   {
+    // 第一张：蓝色
     title: '预约挂号不用等',
     data1: '2000+',
     data1Label: '三甲医院',
@@ -488,14 +491,21 @@ const bannerSlides = [
     btnText: '立即预约',
     figure: doctor1,
     figureClass: '',
-    bgGradient: 'linear-gradient(155deg, #e8f5f0 0%, #d4ece2 35%, #c9e8da 68%, #dfefe6 100%)',
-    accentColor: '#5f9e8c',
-    btnBg: '#e8f5f0',
-    btnColor: '#4a8a7a',
-    glowColor: 'radial-gradient(circle, rgba(120,200,170,.35) 0%, transparent 70%)',
+    bgGradient: 'linear-gradient(155deg, #eaf1fc 0%, #d6e2f7 35%, #c6d7f2 68%, #eef3fc 100%)',
+    accentColor: '#3b82f6',
+    titleColor: '#1e3a5f',
+    numberColor: '#3b82f6',
+    labelColor: 'rgba(30, 58, 95, .6)',
+    dividerColor: 'rgba(30, 58, 95, .15)',
+    btnBg: '#ffffff',
+    btnColor: '#3b82f6',
+    shadow: '0 4px 18px rgba(59, 130, 246, .18)',
+    shadowColor: 'rgba(59, 130, 246, .2)',
+    glowColor: 'radial-gradient(circle, rgba(59, 130, 246, .35) 0%, transparent 70%)',
     action: () => router.push('/register')
   },
   {
+    // 第二张：紫偏蓝
     title: '在线问诊更便捷',
     data1: 'AI',
     data1Label: '智能导诊',
@@ -504,14 +514,21 @@ const bannerSlides = [
     btnText: '在线问诊',
     figure: doctor2,
     figureClass: '',
-    bgGradient: 'linear-gradient(155deg, #e0eef8 0%, #cde4f2 35%, #d8ebf6 68%, #e8f2f8 100%)',
-    accentColor: '#5db8d8',
-    btnBg: '#e0eef8',
-    btnColor: '#3a809b',
-    glowColor: 'radial-gradient(circle, rgba(93,184,216,.3) 0%, transparent 70%)',
+    bgGradient: 'linear-gradient(155deg, #f1ebfa 0%, #e2d2f6 35%, #d3bef0 68%, #f5effc 100%)',
+    accentColor: '#8b5cf6',
+    titleColor: '#2e1065',
+    numberColor: '#8b5cf6',
+    labelColor: 'rgba(46, 16, 101, .6)',
+    dividerColor: 'rgba(46, 16, 101, .15)',
+    btnBg: '#ffffff',
+    btnColor: '#8b5cf6',
+    shadow: '0 4px 18px rgba(139, 92, 246, .18)',
+    shadowColor: 'rgba(139, 92, 246, .2)',
+    glowColor: 'radial-gradient(circle, rgba(139, 92, 246, .35) 0%, transparent 70%)',
     action: () => router.push('/chat')
   },
   {
+    // 第三张：绿偏蓝
     title: '健康档案随时看',
     data1: '电子',
     data1Label: '病历报告',
@@ -520,14 +537,21 @@ const bannerSlides = [
     btnText: '查看报告',
     figure: nurse1,
     figureClass: '',
-    bgGradient: 'linear-gradient(155deg, #f0f4e8 0%, #e4ecd5 35%, #d8e5c9 68%, #eaf0e0 100%)',
-    accentColor: '#8a9e6b',
-    btnBg: '#f0f4e8',
-    btnColor: '#6b7d4e',
-    glowColor: 'radial-gradient(circle, rgba(138,158,107,.3) 0%, transparent 70%)',
+    bgGradient: 'linear-gradient(155deg, #e9f8f5 0%, #d0ede8 35%, #bde4dd 68%, #effbf9 100%)',
+    accentColor: '#0d9488',
+    titleColor: '#134e4a',
+    numberColor: '#0d9488',
+    labelColor: 'rgba(19, 78, 74, .6)',
+    dividerColor: 'rgba(19, 78, 74, .15)',
+    btnBg: '#ffffff',
+    btnColor: '#0d9488',
+    shadow: '0 4px 18px rgba(13, 148, 136, .18)',
+    shadowColor: 'rgba(13, 148, 136, .2)',
+    glowColor: 'radial-gradient(circle, rgba(13, 148, 136, .35) 0%, transparent 70%)',
     action: () => router.push('/record')
   }
 ]
+
 
 function onBannerChange(index) {
   currentBanner.value = index
@@ -750,8 +774,8 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-$mint-dark: #5f9e8c;
-$mint-pale: #e8f5f0;
+$mint-dark: #4a90e2;
+$mint-pale: #e8f4fa;
 $sky-blue: #5db8d8;
 $sky-pale: #e0eef8;
 $orange-warm: #e89860;
@@ -766,6 +790,14 @@ $orange-warm: #e89860;
 }
 
 // ========== 模块1：Banner 轮播区 ==========
+.banner-card {
+  margin: 10px 12px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 0 16px rgba(59, 130, 246, .12), 0 4px 20px rgba(0, 0, 0, .04);
+}
+
 .banner-area {
   width: 100%;
   border-radius: 0;
@@ -852,7 +884,7 @@ $orange-warm: #e89860;
   margin: 0 0 10px;
   font-size: 24px;
   font-weight: 800;
-  color: #2d5a4e;
+  color: #2c3e50;
   line-height: 1.2;
 }
 
@@ -878,14 +910,14 @@ $orange-warm: #e89860;
 .bm-label {
   margin-top: 3px;
   font-size: 11px;
-  color: rgba(45, 90, 78, .6);
+  color: rgba(44, 62, 80, .6);
   font-weight: 600;
 }
 
 .banner-divider {
   width: 1px;
   height: 24px;
-  background: rgba(45, 90, 78, .15);
+  background: rgba(44, 62, 80, .15);
   border-radius: 1px;
 }
 
@@ -899,12 +931,12 @@ $orange-warm: #e89860;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(95, 158, 140, .14);
+  box-shadow: 0 4px 18px rgba(74, 144, 226, .14);
   transition: transform .2s ease, box-shadow .2s ease;
 
   &:active {
     transform: scale(.96);
-    box-shadow: 0 2px 8px rgba(95, 158, 140, .1);
+    box-shadow: 0 2px 8px rgba(74, 144, 226, .1);
   }
 }
 
@@ -925,7 +957,7 @@ $orange-warm: #e89860;
   max-height: 160px;
   object-fit: contain;
   object-position: bottom center;
-  filter: drop-shadow(0 8px 24px rgba(80,120,100,.18));
+  filter: drop-shadow(0 8px 24px rgba(80,120,150,.18));
 }
 
 .figure-glow {
@@ -953,7 +985,7 @@ $orange-warm: #e89860;
   padding: 12px 12px;
   min-height: 0;
   background: #fff;
-  box-shadow: 0 4px 16px rgba(102, 170, 189, .08);
+  box-shadow: 0 0 12px rgba(59, 130, 246, .10), 0 4px 16px rgba(0, 0, 0, .04);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -961,12 +993,12 @@ $orange-warm: #e89860;
 
   &:active {
     transform: scale(.97);
-    box-shadow: 0 2px 12px rgba(102, 170, 189, .08);
+    box-shadow: 0 0 8px rgba(59, 130, 246, .08), 0 2px 8px rgba(0, 0, 0, .04);
   }
 }
 
-.card-register { border: 1px solid rgba(232, 152, 96, .18); }
-.card-consult  { border: 1px solid rgba(93, 184, 216, .18); }
+.card-register { border: 1px solid rgba(59, 130, 246, .10); }
+.card-consult  { border: 1px solid rgba(59, 130, 246, .10); }
 
 .fc-body {
   display: flex;
@@ -1002,7 +1034,7 @@ $orange-warm: #e89860;
   strong {
     font-size: 14px;
     font-weight: 800;
-    color: #2d5a4e;
+    color: #2c3e50;
     line-height: 1.2;
     white-space: nowrap;
   }
@@ -1012,7 +1044,7 @@ $orange-warm: #e89860;
   display: block;
   margin-top: 4px;
   font-size: 11px;
-  color: rgba(45, 90, 78, .5);
+  color: rgba(44, 62, 80, .5);
   font-weight: 500;
 }
 
@@ -1057,7 +1089,7 @@ button {
 
   h2 {
     margin: 1px 0 0;
-    color: #2d5a4e;
+    color: #2c3e50;
     font-size: 15px;
     line-height: 1.2;
     font-weight: 800;
@@ -1068,7 +1100,7 @@ button {
     background: rgba(255, 253, 248, .54);
     border: 1px solid rgba(213, 237, 243, .64);
     border-radius: 6px;
-    color: rgba(45, 90, 78, .55);
+    color: rgba(44, 62, 80, .55);
     font-size: 11px;
     font-weight: 700;
     padding: 3px 7px;
@@ -1087,8 +1119,8 @@ button {
   border-radius: 10px;
   padding: 12px;
   background: #fff;
-  border: 1px solid rgba(93, 184, 216, .18);
-  box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
+  border: 1px solid rgba(59, 130, 246, .12);
+  box-shadow: 0 0 12px rgba(59, 130, 246, .10), 0 4px 16px rgba(0, 0, 0, .04);
 }
 
 .timeline-glow {
@@ -1098,7 +1130,7 @@ button {
   bottom: 20px;
   width: 2px;
   border-radius: 4px;
-  background: linear-gradient(to bottom, rgba(185, 225, 205, .2), rgba(142, 214, 242, .6), rgba(185, 225, 205, .2));
+  background: linear-gradient(to bottom, rgba(200, 235, 250, .2), rgba(142, 214, 242, .6), rgba(200, 235, 250, .2));
 }
 
 .detail-item {
@@ -1122,8 +1154,8 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(185, 225, 205, .18);
-  color: #5f9e8c;
+  background: rgba(200, 235, 250, .18);
+  color: #4a90e2;
   font-size: 11px;
   font-weight: 800;
 }
@@ -1131,7 +1163,7 @@ button {
 .detail-copy {
   min-width: 0;
   font-size: 13px;
-  color: #2d5a4e;
+  color: #2c3e50;
   line-height: 1.4;
 }
 
@@ -1145,7 +1177,7 @@ button {
   strong, span { display: block; }
 
   strong {
-    color: #2d5a4e;
+    color: #2c3e50;
     font-size: 13px;
     margin-bottom: 4px;
     font-weight: 700;
@@ -1164,8 +1196,8 @@ button {
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background: rgba(185, 225, 205, .16);
-  color: #6fbacb;
+  background: rgba(200, 235, 250, .16);
+  color: #6aa3d8;
   font-size: 20px;
 }
 
@@ -1178,11 +1210,11 @@ button {
 .service-item {
   min-width: 0;
   min-height: 56px;
-  border: 1px solid rgba(93, 184, 216, .18);
+  border: 1px solid rgba(59, 130, 246, .10);
   border-radius: 10px;
   padding: 10px;
   background: #fff;
-  box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
+  box-shadow: 0 0 10px rgba(59, 130, 246, .08), 0 4px 16px rgba(0, 0, 0, .04);
   display: flex;
   align-items: center;
   gap: 9px;
@@ -1211,8 +1243,8 @@ button {
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background: rgba(185, 225, 205, .16);
-  color: #6fbacb;
+  background: rgba(200, 235, 250, .16);
+  color: #6aa3d8;
   font-size: 18px;
   flex: 0 0 auto;
 }
@@ -1251,7 +1283,7 @@ button {
   align-items: center;
   gap: 4px;
   box-shadow: none;
-  color: #2d5a4e;
+  color: #2c3e50;
   transition: transform .2s ease;
 
   &:active {
@@ -1273,7 +1305,7 @@ button {
 
   > span {
     max-width: 100%;
-    color: #2d5a4e;
+    color: #2c3e50;
     font-size: 14px;
     line-height: 1.2;
     font-weight: 850;
@@ -1291,8 +1323,8 @@ button {
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: linear-gradient(145deg, #dff4ef, #d5edf3);
-  color: #276b63;
+  background: linear-gradient(145deg, #e0f0fa, #d5e8f3);
+  color: #3a5a7a;
   font-size: 30px;
   font-weight: 900;
 
@@ -1306,28 +1338,29 @@ button {
 
 .expert-empty {
   min-height: 96px;
-  border: 1px solid rgba(93, 184, 216, .18);
+  border: 1px solid rgba(59, 130, 246, .10);
   border-radius: 14px;
   display: grid;
   place-items: center;
   align-content: center;
   gap: 6px;
   background: #fff;
+  box-shadow: 0 0 8px rgba(59, 130, 246, .06), 0 4px 16px rgba(0, 0, 0, .04);
   color: var(--text-regular);
   font-size: 13px;
 
   .van-icon {
-    color: #6fbacb;
+    color: #6aa3d8;
     font-size: 28px;
   }
 }
 
 .home-news-list {
   overflow: hidden;
-  border: 1px solid rgba(93, 184, 216, .18);
+  border: 1px solid rgba(59, 130, 246, .10);
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 4px 24px rgba(102, 170, 189, .1);
+  box-shadow: 0 0 12px rgba(59, 130, 246, .08), 0 4px 16px rgba(0, 0, 0, .04);
 }
 
 .home-news-item {
@@ -1348,7 +1381,7 @@ button {
     border-radius: 10px;
     object-fit: cover;
     display: block;
-    background: #e8f5f0;
+    background: #e8f4fa;
   }
 }
 
@@ -1357,7 +1390,7 @@ button {
 
   h3 {
     margin: 0;
-    color: #2d5a4e;
+    color: #2c3e50;
     font-size: 15px;
     line-height: 1.35;
     font-weight: 850;
@@ -1400,19 +1433,19 @@ button {
 // ========== 患者信息完善弹窗 ==========
 .popup-complete {
   display: flex; flex-direction: column; height: 100%;
-  background: #f5faf8;
+  background: #f5fafd;
 }
 .popup-header {
   padding: 24px 20px 12px; text-align: center; flex-shrink: 0;
-  h2 { margin: 0; font-size: 20px; font-weight: 800; color: #2d5a4e; }
-  p { margin: 6px 0 0; font-size: 13px; color: #6b9e8a; }
+  h2 { margin: 0; font-size: 20px; font-weight: 800; color: #2c3e50; }
+  p { margin: 6px 0 0; font-size: 13px; color: #6a9ab0; }
 }
 .popup-body {
   flex: 1; overflow-y: auto; padding: 0 20px 16px;
   -webkit-overflow-scrolling: touch;
 }
 .popup-section-title {
-  font-size: 14px; font-weight: 800; color: #2d5a4e;
+  font-size: 14px; font-weight: 800; color: #2c3e50;
   margin: 16px 0 10px; padding-bottom: 6px;
   border-bottom: 2px solid rgba(95,158,140,.2);
 }
@@ -1424,9 +1457,9 @@ button {
     width: 100%; box-sizing: border-box;
     min-height: 44px; padding: 10px 14px;
     border: 1px solid rgba(181,221,231,.9); border-radius: 12px;
-    background: rgba(255,255,255,.82); font-size: 14px; color: #2d5a4e;
+    background: rgba(255,255,255,.82); font-size: 14px; color: #2c3e50;
     outline: none; font-family: inherit;
-    &:focus { border-color: #5f9e8c; background: #fff; box-shadow: 0 0 0 3px rgba(95,158,140,.1); }
+    &:focus { border-color: #4a90e2; background: #fff; box-shadow: 0 0 0 3px rgba(95,158,140,.1); }
   }
   textarea { resize: none; min-height: 60px; line-height: 1.5; }
   select { cursor: pointer; }
@@ -1436,16 +1469,16 @@ button {
   padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
   background: rgba(255,255,255,.6); border: 2px solid rgba(181,221,231,.9);
   color: #4f7380; cursor: pointer; transition: all .2s;
-  &.on { background: rgba(95,158,140,.12); border-color: #5f9e8c; color: #2d5a4e; }
+  &.on { background: rgba(95,158,140,.12); border-color: #4a90e2; color: #2c3e50; }
 }
 .popup-footer {
-  flex-shrink: 0; padding: 16px 20px 28px; background: #f5faf8;
+  flex-shrink: 0; padding: 16px 20px 28px; background: #f5fafd;
   border-top: 1px solid rgba(181,221,231,.4);
 }
 .popup-submit {
   width: 100%; height: 50px; border: none; border-radius: 14px;
   color: #fff; font-size: 16px; font-weight: 800;
-  background: linear-gradient(135deg, #5f9e8c, #48c9b0);
+  background: linear-gradient(135deg, #4a90e2, #5db8d8);
   box-shadow: 0 8px 24px rgba(95,158,140,.3); cursor: pointer;
   &:active:not(:disabled) { transform: scale(.98); }
   &:disabled { opacity: .65; }
