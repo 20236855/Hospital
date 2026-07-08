@@ -129,6 +129,18 @@
                 <div v-if="message.role === 'assistant'" class="formatted-content" v-html="formatMessageContent(message.content)"></div>
                 <div v-else>{{ message.content }}</div>
               </div>
+              <div v-if="message.actions?.length" class="message-actions">
+                <button
+                  v-for="(action, actionIndex) in message.actions"
+                  :key="`${index}-${actionIndex}`"
+                  :class="['message-action-btn', `action-${action.type}`, { primary: action.primary }]"
+                  type="button"
+                  :disabled="loading"
+                  @click="handleAssistantAction(action)"
+                >
+                  {{ action.label }}
+                </button>
+              </div>
               <div v-if="message.isThinking" class="thinking-indicator">
                 <span class="thinking-dot"></span>
                 <span class="thinking-dot"></span>
@@ -192,6 +204,9 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { consultAi, getAiChatHistory, getSessionList } from '@/api/chat'
+import { createRegister, getDeptList, getOpenDoctorSlots, getOpenScheduleSlots } from '@/api/register'
+import { getPatientByUserId } from '@/api/patient'
+import { getInfo } from '@/api/user'
 import assistantAvatar from '@/assets/picture.png'
 
 const router = useRouter()
@@ -208,8 +223,22 @@ const recognition = ref(null)
 const voiceSupported = ref(false)
 let voiceBaseText = ''
 
+const registrationFlow = ref({
+  active: false,
+  step: 'idle',
+  departments: [],
+  recommendations: [],
+  dept: null,
+  schedules: [],
+  schedule: null,
+  slots: [],
+  slot: null,
+  createdRegister: null
+})
+
 const quickQuestions = [
   '最近有点头晕，该怎么办？',
+  '我想让助手帮我挂号',
   '我之前的病历里有什么需要注意的？',
   '最近睡眠不好，有什么建议？',
   '日常饮食需要注意什么？'
@@ -303,6 +332,782 @@ const getStoredPatientId = () => {
   return value ? Number(value) : null
 }
 
+const padDatePart = (value) => String(value).padStart(2, '0')
+const dateOnlyPattern = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/
+const datePartPattern = /(\d{4})[-/](\d{1,2})[-/](\d{1,2})/
+
+const formatDateParts = (year, month, day) => `${year}-${padDatePart(month)}-${padDatePart(day)}`
+
+const toDateKey = (value) => {
+  if (!value) return ''
+  if (value instanceof Date) {
+    return formatDateParts(value.getFullYear(), value.getMonth() + 1, value.getDate())
+  }
+  const raw = String(value).trim()
+  const dateOnlyMatch = raw.match(dateOnlyPattern)
+  if (dateOnlyMatch) {
+    return formatDateParts(dateOnlyMatch[1], dateOnlyMatch[2], dateOnlyMatch[3])
+  }
+  if (raw.includes('T') || /\d{1,2}:\d{2}/.test(raw)) {
+    const parsed = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T'))
+    if (!Number.isNaN(parsed.getTime())) {
+      return formatDateParts(parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate())
+    }
+  }
+  const datePartMatch = raw.match(datePartPattern)
+  if (datePartMatch) {
+    return formatDateParts(datePartMatch[1], datePartMatch[2], datePartMatch[3])
+  }
+  return ''
+}
+
+const parseBusinessDate = (value) => {
+  const dateKey = toDateKey(value)
+  if (!dateKey) return null
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const getCurrentWeekDates = () => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today)
+    date.setDate(today.getDate() + index)
+    return date
+  })
+}
+
+const getDateRange = () => {
+  const dates = getCurrentWeekDates()
+  return {
+    beginDate: toDateKey(dates[0]),
+    endDate: toDateKey(dates[dates.length - 1])
+  }
+}
+
+const formatScheduleDate = (dateStr) => {
+  const date = parseBusinessDate(dateStr)
+  if (!date) return ''
+  const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  return `${date.getMonth() + 1}月${date.getDate()}日 ${weekDays[date.getDay()]}`
+}
+
+const formatMoney = (amount) => {
+  const value = Number(amount || 0)
+  return `￥${value.toFixed(2)}`
+}
+
+const getTimeSlotOrder = (timeSlot) => {
+  if (!timeSlot) return 9
+  const orderMap = { morning: 1, afternoon: 2, evening: 3 }
+  return orderMap[timeSlot] || 9
+}
+
+const getScheduleReservedNumber = (schedule) => {
+  const reserved = schedule?.reservedNumber ?? schedule?.reserved_number
+  if (reserved != null) return Number(reserved)
+  const max = getScheduleMaxNumber(schedule)
+  const available = schedule?.availableNumber ?? schedule?.available_number
+  if (max != null && available != null) {
+    return Math.max(Number(max) - Number(available), 0)
+  }
+  return 0
+}
+
+const getScheduleMaxNumber = (schedule) => {
+  const max = schedule?.maxNumber ?? schedule?.max_number
+  if (max != null) return Number(max)
+  const reserved = schedule?.reservedNumber ?? schedule?.reserved_number
+  const available = schedule?.availableNumber ?? schedule?.available_number
+  if (reserved != null && available != null) {
+    return Math.max(Number(reserved) + Number(available), 0)
+  }
+  return 0
+}
+
+const getScheduleAvailableNumber = (schedule) => {
+  const max = getScheduleMaxNumber(schedule)
+  const reserved = getScheduleReservedNumber(schedule)
+  if (max > 0) return Math.max(max - reserved, 0)
+  return Number(schedule?.availableNumber ?? schedule?.available_number ?? 0)
+}
+
+const isSchedulePast = (schedule) => {
+  if (!schedule?.scheduleDate) return true
+  const target = parseBusinessDate(schedule.scheduleDate)
+  if (!target) return true
+
+  const today = new Date()
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate())
+
+  if (targetStart < todayStart) return true
+  if (targetStart > todayStart) return false
+
+  const nowMinutes = today.getHours() * 60 + today.getMinutes()
+  if (schedule?.startTime) {
+    const [hour, minute] = String(schedule.startTime).split(':').map(Number)
+    return nowMinutes >= hour * 60 + minute
+  }
+
+  return false
+}
+
+const isScheduleFull = (schedule) => {
+  if (!schedule) return true
+  const status = schedule.status
+  if (status != null && status !== '0' && status !== 0) return true
+  if (String(status).toLowerCase() === '已满' || String(status).toLowerCase() === 'full') return true
+  return getScheduleMaxNumber(schedule) > 0 && getScheduleReservedNumber(schedule) >= getScheduleMaxNumber(schedule)
+}
+
+const isScheduleSelectable = (schedule) => !isSchedulePast(schedule) && !isScheduleFull(schedule)
+
+const normalizeSchedule = (schedule) => ({
+  ...schedule,
+  slotId: schedule.slotId ?? schedule.slot_id,
+  scheduleId: schedule.scheduleId ?? schedule.schedule_id,
+  doctorId: schedule.doctorId ?? schedule.doctor_id,
+  deptId: schedule.deptId ?? schedule.dept_id,
+  doctorName: schedule.doctorName ?? schedule.doctor_name,
+  levelId: schedule.levelId ?? schedule.level_id,
+  levelName: schedule.levelName ?? schedule.level_name,
+  fee: schedule.fee ?? schedule.registerFee ?? schedule.register_fee,
+  scheduleDate: toDateKey(schedule.scheduleDate ?? schedule.schedule_date),
+  startTime: schedule.startTime ?? schedule.start_time,
+  endTime: schedule.endTime ?? schedule.end_time,
+  timeSlot: schedule.timeSlot ?? schedule.time_slot,
+  maxNumber: getScheduleMaxNumber(schedule),
+  reservedNumber: getScheduleReservedNumber(schedule),
+  availableNumber: getScheduleAvailableNumber(schedule),
+  status: schedule.status
+})
+
+const normalizeDept = (dept) => ({
+  ...dept,
+  deptId: Number(dept.deptId),
+  parentId: dept.parentId == null ? null : Number(dept.parentId)
+})
+
+const isHospitalRootDept = (dept) => {
+  const deptName = dept.deptName || ''
+  return dept.parentId === 0
+    || dept.deptId === 200
+    || deptName === '医院'
+    || deptName === '智慧医院'
+    || deptName === '智慧医院总部门'
+}
+
+const appendAssistantMessage = (content, actions = []) => {
+  messages.value.push({
+    role: 'assistant',
+    content,
+    actions
+  })
+  scrollToBottom()
+}
+
+const resetRegistrationFlow = () => {
+  registrationFlow.value = {
+    active: false,
+    step: 'idle',
+    departments: [],
+    recommendations: [],
+    dept: null,
+    schedules: [],
+    schedule: null,
+    slots: [],
+    slot: null,
+    createdRegister: null
+  }
+}
+
+const wantsRegistration = (message) => {
+  return /(挂号|预约挂号|预约医生|约号|帮.*预约|帮.*挂|想.*看医生|我要看医生|安排.*门诊)/.test(message)
+}
+
+const normalizeText = (text) => String(text || '').replace(/\s+/g, '')
+
+const symptomDeptRules = [
+  {
+    keywords: ['头痛', '头疼', '头晕', '眩晕', '偏头痛', '失眠', '手麻', '脚麻'],
+    deptNames: ['神经内科', '脑病科', '内科门诊', '内科'],
+    reason: '头痛、头晕、麻木等更适合先由神经内科或内科门诊评估。'
+  },
+  {
+    keywords: ['发烧', '发热', '咳嗽', '咽痛', '流鼻涕', '感冒', '胸闷', '气短'],
+    deptNames: ['呼吸内科', '发热门诊', '内科门诊', '内科'],
+    reason: '发热、咳嗽、胸闷等常见于呼吸系统或内科问题，适合先挂呼吸内科或内科门诊。'
+  },
+  {
+    keywords: ['胃痛', '肚子疼', '腹痛', '腹泻', '拉肚子', '恶心', '呕吐', '反酸', '胃胀'],
+    deptNames: ['消化内科', '内科门诊', '内科'],
+    reason: '腹痛、腹泻、反酸等更适合先由消化内科或内科门诊判断。'
+  },
+  {
+    keywords: ['心慌', '心悸', '胸痛', '胸口痛', '血压高', '高血压'],
+    deptNames: ['心血管内科', '心内科', '内科门诊', '内科'],
+    reason: '心慌、胸痛、血压异常建议优先选择心血管内科或内科门诊。'
+  },
+  {
+    keywords: ['牙疼', '牙痛', '牙龈', '口腔', '拔牙', '龋齿'],
+    deptNames: ['口腔科'],
+    reason: '牙痛、牙龈和口腔问题建议直接挂口腔科。'
+  },
+  {
+    keywords: ['眼睛', '眼痛', '视力', '看不清', '红眼', '流泪'],
+    deptNames: ['眼科'],
+    reason: '眼痛、视力变化、红眼等建议挂眼科。'
+  },
+  {
+    keywords: ['耳朵', '耳鸣', '鼻炎', '鼻塞', '喉咙', '咽喉', '扁桃体'],
+    deptNames: ['耳鼻喉科', '五官科'],
+    reason: '耳、鼻、咽喉相关不适建议挂耳鼻喉科。'
+  },
+  {
+    keywords: ['皮疹', '过敏', '瘙痒', '痒', '湿疹', '荨麻疹', '长痘'],
+    deptNames: ['皮肤科'],
+    reason: '皮疹、瘙痒、过敏等皮肤表现建议挂皮肤科。'
+  },
+  {
+    keywords: ['骨折', '扭伤', '腰痛', '腰疼', '关节', '膝盖', '颈椎', '肩膀', '腿疼'],
+    deptNames: ['骨科'],
+    reason: '骨折、扭伤、关节或颈肩腰腿痛建议挂骨科。'
+  },
+  {
+    keywords: ['怀孕', '孕妇', '产检', '月经', '妇科', '白带', '痛经'],
+    deptNames: ['妇产科', '妇科', '产科'],
+    reason: '孕产、月经、妇科相关问题建议挂妇产科。'
+  },
+  {
+    keywords: ['小孩', '孩子', '儿童', '宝宝', '婴儿'],
+    deptNames: ['儿科'],
+    reason: '儿童和婴幼儿不适建议优先挂儿科。'
+  }
+]
+
+const matchDepartmentByName = (departments, names) => {
+  const normalizedNames = names.map(normalizeText).filter(Boolean)
+  return departments.find(dept => {
+    const deptName = normalizeText(dept.deptName)
+    return normalizedNames.some(name => deptName.includes(name) || name.includes(deptName))
+  }) || null
+}
+
+const inferDepartmentsFromSymptoms = (message, departments) => {
+  const cleanText = normalizeText(message)
+  if (!cleanText) return []
+
+  const matches = []
+  symptomDeptRules.forEach(rule => {
+    if (!rule.keywords.some(keyword => cleanText.includes(keyword))) return
+    const dept = matchDepartmentByName(departments, rule.deptNames)
+    if (!dept) return
+    if (matches.some(item => item.dept.deptId === dept.deptId)) return
+    matches.push({
+      dept,
+      reason: rule.reason
+    })
+  })
+
+  return matches
+}
+
+const getDepartmentActions = (departments) => {
+  const visibleDepartments = departments.slice(0, 10)
+  return [
+    ...visibleDepartments.map(dept => ({
+      label: dept.deptName,
+      type: 'select-dept',
+      payload: dept
+    })),
+    { label: '取消', type: 'cancel-register' }
+  ]
+}
+
+const getRecommendationActions = (recommendations, departments) => {
+  const recommendedDeptIds = new Set(recommendations.map(item => item.dept.deptId))
+  const otherDepartments = departments.filter(dept => !recommendedDeptIds.has(dept.deptId)).slice(0, 6)
+  return [
+    ...recommendations.map((item, index) => ({
+      label: `挂${item.dept.deptName}`,
+      type: 'select-dept',
+      payload: item.dept,
+      primary: index === 0
+    })),
+    ...otherDepartments.map(dept => ({
+      label: dept.deptName,
+      type: 'select-dept',
+      payload: dept
+    })),
+    { label: '我再描述一下', type: 'describe-symptom' },
+    { label: '取消', type: 'cancel-register' }
+  ]
+}
+
+const getScheduleActionLabel = (schedule) => {
+  const dateText = formatScheduleDate(schedule.scheduleDate)
+  const timeText = schedule.startTime && schedule.endTime ? ` ${schedule.startTime}-${schedule.endTime}` : ''
+  const levelText = schedule.levelName ? ` ${schedule.levelName}` : ''
+  return `${schedule.doctorName || '医生'} ${dateText}${timeText}${levelText} 余号${getScheduleAvailableNumber(schedule)}`
+}
+
+const getScheduleActions = (schedules) => {
+  return [
+    ...schedules.slice(0, 8).map(schedule => ({
+      label: getScheduleActionLabel(schedule),
+      type: 'select-schedule',
+      payload: schedule
+    })),
+    { label: '重选科室', type: 'restart-register' },
+    { label: '取消挂号', type: 'cancel-register' }
+  ]
+}
+
+const getSlotActionLabel = (slot) => {
+  const timeText = slot.startTime && slot.endTime ? `${slot.startTime}-${slot.endTime}` : '可预约时间'
+  return `${timeText} ${slot.levelName || '普通号'} ${formatMoney(slot.fee)} 余号${getScheduleAvailableNumber(slot)}`
+}
+
+const getSlotActions = (slots) => {
+  return [
+    ...slots.slice(0, 8).map(slot => ({
+      label: getSlotActionLabel(slot),
+      type: 'select-slot',
+      payload: slot
+    })),
+    { label: '重选医生', type: 'back-schedule' },
+    { label: '取消挂号', type: 'cancel-register' }
+  ]
+}
+
+const getLeafDepartments = (departments) => {
+  const parentIds = new Set(departments.map(dept => dept.parentId).filter(id => id != null))
+  const leafDepartments = departments.filter(dept => !parentIds.has(dept.deptId))
+  return leafDepartments.length ? leafDepartments : departments
+}
+
+const findDepartmentFromText = (text, departments) => {
+  const cleanText = normalizeText(text)
+  if (!cleanText) return null
+  return departments.find(dept => {
+    const deptName = normalizeText(dept.deptName)
+    return deptName && (cleanText.includes(deptName) || deptName.includes(cleanText))
+  }) || null
+}
+
+const findScheduleFromText = (text, schedules) => {
+  const cleanText = normalizeText(text)
+  if (!cleanText) return null
+  return schedules.find(schedule => {
+    const doctorName = normalizeText(schedule.doctorName)
+    return doctorName && cleanText.includes(doctorName)
+  }) || null
+}
+
+const findSlotFromText = (text, slots) => {
+  const cleanText = normalizeText(text)
+  if (!cleanText) return null
+  return slots.find(slot => {
+    const start = String(slot.startTime || '').slice(0, 5)
+    const end = String(slot.endTime || '').slice(0, 5)
+    return (start && cleanText.includes(start)) || (end && cleanText.includes(end))
+  }) || null
+}
+
+const loadRegistrationDepartments = async () => {
+  const fallbackDepartments = [
+    { deptId: 201, parentId: 200, deptName: '内科' },
+    { deptId: 202, parentId: 200, deptName: '外科' },
+    { deptId: 203, parentId: 200, deptName: '儿科' },
+    { deptId: 204, parentId: 200, deptName: '妇产科' },
+    { deptId: 205, parentId: 200, deptName: '骨科' },
+    { deptId: 206, parentId: 200, deptName: '眼科' }
+  ]
+
+  try {
+    const res = await getDeptList()
+    const apiDepartments = Array.isArray(res.data) ? res.data : []
+    const departments = apiDepartments.length ? apiDepartments : fallbackDepartments
+    return getLeafDepartments(departments.map(normalizeDept).filter(dept => !isHospitalRootDept(dept)))
+  } catch (error) {
+    console.error('助手加载科室失败', error)
+    return fallbackDepartments
+  }
+}
+
+const loadRegistrationSchedules = async (deptId) => {
+  const dateRange = getDateRange()
+  const res = await getOpenDoctorSlots({
+    pageNum: 1,
+    pageSize: 200,
+    deptId,
+    beginDate: dateRange.beginDate,
+    endDate: dateRange.endDate
+  })
+
+  return (res.rows || [])
+    .map(normalizeSchedule)
+    .filter(isScheduleSelectable)
+    .sort((a, b) => {
+      const dateDiff = parseBusinessDate(a.scheduleDate) - parseBusinessDate(b.scheduleDate)
+      if (dateDiff !== 0) return dateDiff
+      const slotDiff = getTimeSlotOrder(a.timeSlot) - getTimeSlotOrder(b.timeSlot)
+      if (slotDiff !== 0) return slotDiff
+      return Number(b.levelId || 0) - Number(a.levelId || 0)
+    })
+}
+
+const loadRegistrationSlots = async (schedule) => {
+  const res = await getOpenScheduleSlots({
+    pageNum: 1,
+    pageSize: 100,
+    doctorId: schedule.doctorId,
+    scheduleDate: schedule.scheduleDate
+  })
+
+  return (res.rows || [])
+    .map(normalizeSchedule)
+    .filter(isScheduleSelectable)
+    .sort((a, b) => String(a.startTime || '').localeCompare(String(b.startTime || '')))
+}
+
+const ensurePatientId = async () => {
+  const savedPatientId = getStoredPatientId()
+  if (savedPatientId) return savedPatientId
+
+  const userRes = await getInfo()
+  const userId = userRes?.user?.userId
+  if (!userId) return null
+
+  const patientRes = await getPatientByUserId(userId)
+  const patient = patientRes?.data
+  if (!patient?.patientId) return null
+
+  localStorage.setItem('patientId', patient.patientId)
+  if (patient.name) {
+    localStorage.setItem('patientName', patient.name)
+  }
+  return Number(patient.patientId)
+}
+
+const askDepartment = (intro = '可以，我来帮您挂号。请先选择就诊科室：') => {
+  registrationFlow.value.step = 'chooseDept'
+  appendAssistantMessage(intro, getDepartmentActions(registrationFlow.value.departments))
+}
+
+const askRecommendedDepartment = (message) => {
+  const recommendations = inferDepartmentsFromSymptoms(message, registrationFlow.value.departments)
+  registrationFlow.value.recommendations = recommendations
+
+  if (!recommendations.length) {
+    askDepartment('我还不能根据这些描述准确推荐科室。请再补充主要症状，或直接选择一个科室：')
+    return false
+  }
+
+  const primary = recommendations[0]
+  const extra = recommendations.slice(1).map(item => item.dept.deptName).join('、')
+  const content = [
+    `根据您的描述，我建议优先挂 ${primary.dept.deptName}。`,
+    `判断依据：${primary.reason}`,
+    extra ? `也可以备选：${extra}。` : '',
+    '如果症状突然加重、剧烈胸痛、意识不清或肢体无力，请优先急诊。'
+  ].filter(Boolean).join('\n')
+
+  registrationFlow.value.step = 'chooseDept'
+  appendAssistantMessage(content, getRecommendationActions(recommendations, registrationFlow.value.departments))
+  return true
+}
+
+const selectRegistrationDepartment = async (dept) => {
+  registrationFlow.value.dept = dept
+  registrationFlow.value.step = 'chooseSchedule'
+  registrationFlow.value.schedules = await loadRegistrationSchedules(dept.deptId)
+
+  if (!registrationFlow.value.schedules.length) {
+    appendAssistantMessage(
+      `${dept.deptName} 未来一周暂时没有可预约号源，您可以换一个科室看看。`,
+      [
+        { label: '重选科室', type: 'restart-register', primary: true },
+        { label: '取消挂号', type: 'cancel-register' }
+      ]
+    )
+    return
+  }
+
+  appendAssistantMessage(
+    `已为您筛选 ${dept.deptName} 可预约号源。请选择医生和日期：`,
+    getScheduleActions(registrationFlow.value.schedules)
+  )
+}
+
+const selectRegistrationSchedule = async (schedule) => {
+  registrationFlow.value.schedule = schedule
+  registrationFlow.value.step = 'chooseSlot'
+  registrationFlow.value.slots = await loadRegistrationSlots(schedule)
+
+  if (!registrationFlow.value.slots.length) {
+    appendAssistantMessage(
+      `${schedule.doctorName || '该医生'} ${formatScheduleDate(schedule.scheduleDate)} 暂无可预约时间片，请换一个医生或日期。`,
+      getScheduleActions(registrationFlow.value.schedules.slice(0, 6))
+    )
+    return
+  }
+
+  appendAssistantMessage(
+    `已选择 ${schedule.doctorName || '医生'} ${formatScheduleDate(schedule.scheduleDate)}。请选择就诊时间：`,
+    getSlotActions(registrationFlow.value.slots)
+  )
+}
+
+const selectRegistrationSlot = (slot) => {
+  registrationFlow.value.slot = slot
+  registrationFlow.value.step = 'confirm'
+  const dept = registrationFlow.value.dept
+  const schedule = registrationFlow.value.schedule
+  const content = [
+    '请确认本次预约信息：',
+    `科室：${dept?.deptName || '-'}`,
+    `医生：${schedule?.doctorName || '-'}`,
+    `时间：${formatScheduleDate(slot.scheduleDate || schedule?.scheduleDate)} ${slot.startTime || ''}-${slot.endTime || ''}`,
+    `号别：${slot.levelName || schedule?.levelName || '普通号'}`,
+    `挂号费：${formatMoney(slot.fee ?? schedule?.fee)}`
+  ].join('\n')
+
+  appendAssistantMessage(content, [
+    { label: '确认挂号', type: 'confirm-register', primary: true },
+    { label: '重选时间', type: 'back-slot' },
+    { label: '取消挂号', type: 'cancel-register' }
+  ])
+}
+
+const confirmRegistration = async () => {
+  const patientId = await ensurePatientId()
+  if (!patientId) {
+    appendAssistantMessage('还没有获取到您的患者档案，请先完善患者信息后再挂号。', [
+      { label: '去完善信息', type: 'route', path: '/patient-complete', primary: true },
+      { label: '取消挂号', type: 'cancel-register' }
+    ])
+    return
+  }
+
+  const dept = registrationFlow.value.dept
+  const schedule = registrationFlow.value.schedule
+  const slot = registrationFlow.value.slot
+  const registerData = {
+    patientId,
+    doctorId: schedule.doctorId,
+    deptId: dept.deptId,
+    scheduleId: slot.scheduleId,
+    slotId: slot.slotId,
+    registerTime: toDateKey(slot.scheduleDate || schedule.scheduleDate),
+    registerType: 'online'
+  }
+
+  const result = await createRegister(registerData)
+  registrationFlow.value.createdRegister = result?.data || null
+  registrationFlow.value.active = false
+  registrationFlow.value.step = 'success'
+
+  const registerInfo = registrationFlow.value.createdRegister || {}
+  const content = [
+    '预约成功！',
+    `科室：${dept.deptName}`,
+    `医生：${schedule.doctorName || '-'}`,
+    `时间：${formatScheduleDate(slot.scheduleDate || schedule.scheduleDate)} ${slot.startTime || ''}-${slot.endTime || ''}`,
+    registerInfo.registerFee != null ? `挂号费：${formatMoney(registerInfo.registerFee)}` : '请在30分钟内完成挂号费支付。'
+  ].join('\n')
+
+  appendAssistantMessage(content, [
+    { label: '查看我的预约', type: 'route', path: '/my-appointments', primary: true },
+    { label: '继续问诊', type: 'finish-register' }
+  ])
+}
+
+const startRegistrationFlow = async (message) => {
+  resetRegistrationFlow()
+  registrationFlow.value.active = true
+  registrationFlow.value.step = 'loadingDept'
+  registrationFlow.value.departments = await loadRegistrationDepartments()
+
+  if (!registrationFlow.value.departments.length) {
+    resetRegistrationFlow()
+    appendAssistantMessage('暂时没有获取到可预约科室，请稍后再试，或前往挂号页手动选择。', [
+      { label: '前往挂号页', type: 'route', path: '/register', primary: true }
+    ])
+    return
+  }
+
+  const matchedDept = findDepartmentFromText(message, registrationFlow.value.departments)
+  if (matchedDept) {
+    await selectRegistrationDepartment(matchedDept)
+    return
+  }
+
+  if (askRecommendedDepartment(message)) {
+    return
+  }
+
+  askDepartment()
+}
+
+const handleRegistrationText = async (message) => {
+  if (/取消|算了|退出|停止/.test(message)) {
+    resetRegistrationFlow()
+    appendAssistantMessage('好的，已取消本次挂号引导。您还可以继续描述症状或咨询其他问题。')
+    return
+  }
+
+  if (!registrationFlow.value.active) {
+    await startRegistrationFlow(message)
+    return
+  }
+
+  if (registrationFlow.value.step === 'chooseDept') {
+    const dept = findDepartmentFromText(message, registrationFlow.value.departments)
+    if (dept) {
+      await selectRegistrationDepartment(dept)
+      return
+    }
+    if (askRecommendedDepartment(message)) {
+      return
+    }
+    askDepartment('我还没有匹配到具体科室。您可以补充主要症状，或从下面选择一个科室：')
+    return
+  }
+
+  if (registrationFlow.value.step === 'chooseSchedule') {
+    if (/重选|换科室/.test(message)) {
+      askDepartment('好的，请重新选择就诊科室：')
+      return
+    }
+    const schedule = findScheduleFromText(message, registrationFlow.value.schedules)
+    if (schedule) {
+      await selectRegistrationSchedule(schedule)
+      return
+    }
+    appendAssistantMessage('请选择一个可预约的医生和日期：', getScheduleActions(registrationFlow.value.schedules))
+    return
+  }
+
+  if (registrationFlow.value.step === 'chooseSlot') {
+    if (/重选|换医生|换日期/.test(message)) {
+      appendAssistantMessage('好的，请重新选择医生和日期：', getScheduleActions(registrationFlow.value.schedules))
+      registrationFlow.value.step = 'chooseSchedule'
+      return
+    }
+    const slot = findSlotFromText(message, registrationFlow.value.slots)
+    if (slot) {
+      selectRegistrationSlot(slot)
+      return
+    }
+    appendAssistantMessage('请选择一个具体就诊时间：', getSlotActions(registrationFlow.value.slots))
+    return
+  }
+
+  if (registrationFlow.value.step === 'confirm') {
+    if (/确认|提交|挂号|预约|可以|好的|是/.test(message)) {
+      await confirmRegistration()
+      return
+    }
+    if (/重选|换时间/.test(message)) {
+      appendAssistantMessage('好的，请重新选择就诊时间：', getSlotActions(registrationFlow.value.slots))
+      registrationFlow.value.step = 'chooseSlot'
+      return
+    }
+    appendAssistantMessage('请确认是否为您提交预约：', [
+      { label: '确认挂号', type: 'confirm-register', primary: true },
+      { label: '重选时间', type: 'back-slot' },
+      { label: '取消挂号', type: 'cancel-register' }
+    ])
+  }
+}
+
+const runRegistrationAction = async (action) => {
+  if (loading.value) return
+
+  loading.value = true
+  try {
+    if (action.type === 'route') {
+      router.push(action.path)
+      return
+    }
+
+    if (action.type === 'finish-register') {
+      appendAssistantMessage('好的，您可以继续描述症状或咨询其他问题。')
+      return
+    }
+
+    if (action.type === 'cancel-register') {
+      resetRegistrationFlow()
+      appendAssistantMessage('已取消本次挂号引导。')
+      return
+    }
+
+    if (action.type === 'describe-symptom') {
+      registrationFlow.value.active = true
+      registrationFlow.value.step = 'chooseDept'
+      appendAssistantMessage('请告诉我最明显的症状，比如“头疼两天”“咳嗽发烧”“牙疼”，我会先帮您推荐科室。')
+      return
+    }
+
+    if (action.type === 'restart-register') {
+      registrationFlow.value.active = true
+      askDepartment('请重新选择就诊科室：')
+      return
+    }
+
+    if (action.type === 'back-schedule') {
+      registrationFlow.value.step = 'chooseSchedule'
+      appendAssistantMessage('请重新选择医生和日期：', getScheduleActions(registrationFlow.value.schedules))
+      return
+    }
+
+    if (action.type === 'back-slot') {
+      registrationFlow.value.step = 'chooseSlot'
+      appendAssistantMessage('请重新选择就诊时间：', getSlotActions(registrationFlow.value.slots))
+      return
+    }
+
+    if (action.type === 'select-dept') {
+      await selectRegistrationDepartment(action.payload)
+      return
+    }
+
+    if (action.type === 'select-schedule') {
+      await selectRegistrationSchedule(action.payload)
+      return
+    }
+
+    if (action.type === 'select-slot') {
+      selectRegistrationSlot(action.payload)
+      return
+    }
+
+    if (action.type === 'confirm-register') {
+      await confirmRegistration()
+    }
+  } catch (error) {
+    console.error('助手挂号流程失败:', error)
+    appendAssistantMessage(error?.message || '挂号处理失败，请稍后再试。')
+  } finally {
+    loading.value = false
+    scrollToBottom()
+  }
+}
+
+const handleAssistantAction = (action) => {
+  if (!action || loading.value) return
+  messages.value.push({
+    role: 'user',
+    content: action.label
+  })
+  scrollToBottom()
+  runRegistrationAction(action)
+}
+
 const askBackendAi = async (message) => {
   const patientId = getStoredPatientId()
   console.log('AI patientId:', patientId)
@@ -341,15 +1146,20 @@ const sendMessage = async () => {
   adjustTextareaHeight()
   scrollToBottom()
 
-  const thinkingMessage = {
-    role: 'assistant',
-    content: '',
-    isThinking: true
-  }
-  messages.value.push(thinkingMessage)
-  scrollToBottom()
-
   try {
+    if (registrationFlow.value.active || wantsRegistration(message)) {
+      await handleRegistrationText(message)
+      return
+    }
+
+    const thinkingMessage = {
+      role: 'assistant',
+      content: '',
+      isThinking: true
+    }
+    messages.value.push(thinkingMessage)
+    scrollToBottom()
+
     const response = await askBackendAi(message)
 
     messages.value = messages.value.filter(m => !m.isThinking)
@@ -1124,6 +1934,44 @@ button {
   background: #3880c8;
   border-bottom-right-radius: 5px;
   box-shadow: 0 14px 30px rgba(67, 184, 180, .22);
+}
+
+.message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.message-action-btn {
+  max-width: 100%;
+  min-height: 36px;
+  border-radius: 10px;
+  padding: 8px 11px;
+  color: $blue-dark;
+  background: rgba(255, 255, 255, .86);
+  border: 1px solid rgba(74, 144, 226, .22);
+  box-shadow: 0 8px 20px rgba(74, 144, 226, .1);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.28;
+  text-align: left;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+
+  &.primary {
+    color: #fff;
+    background: linear-gradient(135deg, $blue-dark, $blue-bright);
+    border-color: transparent;
+  }
+
+  &:disabled {
+    opacity: .56;
+  }
+
+  &:active {
+    transform: scale(.98);
+  }
 }
 
 .thinking-indicator {
