@@ -7,39 +7,39 @@ html, body, #app {
   background-color: var(--bg-color);
 }
 
-/* 底部导航栏样式 - 深海军蓝 */
+/* 底部导航栏样式 - 白色底蓝色图标 */
 .van-tabbar {
-  background: #0B2560 !important;
-  border-top: none !important;
-  box-shadow: 0 -4px 28px rgba(11, 37, 96, 0.35);
+  background: #ffffff !important;
+  border-top: 1px solid rgba(0, 0, 0, .06) !important;
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, .06);
 }
 
 .van-tabbar-item {
   background: transparent !important;
-  color: rgba(255,255,255,.50) !important;
+  color: rgba(0, 0, 0, .40) !important;
 
   .van-tabbar-item__icon {
-    color: rgba(255,255,255,.50) !important;
+    color: rgba(0, 0, 0, .40) !important;
   }
 
   &.van-tabbar-item--active {
     background: transparent !important;
-    color: #ffffff !important;
+    color: #3b82f6 !important;
 
     .van-tabbar-item__icon {
-      color: #ffffff !important;
+      color: #3b82f6 !important;
     }
 
     .van-tabbar-item__text {
-      color: #ffffff !important;
+      color: #3b82f6 !important;
     }
   }
 }
 
-:root {
-  --van-tabbar-item-active-color: #ffffff !important;
-  --van-tabbar-item-text-color: rgba(255,255,255,.50) !important;
-  --van-tabbar-background: #0B2560 !important;
+::root {
+  --van-tabbar-item-active-color: #3b82f6 !important;
+  --van-tabbar-item-text-color: rgba(0, 0, 0, .40) !important;
+  --van-tabbar-background: #ffffff !important;
   --van-tabbar-item-active-background: transparent !important;
 }
 
