@@ -207,6 +207,7 @@
           >
             <span class="service-icon">
               <van-icon :name="item.icon" />
+              <span v-if="item.title === '我的缴费' && unpaidCount > 0" class="service-badge">{{ unpaidCount > 99 ? '99+' : unpaidCount }}</span>
             </span>
             <span>{{ item.title }}</span>
           </button>
@@ -349,12 +350,13 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
+import { showToast, showDialog } from 'vant'
 import { getPatientList, getPatientByUserId, completePatient } from '@/api/patient'
 import { getInfo } from '@/api/user'
 import { getRegisterList, getDeptList } from '@/api/register'
+import { getMyExamPayments } from '@/api/exam'
 import { listDoctor } from '@/api/doctor'
 import doctor1 from '@/assets/doctor1.png'
 import doctor2 from '@/assets/doctor2.png'
@@ -437,6 +439,16 @@ const handlePatientComplete = async () => {
 
 const displayName = computed(() => username.value || '患者')
 const visibleServiceItems = computed(() => (showAllServices.value ? serviceItems : serviceItems.slice(0, 4)))
+const examPaymentList = ref([])
+const isPaid = (status) => {
+  const value = String(status || '').trim().toLowerCase()
+  return value === 'paid' || value === '1' || value === '已支付' || value === '已缴费'
+}
+const unpaidCount = computed(() => {
+  const registerUnpaid = appointmentList.value.filter(item => !isPaid(item.payStatus)).length
+  const examUnpaid = examPaymentList.value.filter(item => !isPaid(item.payStatus)).length
+  return registerUnpaid + examUnpaid
+})
 const todayAppointmentList = computed(() => {
   return appointmentList.value
     .filter((item) => isTodayAppointment(item) && item.registerStatus !== 'cancel')
@@ -716,10 +728,16 @@ const loadUserData = async () => {
       }
     }
 
-    const registerRes = await getRegisterList({ pageNum: 1, pageSize: 10 })
+    const [registerRes, examRes] = await Promise.all([
+      getRegisterList({ pageNum: 1, pageSize: 10 }),
+      getMyExamPayments()
+    ])
     if (registerRes.rows) {
       appointmentList.value = registerRes.rows
       todayAppointments.value = todayAppointmentList.value.length
+    }
+    if (examRes.data) {
+      examPaymentList.value = examRes.data
     }
   } catch (error) {
     console.error('加载用户数据失败', error)
@@ -742,10 +760,34 @@ const loadHomeDoctors = async () => {
   }
 }
 
-onMounted(() => {
-  loadUserData()
+const checkUnpaidReminder = async () => {
+  const shown = localStorage.getItem('unpaidReminderShown')
+  if (shown) return
+  if (unpaidCount.value <= 0) return
+  await nextTick()
+  setTimeout(() => {
+    showDialog({
+      title: '缴费提醒',
+      message: `您有 <strong style="color:#e74c3c">${unpaidCount.value}</strong> 笔待缴费订单，请及时处理以免影响就诊。`,
+      confirmButtonText: '去缴费',
+      cancelButtonText: '稍后再说',
+      showCancelButton: true,
+      allowHtml: true,
+      className: 'unpaid-notice'
+    }).then(() => {
+      localStorage.setItem('unpaidReminderShown', '1')
+      router.push('/payment')
+    }).catch(() => {
+      localStorage.setItem('unpaidReminderShown', '1')
+    })
+  }, 300)
+}
+
+onMounted(async () => {
+  await loadUserData()
   loadHomeDoctors()
   loadAndCheckPatient()
+  checkUnpaidReminder()
 })
 </script>
 
@@ -1176,6 +1218,7 @@ button {
 }
 
 .service-item {
+  position: relative;
   min-width: 0;
   min-height: 56px;
   border: 1px solid rgba(93, 184, 216, .18);
@@ -1215,6 +1258,26 @@ button {
   color: #6fbacb;
   font-size: 18px;
   flex: 0 0 auto;
+  position: relative;
+}
+
+.service-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.35);
+  z-index: 2;
 }
 
 .expert-section,

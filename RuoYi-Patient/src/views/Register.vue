@@ -54,8 +54,37 @@
             <div class="header-text">
               <h3>选择就诊科室</h3>
             </div>
+            <!-- 科室搜索框 -->
+            <div class="dept-search-bar">
+              <van-search
+                v-model="searchKeyword"
+                placeholder="搜索科室名称"
+                shape="round"
+                background="transparent"
+                @clear="onSearchClear"
+                @update:model-value="onSearchChange"
+              />
+            </div>
           </div>
-          <div class="department-selector">
+          <!-- 搜索模式：扁平筛选列表 -->
+          <div v-if="isSearching" class="department-selector search-mode">
+            <div class="department-column search-column">
+              <div
+                v-for="dept in filteredSearchDepts"
+                :key="dept.deptId"
+                class="dept-item child-dept"
+                :class="{ selected: form.deptId === dept.deptId }"
+                @click="selectDepartment(dept)"
+              >
+                <span class="dept-name">{{ dept.deptName }}</span>
+              </div>
+              <div v-if="!filteredSearchDepts.length" class="empty-sub-dept">
+                未找到匹配科室
+              </div>
+            </div>
+          </div>
+          <!-- 正常模式：两级科室选择 -->
+          <div v-else class="department-selector">
             <div class="department-column parent-column">
               <div
                 v-for="dept in departmentList"
@@ -380,6 +409,33 @@ const activeParentDeptId = ref(null)
 const doctorSlotList = ref([])
 const slotList = ref([])
 const selectedScheduleDate = ref('')
+
+const searchKeyword = ref('')
+
+const isSearching = computed(() => searchKeyword.value.trim().length > 0)
+
+const filteredSearchDepts = computed(() => {
+  const keyword = searchKeyword.value.trim().toLowerCase()
+  if (!keyword) return []
+  const seen = new Set()
+  return allDepartmentList.value
+    .filter(dept => {
+      const name = (dept.deptName || '').toLowerCase()
+      return name.includes(keyword) && !seen.has(dept.deptId) && seen.add(dept.deptId)
+    })
+    .slice(0, 30)
+})
+
+const onSearchChange = (value) => {
+  if (value && value.trim()) {
+    // 搜索时清空当前选中
+    // 保留不影响用户已有选择的体验
+  }
+}
+
+const onSearchClear = () => {
+  searchKeyword.value = ''
+}
 
 const selectedSlot = computed(() => {
     return slotList.value.find(s => s.slotId === form.value.slotId)
@@ -1256,7 +1312,8 @@ onMounted(() => {
 
 .card-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 14px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(213, 237, 243, 0.6);
@@ -1284,6 +1341,46 @@ onMounted(() => {
   grid-template-columns: minmax(110px, 0.32fr) minmax(0, 0.68fr);
   gap: 14px;
   min-height: 260px;
+}
+
+.dept-search-bar {
+  flex: 1;
+  min-width: 0;
+
+  :deep(.van-search) {
+    padding: 0;
+  }
+
+  :deep(.van-search__content) {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(194, 228, 236, 0.82);
+    border-radius: 20px;
+    padding-left: 12px;
+  }
+
+  :deep(.van-search__field) {
+    font-size: 14px;
+    color: #4f7380;
+    padding: 8px 0;
+
+    &::placeholder {
+      color: #a5bcc7;
+    }
+  }
+
+  :deep(.van-icon-search) {
+    color: #8e9fa8;
+  }
+}
+
+.department-selector.search-mode {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.search-column {
+  border-left: none;
+  padding-left: 0;
 }
 
 .department-column {
