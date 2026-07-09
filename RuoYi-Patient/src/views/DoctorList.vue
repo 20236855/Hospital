@@ -269,41 +269,51 @@ onMounted(() => {
 <style scoped lang="scss">
 .resource-page {
   min-height: 100vh;
-  padding: 14px 14px 34px;
-  background: var(--bg-gradient);
-  color: var(--text-primary);
+  padding: 60px 14px 34px;
+  background:
+    linear-gradient(180deg, rgba(231, 242, 255, .9) 0%, rgba(247, 251, 255, 1) 44%),
+    #f4f9ff;
+  color: #1e3a5f;
 }
 
 .top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 2px 12px;
+  padding: 8px 14px;
+  background: #1250af;
+  color: #fff;
 
   p {
-    margin: 0 0 2px;
+    margin: 0 0 1px;
+    color: rgba(255, 255, 255, .75);
     font-size: 10px;
     font-weight: 800;
-    color: var(--text-light);
     letter-spacing: 0;
   }
 
   h1 {
     margin: 0;
-    font-size: 24px;
+    color: #fff;
+    font-size: 17px;
     line-height: 1.2;
-    color: var(--text-primary);
   }
 }
 
 .back-btn {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, .86);
-  color: var(--primary-color);
-  box-shadow: 0 8px 22px rgba(74, 144, 226, .13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .18);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 12px rgba(15, 40, 80, .2);
 }
 
 .summary-panel {

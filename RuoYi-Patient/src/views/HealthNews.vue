@@ -368,29 +368,31 @@ watch(() => route.query.articleId, () => {
   padding: 20px 16px 28px;
   overflow: hidden;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, .18) 0%, rgba(255, 255, 255, 0) 28%),
-    linear-gradient(155deg, #0f4fbd 0%, #1476d8 34%, #19a7c7 66%, #42c99c 100%);
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .24), 0 18px 42px rgba(20, 118, 216, .22);
+    radial-gradient(circle at 94% 8%, rgba(255, 255, 255, .24) 0 70px, transparent 72px),
+    linear-gradient(120deg, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 30%),
+    linear-gradient(155deg, #0b3f91 0%, #1250af 36%, #2563eb 70%, #60a5fa 100%);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .24), 0 18px 42px rgba(37, 99, 235, .22);
 
   &::before {
     position: absolute;
-    inset: 0;
-    opacity: .45;
-    background:
-      repeating-linear-gradient(115deg, rgba(255, 255, 255, .18) 0 1px, transparent 1px 18px),
-      linear-gradient(90deg, rgba(255, 255, 255, .22), transparent 42%);
-    clip-path: polygon(42% 0, 100% 0, 100% 72%, 68% 100%);
+    top: -74px;
+    right: -76px;
+    width: 242px;
+    height: 242px;
+    border: 1px solid rgba(255, 255, 255, .24);
+    border-radius: 50%;
     content: "";
   }
 
   &::after {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 88px;
+    left: -36px;
+    bottom: -42px;
+    width: 186px;
+    height: 126px;
+    border-radius: 50%;
     content: "";
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(221, 239, 255, .34));
+    background: rgba(255, 255, 255, .12);
   }
 }
 
@@ -435,7 +437,7 @@ watch(() => route.query.articleId, () => {
 }
 
 .eyebrow {
-  color: rgba(235, 255, 248, .86);
+  color: rgba(239, 246, 255, .88);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: .14em;
@@ -453,9 +455,9 @@ watch(() => route.query.articleId, () => {
   border: 1px solid rgba(255, 255, 255, .32);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .12)),
-    rgba(8, 70, 145, .2);
-  box-shadow: 0 18px 38px rgba(7, 55, 95, .22);
+    linear-gradient(135deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, .16)),
+    rgba(30, 64, 175, .22);
+  box-shadow: 0 18px 38px rgba(15, 52, 132, .22);
   backdrop-filter: blur(16px);
 
   img {
@@ -472,7 +474,7 @@ watch(() => route.query.articleId, () => {
   }
 
   span {
-    color: rgba(232, 255, 248, .82);
+    color: rgba(239, 246, 255, .82);
     font-size: 11px;
     font-weight: 800;
   }

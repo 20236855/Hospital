@@ -2,16 +2,16 @@
   <div class="home-page">
     <!-- ========== 模块1：全屏轮播 Banner ========== -->
     <div class="banner-card">
-      <div class="banner-area">
-        <van-swipe
-          class="banner-swipe"
-          :autoplay="4000"
-          :duration="600"
-          indicator-color="rgba(255,255,255,.7)"
-          :indicator-active-color="bannerSlides[currentBanner]?.accentColor || '#4a90e2'"
-          :show-indicators="true"
-          @change="onBannerChange"
-        >
+    <div class="banner-area">
+      <van-swipe
+        class="banner-swipe"
+        :autoplay="4000"
+        :duration="600"
+        indicator-color="rgba(255,255,255,.7)"
+        :indicator-active-color="bannerSlides[currentBanner]?.accentColor || '#4a90e2'"
+        :show-indicators="true"
+        @change="onBannerChange"
+      >
         <van-swipe-item v-for="(slide, idx) in bannerSlides" :key="idx">
           <div class="banner-slide" :style="{ background: slide.bgGradient }">
             <!-- 底纹：心电图 + 十字 -->
@@ -61,8 +61,8 @@
 
           </div>
         </van-swipe-item>
-        </van-swipe>
-      </div>
+      </van-swipe>
+    </div>
     </div>
 
     <!-- ========== 模块2：核心功能双卡片入口区 ========== -->
@@ -209,7 +209,6 @@
           >
             <span class="service-icon">
               <van-icon :name="item.icon" />
-              <span v-if="item.title === '我的缴费' && unpaidCount > 0" class="service-badge">{{ unpaidCount > 99 ? '99+' : unpaidCount }}</span>
             </span>
             <span>{{ item.title }}</span>
           </button>
@@ -354,13 +353,11 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast, showConfirmDialog } from 'vant'
+import { showToast } from 'vant'
 import { getPatientList, getPatientByUserId, completePatient } from '@/api/patient'
 import { getInfo } from '@/api/user'
 import { getRegisterList, getDeptList } from '@/api/register'
 import { listDoctor } from '@/api/doctor'
-import { getMyExamPayments } from '@/api/exam'
-import { getMyPrescriptionPayments } from '@/api/prescription'
 import doctor1 from '@/assets/doctor1.png'
 import doctor2 from '@/assets/doctor2.png'
 import nurse1 from '@/assets/nurse1.png'
@@ -371,8 +368,6 @@ const currentBanner = ref(0)
 const username = ref('')
 const todayAppointments = ref(0)
 const appointmentList = ref([])
-const examPaymentList = ref([])
-const prescriptionPaymentList = ref([])
 const showAllServices = ref(false)
 const doctorList = ref([])
 const deptList = ref([])
@@ -435,14 +430,6 @@ const handlePatientComplete = async () => {
     username.value = patientForm.value.name
     showToast('信息保存成功')
     showPatientPopup.value = false
-    await Promise.all([
-      loadUserData(),
-      loadExamPayments(),
-      loadPrescriptionPayments()
-    ])
-    setTimeout(() => {
-      checkUnpaidReminder()
-    }, 250)
   } catch (error) {
     showToast(error.msg || '保存失败，请稍后重试')
   } finally {
@@ -452,23 +439,6 @@ const handlePatientComplete = async () => {
 
 const displayName = computed(() => username.value || '患者')
 const visibleServiceItems = computed(() => (showAllServices.value ? serviceItems : serviceItems.slice(0, 4)))
-const unpaidRegisterPayments = computed(() => {
-  return appointmentList.value.filter((item) => item?.registerStatus !== 'cancel' && !isPaid(item))
-})
-const unpaidExamPayments = computed(() => {
-  return examPaymentList.value.filter((item) => !isPaid(item))
-})
-const unpaidPrescriptionPayments = computed(() => {
-  return prescriptionPaymentList.value.filter((item) => !isPaid(item))
-})
-const unpaidCount = computed(() => unpaidRegisterPayments.value.length + unpaidExamPayments.value.length + unpaidPrescriptionPayments.value.length)
-const unpaidAmount = computed(() => {
-  const registerAmount = unpaidRegisterPayments.value.reduce((sum, item) => sum + toNumber(item.registerFee), 0)
-  const examAmount = unpaidExamPayments.value.reduce((sum, item) => sum + toNumber(item.techPrice || item.amount), 0)
-  const prescriptionAmount = unpaidPrescriptionPayments.value.reduce((sum, item) => sum + toNumber(item.totalAmount || item.amount), 0)
-  return formatAmount(registerAmount + examAmount + prescriptionAmount)
-})
-const isPaid = (item) => isPaidStatus(item?.payStatus)
 const todayAppointmentList = computed(() => {
   return appointmentList.value
     .filter((item) => isTodayAppointment(item) && item.registerStatus !== 'cancel')
@@ -581,6 +551,7 @@ const bannerSlides = [
     action: () => router.push('/record')
   }
 ]
+
 
 function onBannerChange(index) {
   currentBanner.value = index
@@ -704,18 +675,6 @@ function hideBrokenAvatar(event) {
   event.target.style.display = 'none'
 }
 
-const isPaidStatus = (status) => {
-  const value = String(status || '').trim().toLowerCase()
-  return ['paid', '1', 'true', '已支付', '已缴费'].includes(value)
-}
-
-const toNumber = (value) => {
-  const numberValue = Number(value)
-  return Number.isFinite(numberValue) ? numberValue : 0
-}
-
-const formatAmount = (value) => toNumber(value).toFixed(2)
-
 const parseDate = (value) => {
   if (!value) return null
   const date = new Date(String(value).replace(/-/g, '/'))
@@ -781,33 +740,13 @@ const loadUserData = async () => {
       }
     }
 
-    const registerRes = await getRegisterList({ pageNum: 1, pageSize: 100 })
+    const registerRes = await getRegisterList({ pageNum: 1, pageSize: 10 })
     if (registerRes.rows) {
       appointmentList.value = registerRes.rows
       todayAppointments.value = todayAppointmentList.value.length
     }
   } catch (error) {
     console.error('加载用户数据失败', error)
-  }
-}
-
-const loadExamPayments = async () => {
-  try {
-    const examRes = await getMyExamPayments({ hideErrorToast: true })
-    examPaymentList.value = examRes.data || []
-  } catch (error) {
-    console.error('加载检查检验缴费数据失败', error)
-    examPaymentList.value = []
-  }
-}
-
-const loadPrescriptionPayments = async () => {
-  try {
-    const prescriptionRes = await getMyPrescriptionPayments({ hideErrorToast: true })
-    prescriptionPaymentList.value = prescriptionRes.data || []
-  } catch (error) {
-    console.error('加载处方缴费数据失败', error)
-    prescriptionPaymentList.value = []
   }
 }
 
@@ -827,45 +766,16 @@ const loadHomeDoctors = async () => {
   }
 }
 
-const checkUnpaidReminder = () => {
-  const shouldRemind = localStorage.getItem('pendingPaymentReminderOnLogin')
-  if (!shouldRemind || unpaidCount.value <= 0) {
-    localStorage.removeItem('pendingPaymentReminderOnLogin')
-    return
-  }
-
-  showConfirmDialog({
-    title: '缴费提醒',
-    message: `您有 ${unpaidCount.value} 笔待缴费订单，共计 ￥${unpaidAmount.value}。其中挂号 ${unpaidRegisterPayments.value.length} 笔，检查/检验 ${unpaidExamPayments.value.length} 笔，请及时处理以免影响就诊。`,
-    confirmButtonText: '去缴费',
-    cancelButtonText: '稍后再说',
-    confirmButtonColor: '#357ABD',
-    className: 'payment-notice-dialog unpaid-notice'
-  }).then(() => {
-    localStorage.removeItem('pendingPaymentReminderOnLogin')
-    router.push('/my-payment')
-  }).catch(() => {
-    localStorage.removeItem('pendingPaymentReminderOnLogin')
-  })
-}
-
-onMounted(async () => {
-  await Promise.all([
-    loadUserData(),
-    loadExamPayments(),
-    loadPrescriptionPayments()
-  ])
+onMounted(() => {
+  loadUserData()
   loadHomeDoctors()
-  await loadAndCheckPatient()
-  if (!showPatientPopup.value) {
-    checkUnpaidReminder()
-  }
+  loadAndCheckPatient()
 })
 </script>
 
 <style scoped lang="scss">
-$mint-dark: #4A90E2;
-$mint-pale: #e8f5f0;
+$mint-dark: #4a90e2;
+$mint-pale: #e8f4fa;
 $sky-blue: #5db8d8;
 $sky-pale: #e0eef8;
 $orange-warm: #e89860;
@@ -1125,7 +1035,7 @@ $orange-warm: #e89860;
   strong {
     font-size: 14px;
     font-weight: 800;
-    color: var(--text-primary);
+    color: #2c3e50;
     line-height: 1.2;
     white-space: nowrap;
   }
@@ -1135,7 +1045,7 @@ $orange-warm: #e89860;
   display: block;
   margin-top: 4px;
   font-size: 11px;
-  color: rgba(44, 62, 80, .55);
+  color: rgba(44, 62, 80, .5);
   font-weight: 500;
 }
 
@@ -1180,7 +1090,7 @@ button {
 
   h2 {
     margin: 1px 0 0;
-    color: var(--text-primary);
+    color: #2c3e50;
     font-size: 15px;
     line-height: 1.2;
     font-weight: 800;
@@ -1216,21 +1126,21 @@ button {
 
 .timeline-glow {
   position: absolute;
-  left: 28px;
+  left: 30px;
   top: 20px;
   bottom: 20px;
   width: 2px;
   border-radius: 4px;
-  background: linear-gradient(to bottom, rgba(191, 219, 254, .22), rgba(96, 165, 250, .62), rgba(191, 219, 254, .22));
+  background: linear-gradient(to bottom, rgba(200, 235, 250, .2), rgba(142, 214, 242, .6), rgba(200, 235, 250, .2));
 }
 
 .detail-item {
   position: relative;
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 58px 1fr;
+  gap: 26px;
   align-items: center;
-  min-height: 44px;
+  min-height: 48px;
 
   + .detail-item {
     border-top: 1px solid rgba(213, 237, 243, .45);
@@ -1239,26 +1149,23 @@ button {
 
 .time-pill {
   justify-self: start;
-  min-width: 72px;
-  height: 24px;
+  min-width: 66px;
+  height: 26px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(219, 234, 254, .78);
-  color: #4A90E2;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0;
+  background: rgba(200, 235, 250, .18);
+  color: #4a90e2;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .detail-copy {
   min-width: 0;
   font-size: 13px;
-  color: var(--text-primary);
-  line-height: 1.25;
-  font-weight: 800;
-  letter-spacing: 0;
+  color: #2c3e50;
+  line-height: 1.4;
 }
 
 .empty-state {
@@ -1271,7 +1178,7 @@ button {
   strong, span { display: block; }
 
   strong {
-    color: var(--text-primary);
+    color: #2c3e50;
     font-size: 13px;
     margin-bottom: 4px;
     font-weight: 700;
@@ -1290,8 +1197,8 @@ button {
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background: rgba(185, 225, 205, .16);
-  color: #4A90E2;
+  background: rgba(200, 235, 250, .16);
+  color: #6aa3d8;
   font-size: 20px;
 }
 
@@ -1302,7 +1209,6 @@ button {
 }
 
 .service-item {
-  position: relative;
   min-width: 0;
   min-height: 56px;
   border: 1px solid rgba(184, 211, 242, .72);
@@ -1314,7 +1220,7 @@ button {
   align-items: center;
   gap: 9px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
   transition: transform .2s ease;
 
@@ -1325,7 +1231,7 @@ button {
   > span:last-child {
     flex: 1;
     min-width: 0;
-    line-height: 1.2;
+    line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1338,30 +1244,10 @@ button {
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background: rgba(185, 225, 205, .16);
-  color: #4A90E2;
-  font-size: 21px;
+  background: rgba(200, 235, 250, .16);
+  color: #6aa3d8;
+  font-size: 18px;
   flex: 0 0 auto;
-  position: relative;
-}
-
-.service-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
-  background: #e74c3c;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 20px;
-  text-align: center;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(231, 76, 60, 0.35);
-  z-index: 2;
 }
 
 .expert-section,
@@ -1398,7 +1284,7 @@ button {
   align-items: center;
   gap: 4px;
   box-shadow: none;
-  color: var(--text-primary);
+  color: #2c3e50;
   transition: transform .2s ease;
 
   &:active {
@@ -1420,7 +1306,7 @@ button {
 
   > span {
     max-width: 100%;
-    color: var(--text-primary);
+    color: #2c3e50;
     font-size: 14px;
     line-height: 1.2;
     font-weight: 850;
@@ -1466,7 +1352,7 @@ button {
   font-size: 13px;
 
   .van-icon {
-    color: #4A90E2;
+    color: #6aa3d8;
     font-size: 28px;
   }
 }
@@ -1497,7 +1383,7 @@ button {
     border-radius: 10px;
     object-fit: cover;
     display: block;
-    background: #e8f5f0;
+    background: #e8f4fa;
   }
 }
 
@@ -1506,7 +1392,7 @@ button {
 
   h3 {
     margin: 0;
-    color: var(--text-primary);
+    color: #2c3e50;
     font-size: 15px;
     line-height: 1.35;
     font-weight: 850;
@@ -1549,21 +1435,21 @@ button {
 // ========== 患者信息完善弹窗 ==========
 .popup-complete {
   display: flex; flex-direction: column; height: 100%;
-  background: #f5f9fe;
+  background: #f5fafd;
 }
 .popup-header {
   padding: 24px 20px 12px; text-align: center; flex-shrink: 0;
-  h2 { margin: 0; font-size: 20px; font-weight: 800; color: var(--text-primary); }
-  p { margin: 6px 0 0; font-size: 13px; color: var(--text-regular); }
+  h2 { margin: 0; font-size: 20px; font-weight: 800; color: #2c3e50; }
+  p { margin: 6px 0 0; font-size: 13px; color: #6a9ab0; }
 }
 .popup-body {
   flex: 1; overflow-y: auto; padding: 0 20px 16px;
   -webkit-overflow-scrolling: touch;
 }
 .popup-section-title {
-  font-size: 14px; font-weight: 800; color: var(--text-primary);
+  font-size: 14px; font-weight: 800; color: #2c3e50;
   margin: 16px 0 10px; padding-bottom: 6px;
-  border-bottom: 2px solid rgba(74,144,226,.18);
+  border-bottom: 2px solid rgba(95,158,140,.2);
 }
 .popup-field {
   margin-bottom: 12px;
@@ -1573,9 +1459,9 @@ button {
     width: 100%; box-sizing: border-box;
     min-height: 44px; padding: 10px 14px;
     border: 1px solid rgba(181,221,231,.9); border-radius: 12px;
-    background: rgba(255,255,255,.82); font-size: 14px; color: var(--text-primary);
+    background: rgba(255,255,255,.82); font-size: 14px; color: #2c3e50;
     outline: none; font-family: inherit;
-    &:focus { border-color: #4A90E2; background: #fff; box-shadow: 0 0 0 3px rgba(74,144,226,.1); }
+    &:focus { border-color: #4a90e2; background: #fff; box-shadow: 0 0 0 3px rgba(95,158,140,.1); }
   }
   textarea { resize: none; min-height: 60px; line-height: 1.5; }
   select { cursor: pointer; }
@@ -1585,30 +1471,18 @@ button {
   padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
   background: rgba(255,255,255,.6); border: 2px solid rgba(181,221,231,.9);
   color: #4f7380; cursor: pointer; transition: all .2s;
-  &.on { background: rgba(74,144,226,.12); border-color: #4A90E2; color: var(--text-primary); }
+  &.on { background: rgba(95,158,140,.12); border-color: #4a90e2; color: #2c3e50; }
 }
 .popup-footer {
-  flex-shrink: 0; padding: 16px 20px 28px; background: #f5f9fe;
+  flex-shrink: 0; padding: 16px 20px 28px; background: #f5fafd;
   border-top: 1px solid rgba(181,221,231,.4);
 }
 .popup-submit {
   width: 100%; height: 50px; border: none; border-radius: 14px;
   color: #fff; font-size: 16px; font-weight: 800;
-  background: linear-gradient(135deg, #4A90E2, #357ABD);
-  box-shadow: 0 8px 24px rgba(74,144,226,.28); cursor: pointer;
+  background: linear-gradient(135deg, #4a90e2, #5db8d8);
+  box-shadow: 0 8px 24px rgba(95,158,140,.3); cursor: pointer;
   &:active:not(:disabled) { transform: scale(.98); }
   &:disabled { opacity: .65; }
-}
-</style>
-
-<style lang="scss">
-.payment-notice-dialog.unpaid-notice {
-  .van-dialog__confirm {
-    color: #fff !important;
-    background: linear-gradient(135deg, #4a90e2, #357abd);
-    border-radius: 20px;
-    padding: 8px 24px;
-    margin-left: 8px;
-  }
 }
 </style>

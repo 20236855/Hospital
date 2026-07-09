@@ -31,7 +31,7 @@
       </div>
     </section>
 
-    <van-tabs v-model:active="activeTab" sticky color="#347b70" title-active-color="#173e48">
+    <van-tabs v-model:active="activeTab" sticky color="#1d4ed8" title-active-color="#1e3a5f">
       <van-tab title="全部">
         <PaymentList
           :items="allPayments"
@@ -203,7 +203,7 @@ async function handlePay(item) {
       message: `本次需缴纳 ￥${formatAmount(item.amount)}，是否继续？`,
       confirmButtonText: '立即缴费',
       cancelButtonText: '再想想',
-      confirmButtonColor: '#d35f45',
+      confirmButtonColor: '#1d4ed8',
       className: 'payment-notice-dialog'
     })
     payingId.value = item.paymentKey
@@ -255,9 +255,9 @@ onMounted(async () => {
   min-height: 100vh;
   padding: 60px 14px 36px;
   background:
-    linear-gradient(180deg, rgba(232, 248, 246, .96) 0%, rgba(247, 250, 252, 1) 42%),
-    #f7fafc;
-  color: #183f4a;
+    linear-gradient(180deg, rgba(231, 242, 255, .9) 0%, rgba(247, 251, 255, 1) 44%),
+    #f4f9ff;
+  color: #1e3a5f;
 }
 
 .page-header {
@@ -310,9 +310,9 @@ onMounted(async () => {
     padding: 14px;
     background:
       linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .78)),
-      linear-gradient(120deg, rgba(108, 181, 194, .18), rgba(123, 207, 170, .2));
-    border: 1px solid rgba(206, 232, 238, .9);
-    box-shadow: 0 14px 34px rgba(75, 132, 145, .12);
+      linear-gradient(120deg, rgba(96, 165, 250, .18), rgba(59, 130, 246, .2));
+    border: 1px solid rgba(191, 219, 254, .9);
+    box-shadow: 0 14px 34px rgba(37, 99, 235, .12);
   }
 
   span,
@@ -322,21 +322,21 @@ onMounted(async () => {
   }
 
   span {
-    color: #6f8790;
+    color: #64748b;
     font-size: 12px;
     font-weight: 800;
   }
 
   strong {
     margin-top: 10px;
-    color: #276b63;
+    color: #1d4ed8;
     font-size: 26px;
     line-height: 1;
   }
 
   em {
     margin-top: 9px;
-    color: #7d9299;
+    color: #64748b;
     font-size: 11px;
     font-style: normal;
   }
@@ -402,11 +402,11 @@ onMounted(async () => {
   padding: 14px;
   border-radius: 16px;
   background: rgba(255, 255, 255, .96);
-  border: 1px solid rgba(211, 232, 237, .86);
-  box-shadow: 0 12px 30px rgba(75, 132, 145, .1);
+  border: 1px solid rgba(191, 219, 254, .86);
+  box-shadow: 0 12px 30px rgba(37, 99, 235, .1);
 
   &.unpaid {
-    border-color: rgba(214, 69, 69, .24);
+    border-color: rgba(191, 219, 254, .86);
   }
 }
 
@@ -418,14 +418,14 @@ onMounted(async () => {
 
   h3 {
     margin: 0;
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 16px;
     line-height: 1.3;
   }
 
   p {
     margin: 5px 0 0;
-    color: #687f87;
+    color: #64748b;
     font-size: 12px;
   }
 }
@@ -441,13 +441,13 @@ onMounted(async () => {
   font-weight: 900;
 
   &.paid {
-    background: rgba(52, 123, 112, .1);
-    color: #347b70;
+    background: rgba(37, 99, 235, .1);
+    color: #1d4ed8;
   }
 
   &.unpaid {
-    background: #fff0ee;
-    color: #d64545;
+    background: rgba(37, 99, 235, .1);
+    color: #1d4ed8;
   }
 }
 
@@ -458,8 +458,8 @@ onMounted(async () => {
   margin-top: 12px;
   padding: 10px;
   border-radius: 12px;
-  background: #f5fafb;
-  color: #708890;
+  background: #f4f9ff;
+  color: #64748b;
   font-size: 12px;
 }
 
@@ -470,7 +470,7 @@ onMounted(async () => {
   margin-top: 12px;
 
   strong {
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 22px;
   }
 
@@ -491,7 +491,7 @@ onMounted(async () => {
 }
 
 :deep(.paid-note) {
-  color: #347b70;
+  color: #1d4ed8;
   font-size: 12px;
   font-weight: 800;
 }
@@ -500,21 +500,21 @@ onMounted(async () => {
   min-height: 220px;
   border-radius: 16px;
   background: rgba(255, 255, 255, .78);
-  border: 1px solid rgba(211, 232, 237, .86);
+  border: 1px solid rgba(191, 219, 254, .86);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  color: #6f8790;
+  color: #64748b;
 
   .van-icon {
-    color: #6fbacb;
+    color: #60a5fa;
     font-size: 42px;
   }
 
   strong {
-    color: #173e48;
+    color: #1e3a5f;
     font-size: 16px;
   }
 
@@ -564,8 +564,8 @@ onMounted(async () => {
 }
 
 :global(.payment-notice-dialog.unpaid-notice .van-dialog__confirm) {
-  background: linear-gradient(135deg, #3f8f88, #4aa6a0);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: #fff;
-  box-shadow: 0 10px 22px rgba(63, 143, 136, 0.22);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
 }
 </style>

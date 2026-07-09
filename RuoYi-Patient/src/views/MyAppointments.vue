@@ -10,6 +10,7 @@
         <van-icon name="arrow-left" />
       </div>
       <div class="header-title">
+        <p>MY APPOINTMENTS</p>
         <h1>我的预约</h1>
       </div>
     </div>
@@ -529,10 +530,17 @@ onMounted(() => {
 }
 
 .header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  h1 { font-size: 17px; font-weight: 700; color: #fff; margin: 0; }
+  display: block;
+
+  p {
+    margin: 0 0 1px;
+    color: rgba(255, 255, 255, .75);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  h1 { font-size: 17px; font-weight: 700; color: #fff; margin: 0; line-height: 1.2; }
 }
 
 .page-header,

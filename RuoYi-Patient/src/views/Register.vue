@@ -10,6 +10,7 @@
         <van-icon name="arrow-left" />
       </div>
       <div class="header-title">
+        <p>APPOINTMENT</p>
         <h1>预约挂号</h1>
       </div>
     </div>
@@ -1064,7 +1065,7 @@ onMounted(() => {
 .register-page {
   min-height: 100vh;
   background: var(--bg-gradient);
-  padding-top: 60px;
+  padding-top: 68px;
   padding-bottom: 60px;
   position: relative;
   overflow-x: hidden;
@@ -1132,7 +1133,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   z-index: 100;
-  padding: 8px 20px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -1163,9 +1164,15 @@ onMounted(() => {
 }
 
 .header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: block;
+
+  p {
+    margin: 0 0 1px;
+    color: rgba(255, 255, 255, .75);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
 
   h1 {
     font-size: 17px;
@@ -2081,9 +2088,9 @@ onMounted(() => {
 }
 
 :global(.payment-reminder-dialog .van-dialog__confirm) {
-  background: linear-gradient(135deg, #3f8f88, #4aa6a0);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: #fff;
-  box-shadow: 0 10px 22px rgba(63, 143, 136, 0.22);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
 }
 
 .dialog-section {
