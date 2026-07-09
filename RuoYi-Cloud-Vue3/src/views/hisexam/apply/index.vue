@@ -22,7 +22,12 @@
         >
           <div
             class="category-card"
-            :style="{ '--card-color': cat.color }"
+            :style="{
+              '--card-color': cat.color,
+              '--card-color-dark': cat.colorDark,
+              '--card-color-bg': cat.colorBg,
+              '--card-shadow': cat.colorShadow
+            }"
             @click="goDetail(cat.type)"
             @mouseenter="cat.paused = true"
             @mouseleave="cat.paused = false"
@@ -51,7 +56,7 @@
                 </span>
               </div>
               <!-- 卡片上的类型标识 -->
-              <div class="banner-badge" :style="{ background: cat.color }">
+              <div class="banner-badge">
                 {{ cat.name }}
               </div>
             </div>
@@ -85,7 +90,6 @@
                 </div>
                 <button
                   class="action-btn"
-                  :style="{ background: cat.color, '--btn-hover': cat.color }"
                   @click.stop="goDetail(cat.type)"
                 >
                   进入{{ cat.name }}
@@ -409,8 +413,10 @@ const categories = reactive([
     icon: View,
     description: '利用 CT、超声等影像设备进行医学诊断，包含颅内病变CT、肺部病变CT及皮肤病变等检查项目',
     images: [checkImg1, checkImg2, checkImg3],
-    color: '#3D5AB8',
-    colorBg: '#EAEDF8',
+    color: '#0876C9',
+    colorDark: '#37A9EA',
+    colorBg: '#E9F8FF',
+    colorShadow: 'rgba(8, 118, 201, 0.28)',
     items: ['颅内病变CT', '肺部病变CT', '皮肤病变'],
     itemCount: 3,
     currentIndex: 0,
@@ -424,8 +430,10 @@ const categories = reactive([
     icon: Monitor,
     description: '通过分析血液、体液等样本提供诊断依据，包含验血、生化分析等实验室检验项目',
     images: [inspecImg1, inspecImg2, inspecImg3],
-    color: '#3D5AB8',
-    colorBg: '#EAEDF8',
+    color: '#0876C9',
+    colorDark: '#37A9EA',
+    colorBg: '#E9F8FF',
+    colorShadow: 'rgba(8, 118, 201, 0.28)',
     items: ['验血', '生化检验', '免疫检验'],
     itemCount: 3,
     currentIndex: 0,
@@ -439,8 +447,10 @@ const categories = reactive([
     icon: FirstAidKit,
     description: '为患者提供直接的治疗与护理服务，包含手术、住院、注射等临床处置项目',
     images: [disposalImg1, disposalImg3, disposalImg1],
-    color: '#3D5AB8',
-    colorBg: '#EAEDF8',
+    color: '#0876C9',
+    colorDark: '#37A9EA',
+    colorBg: '#E9F8FF',
+    colorShadow: 'rgba(8, 118, 201, 0.28)',
     items: ['手术', '住院', '注射'],
     itemCount: 3,
     currentIndex: 0,
@@ -901,7 +911,7 @@ getList()
       }
 
       .action-btn {
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 12px 24px var(--card-shadow);
       }
     }
   }
@@ -943,12 +953,13 @@ getList()
       right: 16px;
       padding: 6px 18px;
       border-radius: 20px;
+      background: linear-gradient(135deg, var(--card-color), var(--card-color-dark));
       color: #FFFFFF;
       font-size: 13px;
       font-weight: 600;
       letter-spacing: 2px;
       backdrop-filter: blur(10px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 18px var(--card-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.22);
       transition: transform 0.3s ease;
       z-index: 2;
     }
@@ -1053,6 +1064,7 @@ getList()
       font-weight: 500;
       border: 1px solid;
       line-height: 20px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
       transition: all 0.2s;
     }
   }
@@ -1080,16 +1092,29 @@ getList()
       padding: 8px 20px;
       border: none;
       border-radius: 20px;
+      background: linear-gradient(135deg, var(--card-color), var(--card-color-dark));
       color: #FFFFFF;
       font-size: 14px;
       font-weight: 600;
       letter-spacing: 0.5px;
       cursor: pointer;
+      box-shadow: 0 8px 18px var(--card-shadow);
       transition: all 0.3s ease;
 
       &:hover {
-        filter: brightness(0.9);
-        transform: translateY(-1px);
+        background: linear-gradient(135deg, var(--card-color-dark), var(--card-color));
+        box-shadow: 0 12px 24px var(--card-shadow);
+        transform: translateY(-2px);
+      }
+
+      &:active {
+        box-shadow: 0 5px 14px var(--card-shadow);
+        transform: translateY(0);
+      }
+
+      &:focus-visible {
+        outline: 3px solid var(--card-color-bg);
+        outline-offset: 3px;
       }
 
       .btn-arrow {

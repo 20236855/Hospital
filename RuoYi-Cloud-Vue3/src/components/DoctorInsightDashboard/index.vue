@@ -7,9 +7,10 @@
         <p>{{ subtitle }}</p>
       </div>
       <div class="head-kpis" v-if="metrics.length">
-        <span v-for="item in metrics.slice(0, 4)" :key="item.label">
+        <span v-for="item in metrics.slice(0, 4)" :key="item.label" :class="item.state || 'info'">
           <em>{{ item.label }}</em>
           <strong>{{ item.value }}</strong>
+          <small v-if="item.note">{{ item.note }}</small>
         </span>
       </div>
     </div>
@@ -26,8 +27,8 @@
 
       <div class="distribution-list">
         <div class="list-head">
-          <strong>接诊状态分布</strong>
-          <span>按当前列表占比</span>
+          <strong>业务状态分布</strong>
+          <span>实时列表占比</span>
         </div>
         <div v-for="item in distributionItems" :key="item.label" class="dist-row">
           <i :style="{ backgroundColor: item.color }"></i>
@@ -63,7 +64,7 @@ const props = defineProps({
   chips: { type: Array, default: () => [] }
 })
 
-const palette = ['#3d6ea8', '#5b8fc0', '#4f97a6', '#6b8bb0', '#88a0bd']
+const palette = ['#0876C9', '#37A9EA', '#3D5AB8', '#7EA7D8', '#94A3B8']
 
 function toNumber(value) {
   const n = Number(value)
@@ -114,40 +115,65 @@ const donutStyle = computed(() => {
 
 <style scoped lang="scss">
 .doctor-insight {
-  --line: #e6edf3;
-  --track: #eef3f8;
-  --text: #1f3a52;
-  --muted: #6f8295;
+  --primary: #0876C9;
+  --primary-soft: #E9F8FF;
+  --primary-line: #BFE7FF;
+  --line: #DCEAF5;
+  --track: #EAF3FA;
+  --text: #102A43;
+  --muted: #64748B;
   margin-bottom: 18px;
-  padding: 22px 24px;
+  padding: 22px 24px 24px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 16px 44px rgba(31, 58, 82, .08);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .98) 0%, rgba(246, 251, 255, .98) 52%, rgba(233, 248, 255, .92) 100%);
+  box-shadow: 0 16px 36px rgba(8, 118, 201, .08), 0 1px 0 rgba(255, 255, 255, .9) inset;
   color: var(--text);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 3px;
+    content: "";
+    background: linear-gradient(90deg, #0876C9 0%, #37A9EA 55%, #D9F1FF 100%);
+  }
 }
 
 .insight-head {
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 .eyebrow {
-  display: block;
-  margin-bottom: 6px;
-  color: #8597a8;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 3px 9px;
+  border: 1px solid var(--primary-line);
+  border-radius: 999px;
+  background: rgba(233, 248, 255, .72);
+  color: var(--primary);
   font-size: 12px;
   font-weight: 700;
+  letter-spacing: .2px;
 }
 
 h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 21px;
   line-height: 1.25;
   font-weight: 800;
   letter-spacing: 0;
+  color: #0F2537;
 }
 
 p {
@@ -159,19 +185,32 @@ p {
 .head-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(72px, 1fr));
-  gap: 10px;
-  min-width: 420px;
+  gap: 8px;
+  min-width: 460px;
 
   span {
     min-width: 0;
-    padding: 10px 12px;
+    padding: 10px 12px 11px;
     border-radius: 8px;
-    background: #f8fbfa;
-    border: 1px solid #edf3f1;
+    background: rgba(255, 255, 255, .82);
+    border: 1px solid rgba(191, 231, 255, .72);
+    box-shadow: 0 8px 18px rgba(15, 37, 55, .04);
+
+    &.good,
+    &.success {
+      border-color: rgba(55, 169, 234, .42);
+    }
+
+    &.warn,
+    &.warning {
+      border-color: rgba(245, 158, 11, .34);
+      background: rgba(255, 251, 235, .72);
+    }
   }
 
   em,
-  strong {
+  strong,
+  small {
     display: block;
   }
 
@@ -185,43 +224,58 @@ p {
   }
 
   strong {
-    margin-top: 5px;
-    color: var(--text);
-    font-size: 20px;
+    margin-top: 4px;
+    color: #0F2537;
+    font-size: 21px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    overflow: hidden;
+    margin-top: 3px;
+    color: #7B8DA1;
+    font-size: 11px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 .distribution {
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr);
-  gap: 28px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .donut-zone {
   display: grid;
   place-items: center;
-  min-height: 190px;
+  min-height: 194px;
+  border: 1px solid rgba(191, 231, 255, .62);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .62);
 }
 
 .donut-chart {
   position: relative;
   display: grid;
   place-items: center;
-  width: 188px;
-  height: 188px;
+  width: 172px;
+  height: 172px;
   border-radius: 50%;
-  box-shadow: 0 18px 36px rgba(31, 58, 82, .12);
+  box-shadow: 0 18px 34px rgba(8, 118, 201, .14);
 
   &::after {
     position: absolute;
-    inset: 40px;
+    inset: 38px;
     content: "";
     border-radius: 50%;
-    background: #fff;
-    box-shadow: inset 0 0 0 1px #eef3f8;
+    background: linear-gradient(180deg, #FFFFFF, #F8FCFF);
+    box-shadow: inset 0 0 0 1px #E4F0F8;
   }
 }
 
@@ -233,15 +287,15 @@ p {
   gap: 6px;
 
   strong {
-    color: #1f4a6e;
-    font-size: 32px;
+    color: #0A4F8E;
+    font-size: 31px;
     line-height: 1;
     font-weight: 850;
     font-variant-numeric: tabular-nums;
   }
 
   em {
-    color: #8aa0b3;
+    color: #6B7F93;
     font-size: 12px;
     font-style: normal;
     font-weight: 700;
@@ -250,7 +304,11 @@ p {
 
 .distribution-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(220, 234, 245, .86);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .72);
 }
 
 .list-head {
@@ -262,17 +320,18 @@ p {
   strong {
     color: var(--text);
     font-size: 15px;
+    font-weight: 800;
   }
 
   span {
-    color: #8597a8;
+    color: #7B8DA1;
     font-size: 13px;
   }
 }
 
 .dist-row {
   display: grid;
-  grid-template-columns: 10px 92px 44px minmax(120px, 1fr);
+  grid-template-columns: 10px 104px 44px minmax(120px, 1fr);
   gap: 10px;
   align-items: center;
   min-width: 0;
@@ -281,12 +340,13 @@ p {
     width: 10px;
     height: 10px;
     border-radius: 3px;
+    box-shadow: 0 0 0 3px rgba(8, 118, 201, .08);
   }
 }
 
 .dist-name {
   overflow: hidden;
-  color: #244a63;
+  color: #243B53;
   font-size: 14px;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -294,7 +354,7 @@ p {
 }
 
 .dist-row strong {
-  color: #1f3a52;
+  color: #102A43;
   font-size: 15px;
   font-weight: 850;
   text-align: right;
@@ -303,7 +363,7 @@ p {
 
 .dist-track {
   overflow: hidden;
-  height: 6px;
+  height: 7px;
   border-radius: 999px;
   background: var(--track);
 
@@ -311,6 +371,7 @@ p {
     display: block;
     height: 100%;
     border-radius: inherit;
+    box-shadow: 0 0 12px rgba(8, 118, 201, .22);
     transition: width .45s ease;
   }
 }
@@ -321,15 +382,17 @@ p {
   gap: 10px;
   margin-top: 18px;
   padding-top: 16px;
-  border-top: 1px solid #eef3f8;
+  border-top: 1px solid rgba(220, 234, 245, .9);
+  position: relative;
+  z-index: 1;
 }
 
 .insight-chip {
-  padding: 8px 11px;
-  border: 1px solid #dde6ef;
+  padding: 7px 11px;
+  border: 1px solid #CFE4F5;
   border-radius: 8px;
-  background: #fafcfe;
-  color: #5f7286;
+  background: rgba(255, 255, 255, .72);
+  color: #536A7F;
   font-size: 12px;
   font-weight: 700;
 
@@ -339,9 +402,9 @@ p {
     font-variant-numeric: tabular-nums;
   }
 
-  &.success { border-color: #c2dbe0; background: #f1f8f9; color: #2f6f73; }
-  &.warning { border-color: #e0d8b8; background: #fbf8ef; color: #8a6d2f; }
-  &.danger { border-color: #e0c8c8; background: #fbf5f5; color: #9e4034; }
+  &.success { border-color: #A9DDF7; background: #F0FAFF; color: #0876C9; }
+  &.warning { border-color: #F7D58A; background: #FFFBEB; color: #9A6A08; }
+  &.danger { border-color: #F3B7B7; background: #FFF5F5; color: #B42318; }
 }
 
 @media (max-width: 1100px) {

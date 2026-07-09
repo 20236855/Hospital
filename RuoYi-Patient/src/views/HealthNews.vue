@@ -364,31 +364,33 @@ watch(() => route.query.articleId, () => {
 
 .health-hero {
   position: relative;
-  min-height: 200px;
-  padding: 18px 16px 16px;
+  min-height: 238px;
+  padding: 20px 16px 28px;
   overflow: hidden;
-  background: #1250af;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, .18) 0%, rgba(255, 255, 255, 0) 28%),
+    linear-gradient(155deg, #0f4fbd 0%, #1476d8 34%, #19a7c7 66%, #42c99c 100%);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .24), 0 18px 42px rgba(20, 118, 216, .22);
 
   &::before {
     position: absolute;
-    top: -70px;
-    right: -86px;
-    width: 220px;
-    height: 220px;
-    border: 1px solid rgba(255, 255, 255, .2);
-    border-radius: 50%;
+    inset: 0;
+    opacity: .45;
+    background:
+      repeating-linear-gradient(115deg, rgba(255, 255, 255, .18) 0 1px, transparent 1px 18px),
+      linear-gradient(90deg, rgba(255, 255, 255, .22), transparent 42%);
+    clip-path: polygon(42% 0, 100% 0, 100% 72%, 68% 100%);
     content: "";
   }
 
   &::after {
     position: absolute;
-    left: -34px;
-    bottom: -88px;
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 88px;
     content: "";
-    background: rgba(255, 255, 255, .1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(221, 239, 255, .34));
   }
 }
 
@@ -401,9 +403,11 @@ watch(() => route.query.articleId, () => {
   border: 1px solid rgba(255, 255, 255, .35);
   border-radius: 8px;
   color: #fff;
-  background: rgba(15, 40, 80, .28);
+  background: rgba(11, 50, 116, .22);
   place-items: center;
   font-size: 19px;
+  box-shadow: 0 10px 24px rgba(7, 52, 115, .18);
+  backdrop-filter: blur(12px);
 }
 
 .hero-copy {
@@ -414,23 +418,24 @@ watch(() => route.query.articleId, () => {
 
   h1 {
     margin: 6px 0 6px;
-    font-size: 30px;
+    font-size: 32px;
     line-height: 1.1;
     font-weight: 900;
+    text-shadow: 0 10px 26px rgba(10, 64, 132, .24);
   }
 
   p {
     max-width: 260px;
     margin: 0;
-    color: rgba(255, 255, 255, .82);
+    color: rgba(244, 252, 255, .9);
     font-size: 14px;
     line-height: 1.45;
-    font-weight: 600;
+    font-weight: 800;
   }
 }
 
 .eyebrow {
-  color: rgba(255, 255, 255, .8);
+  color: rgba(235, 255, 248, .86);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: .14em;
@@ -443,12 +448,14 @@ watch(() => route.query.articleId, () => {
   grid-template-columns: 104px 1fr;
   gap: 12px;
   align-items: center;
-  margin-top: 18px;
-  padding: 10px;
-  border: 1px solid rgba(230, 255, 247, .24);
+  margin-top: 20px;
+  padding: 10px 12px 10px 10px;
+  border: 1px solid rgba(255, 255, 255, .32);
   border-radius: 8px;
-  background: rgba(255, 255, 255, .16);
-  box-shadow: 0 18px 36px rgba(7, 55, 50, .2);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .12)),
+    rgba(8, 70, 145, .2);
+  box-shadow: 0 18px 38px rgba(7, 55, 95, .22);
   backdrop-filter: blur(16px);
 
   img {
@@ -456,6 +463,7 @@ watch(() => route.query.articleId, () => {
     height: 74px;
     border-radius: 8px;
     object-fit: cover;
+    box-shadow: 0 10px 22px rgba(7, 55, 95, .18);
   }
 
   span,
@@ -464,7 +472,7 @@ watch(() => route.query.articleId, () => {
   }
 
   span {
-    color: rgba(232, 255, 248, .76);
+    color: rgba(232, 255, 248, .82);
     font-size: 11px;
     font-weight: 800;
   }
@@ -481,7 +489,7 @@ watch(() => route.query.articleId, () => {
 .health-content {
   position: relative;
   z-index: 3;
-  margin-top: -12px;
+  margin-top: -26px;
   padding: 0 14px;
 }
 

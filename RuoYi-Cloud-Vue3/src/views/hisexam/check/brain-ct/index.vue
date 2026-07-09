@@ -1256,9 +1256,12 @@ onMounted(loadApplyDetail)
       grid-column: 2;
       gap: 14px;
       min-height: 0;
+      height: calc(100vh - 160px);
+      max-height: calc(100vh - 160px);
       overflow-y: auto;
       overflow-x: hidden;
-      max-height: calc(100vh - 160px);
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
       align-self: start;
       position: sticky;
       top: 12px;
@@ -1972,9 +1975,11 @@ onMounted(loadApplyDetail)
   .brain-ct-page {
     .main-content {
       .side-col {
+        height: calc(100vh - 160px);
         max-height: calc(100vh - 160px);
         overflow-y: auto;
         overflow-x: hidden;
+        overscroll-behavior: contain;
         padding-right: 8px !important;
       }
     }
@@ -2002,6 +2007,11 @@ onMounted(loadApplyDetail)
 
       .side-col {
         margin-top: 0;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        position: static;
+        padding-right: 0 !important;
       }
     }
 
