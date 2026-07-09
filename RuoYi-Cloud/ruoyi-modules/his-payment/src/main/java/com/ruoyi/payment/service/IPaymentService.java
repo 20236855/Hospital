@@ -76,4 +76,13 @@ public interface IPaymentService
      * @return 收费单
      */
     public Payment payExamByRegister(Long registerId, String payType);
+
+    /**
+     * 支付处方费用
+     *
+     * @param prescriptionId 处方ID
+     * @param payType 支付方式
+     * @return 收费单
+     */
+    public Payment payPrescription(Long prescriptionId, String payType);
 }

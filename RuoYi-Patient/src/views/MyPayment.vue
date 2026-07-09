@@ -18,7 +18,7 @@
       </div>
       <div>
         <span>待支付金额</span>
-        <strong class="danger">¥{{ unpaidAmount }}</strong>
+        <strong class="danger">￥{{ unpaidAmount }}</strong>
         <em>请及时完成缴费</em>
       </div>
     </section>
@@ -64,8 +64,9 @@ import { computed, defineComponent, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showDialog, showToast } from 'vant'
 import { getRegisterList } from '@/api/register'
-import { payExamByRegister, payRegister } from '@/api/payment'
+import { payExamByRegister, payRegister, payPrescription } from '@/api/payment'
 import { getMyExamPayments } from '@/api/exam'
+import { getMyPrescriptionPayments } from '@/api/prescription'
 
 const router = useRouter()
 const loading = ref(false)
@@ -97,7 +98,8 @@ const PaymentList = defineComponent({
         ])
         : props.items.map((item) => {
           const paid = isPaid(item.payStatus)
-          const examPayment = item.paymentType === 'exam'
+          const noLabel = item.paymentType === 'exam' ? '申请单号' : item.paymentType === 'prescription' ? '处方单号' : '挂号单号'
+          const timeLabel = item.paymentType === 'exam' ? '申请时间' : item.paymentType === 'prescription' ? '开方时间' : '挂号时间'
           return h('article', { class: ['payment-card', paid ? 'paid' : 'unpaid'], key: item.paymentKey }, [
             h('div', { class: 'payment-card-head' }, [
               h('div', [
@@ -107,11 +109,11 @@ const PaymentList = defineComponent({
               h('span', { class: ['status-tag', paid ? 'paid' : 'unpaid'] }, paid ? '已缴费' : '待缴费')
             ]),
             h('div', { class: 'payment-meta' }, [
-              h('span', `${examPayment ? '申请单号' : '挂号单号'}：${item.billNo || '-'}`),
-              h('span', `${examPayment ? '申请时间' : '挂号时间'}：${formatDate(item.billTime)}`)
+              h('span', `${noLabel}：${item.billNo || '-'}`),
+              h('span', `${timeLabel}：${formatDate(item.billTime)}`)
             ]),
             h('div', { class: 'payment-card-foot' }, [
-              h('strong', { class: paid ? '' : 'danger' }, `¥${formatAmount(item.amount)}`),
+              h('strong', { class: paid ? '' : 'danger' }, `￥${formatAmount(item.amount)}`),
               paid
                 ? h('span', { class: 'paid-note' }, '费用已结清')
                 : h('button', {
@@ -128,7 +130,7 @@ const PaymentList = defineComponent({
 
 function isPaid(status) {
   const value = String(status || '').trim().toLowerCase()
-  return value === 'paid' || value === '1' || value === '已支付' || value === '已缴费'
+  return ['paid', '1', 'true', '已支付', '已缴费'].includes(value)
 }
 
 function toNumber(value) {
@@ -150,9 +152,10 @@ function formatDate(value) {
 async function loadPayments() {
   loading.value = true
   try {
-    const [registerRes, examRes] = await Promise.all([
+    const [registerRes, examRes, prescriptionRes] = await Promise.all([
       getRegisterList({ pageNum: 1, pageSize: 100 }),
-      getMyExamPayments()
+      getMyExamPayments(),
+      getMyPrescriptionPayments()
     ])
     const registerPayments = (registerRes.rows || []).map((item) => ({
       ...item,
@@ -167,43 +170,59 @@ async function loadPayments() {
     const examPayments = (examRes.data || []).map((item) => ({
       ...item,
       paymentType: 'exam',
-      paymentKey: `exam-${item.registerId}-${item.payStatus || item.applyId}`,
+      paymentKey: `exam-${item.registerId}-${item.applyId || item.payStatus || item.techId || item.techName}`,
       title: item.techName || '检查检验项目',
       subtitle: `${item.deptName || '执行科室'} · ${item.itemCount || 1} 个项目`,
       billNo: item.registerNo || item.registerId || '-',
       billTime: item.applyTime,
       amount: item.techPrice
     }))
-    paymentRows.value = [...registerPayments, ...examPayments]
+    const prescriptionPayments = (prescriptionRes.data || []).map((item) => ({
+      ...item,
+      paymentType: 'prescription',
+      paymentKey: `prescription-${item.prescriptionId}`,
+      title: item.drugName || '处方药品',
+      subtitle: `${item.deptName || '开方科室'} · ${item.itemCount || 1} 种药品`,
+      billNo: item.prescriptionNo || item.prescriptionId || '-',
+      billTime: item.createTime,
+      amount: item.totalAmount
+    }))
+    paymentRows.value = [...registerPayments, ...examPayments, ...prescriptionPayments]
+  } catch (error) {
+    console.error('加载缴费列表失败', error)
   } finally {
     loading.value = false
   }
 }
 
 async function handlePay(item) {
-  if (!item?.registerId) return
+  if (item.paymentType === 'prescription' ? !item?.prescriptionId : !item?.registerId) return
   try {
     await showConfirmDialog({
       title: '确认缴费',
-      message: `本次需缴纳 ¥${formatAmount(item.amount)}，是否继续？`,
+      message: `本次需缴纳 ￥${formatAmount(item.amount)}，是否继续？`,
       confirmButtonText: '立即缴费',
-      confirmButtonColor: '#d35f45'
+      cancelButtonText: '再想想',
+      confirmButtonColor: '#d35f45',
+      className: 'payment-notice-dialog'
     })
     payingId.value = item.paymentKey
     if (item.paymentType === 'exam') {
       await payExamByRegister(item.registerId)
+    } else if (item.paymentType === 'prescription') {
+      await payPrescription(item.prescriptionId)
     } else {
       await payRegister(item.registerId)
     }
-    showDialog({
+    await showDialog({
       title: '缴费成功',
-      message: `已成功缴纳 ¥${formatAmount(item.amount)}`,
+      message: `已成功缴纳 ￥${formatAmount(item.amount)}`,
       confirmButtonText: '确定',
-      className: 'unpaid-notice'
+      className: 'payment-notice-dialog unpaid-notice'
     })
     await loadPayments()
   } catch (error) {
-    if (error !== 'cancel') {
+    if (error !== 'cancel' && error !== 'close') {
       showToast('缴费失败，请稍后重试')
     }
   } finally {
@@ -218,13 +237,12 @@ function goBack() {
 onMounted(async () => {
   await loadPayments()
   if (unpaidCount.value > 0) {
-    showDialog({
+    showConfirmDialog({
       title: '缴费提醒',
-      message: `您有 ${unpaidCount.value} 笔费用尚未缴纳，共计 ¥${unpaidAmount.value}，请及时缴费以免影响就诊。`,
+      message: `您有 ${unpaidCount.value} 笔费用尚未缴纳，共计 ￥${unpaidAmount.value}，请及时缴费以免影响就诊。`,
       confirmButtonText: '去缴费',
       cancelButtonText: '稍后再说',
-      showCancelButton: true,
-      className: 'unpaid-notice'
+      className: 'payment-notice-dialog unpaid-notice'
     }).then(() => {
       activeTab.value = 1
     }).catch(() => {})
@@ -538,7 +556,7 @@ onMounted(async () => {
   color: #607783;
 }
 
-:global(.unpaid-notice .van-dialog__confirm) {
+:global(.payment-notice-dialog.unpaid-notice .van-dialog__confirm) {
   background: linear-gradient(135deg, #3f8f88, #4aa6a0);
   color: #fff;
   box-shadow: 0 10px 22px rgba(63, 143, 136, 0.22);

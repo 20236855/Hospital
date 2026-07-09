@@ -11,6 +11,7 @@ import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.utils.DateUtils;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.his.api.RemoteExamService;
+import com.ruoyi.his.api.RemotePrescriptionService;
 import com.ruoyi.his.api.RemoteRegisterService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,9 @@ public class PaymentServiceImpl implements IPaymentService
 
     @Autowired
     private RemoteExamService remoteExamService;
+
+    @Autowired
+    private RemotePrescriptionService remotePrescriptionService;
 
     @Autowired
     private PaymentItemMapper paymentItemMapper;
@@ -228,6 +232,69 @@ public class PaymentServiceImpl implements IPaymentService
         if (paidResult == null || !R.isSuccess(paidResult) || Boolean.FALSE.equals(paidResult.getData()))
         {
             throw new ServiceException(paidResult != null && paidResult.getMsg() != null ? paidResult.getMsg() : "更新检查检验支付状态失败");
+        }
+        return payment;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Payment payPrescription(Long prescriptionId, String payType)
+    {
+        if (prescriptionId == null)
+        {
+            throw new ServiceException("处方单不能为空");
+        }
+
+        R<Map<String, Object>> prescriptionResult = remotePrescriptionService.getPrescriptionPayInfo(prescriptionId, SecurityConstants.INNER);
+        if (prescriptionResult == null || !R.isSuccess(prescriptionResult) || prescriptionResult.getData() == null)
+        {
+            throw new ServiceException(prescriptionResult != null && prescriptionResult.getMsg() != null ? prescriptionResult.getMsg() : "获取处方缴费信息失败");
+        }
+
+        Map<String, Object> prescriptionPayInfo = prescriptionResult.getData();
+        List<Map<String, Object>> items = (List<Map<String, Object>>) prescriptionPayInfo.get("items");
+        if (items == null || items.isEmpty())
+        {
+            throw new ServiceException("该处方暂无待缴费药品项目");
+        }
+
+        BigDecimal totalAmount = decimalValue(prescriptionPayInfo.get("totalAmount"));
+        Payment payment = new Payment();
+        payment.setPayNo(buildPayNo());
+        payment.setRegisterId(longValue(prescriptionPayInfo.get("registerId")));
+        payment.setPatientId(longValue(prescriptionPayInfo.get("patientId")));
+        payment.setTotalAmount(totalAmount);
+        payment.setPayType(StringUtils.isNotEmpty(payType) ? payType : "微信");
+        payment.setPayStatus("PAID");
+        payment.setPayTime(DateUtils.getNowDate());
+        payment.setCreateTime(DateUtils.getNowDate());
+        payment.setRemark("患者端支付处方费");
+        paymentMapper.insertPayment(payment);
+
+        for (Map<String, Object> itemMap : items)
+        {
+            BigDecimal unitPrice = decimalValue(itemMap.get("drugPrice"));
+            Long quantity = longValue(itemMap.get("quantity"));
+            if (quantity == null)
+            {
+                quantity = 1L;
+            }
+            PaymentItem item = new PaymentItem();
+            item.setPaymentId(payment.getPaymentId());
+            item.setBizType("PRESCRIPTION");
+            item.setBizId(longValue(itemMap.get("itemId")));
+            item.setItemName(stringValue(itemMap.get("drugName")));
+            item.setUnitPrice(unitPrice);
+            item.setQuantity(quantity);
+            item.setSubtotal(unitPrice.multiply(new BigDecimal(quantity)));
+            item.setCreateTime(DateUtils.getNowDate());
+            paymentItemMapper.insertPaymentItem(item);
+        }
+
+        R<Boolean> paidResult = remotePrescriptionService.markPrescriptionPaid(prescriptionId, SecurityConstants.INNER);
+        if (paidResult == null || !R.isSuccess(paidResult) || Boolean.FALSE.equals(paidResult.getData()))
+        {
+            throw new ServiceException(paidResult != null && paidResult.getMsg() != null ? paidResult.getMsg() : "更新处方支付状态失败");
         }
         return payment;
     }

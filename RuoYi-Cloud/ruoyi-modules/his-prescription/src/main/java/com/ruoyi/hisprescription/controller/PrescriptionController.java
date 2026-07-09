@@ -67,6 +67,33 @@ public class PrescriptionController extends BaseController
     }
 
     /**
+     * 患者端查询本人处方缴费项。
+     */
+    @GetMapping("/patient/payments")
+    public AjaxResult patientPayments()
+    {
+        return success(prescriptionService.selectPatientPrescriptionPayments(getCurrentPatientId()));
+    }
+
+    /**
+     * 内部接口：查询处方待缴费信息。
+     */
+    @GetMapping("/inner/pay-info/{prescriptionId}")
+    public R<Map<String, Object>> innerPayInfo(@PathVariable("prescriptionId") Long prescriptionId)
+    {
+        return R.ok(prescriptionService.selectPrescriptionPayInfo(prescriptionId));
+    }
+
+    /**
+     * 内部接口：标记处方已缴费。
+     */
+    @PutMapping("/inner/pay/{prescriptionId}")
+    public R<Boolean> innerMarkPaid(@PathVariable("prescriptionId") Long prescriptionId)
+    {
+        return R.ok(prescriptionService.markPrescriptionPaid(prescriptionId));
+    }
+
+    /**
      * 导出处方主列表
      */
     @RequiresPermissions("hisprescription:prescription:export")

@@ -46,4 +46,9 @@ public class ServiceNameConstants
      * his-emr serviceid
      */
     public static final String EMR_SERVICE = "his-emr";
+
+    /**
+     * his-prescription serviceid
+     */
+    public static final String PRESCRIPTION_SERVICE = "his-prescription";
 }

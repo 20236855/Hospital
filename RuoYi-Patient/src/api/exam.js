@@ -7,9 +7,10 @@ export function getMyExamReports() {
   })
 }
 
-export function getMyExamPayments() {
+export function getMyExamPayments(config = {}) {
   return request({
     url: '/hisexam/apply/patient/payments',
-    method: 'get'
+    method: 'get',
+    ...config
   })
 }

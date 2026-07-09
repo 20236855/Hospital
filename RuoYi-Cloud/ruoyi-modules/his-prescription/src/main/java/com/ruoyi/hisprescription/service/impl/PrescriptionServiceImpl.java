@@ -3,8 +3,11 @@ package com.ruoyi.hisprescription.service.impl;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.utils.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +38,65 @@ public class PrescriptionServiceImpl implements IPrescriptionService
     public Prescription selectPrescriptionByPrescriptionId(Long prescriptionId)
     {
         return prescriptionMapper.selectPrescriptionByPrescriptionId(prescriptionId);
+    }
+
+    @Override
+    public List<Map<String, Object>> selectPatientPrescriptionPayments(Long patientId)
+    {
+        return prescriptionMapper.selectPatientPrescriptionPayments(patientId);
+    }
+
+    @Override
+    public Map<String, Object> selectPrescriptionPayInfo(Long prescriptionId)
+    {
+        if (prescriptionId == null)
+        {
+            throw new ServiceException("处方单不能为空");
+        }
+        Prescription prescription = prescriptionMapper.selectPrescriptionByPrescriptionId(prescriptionId);
+        if (prescription == null)
+        {
+            throw new ServiceException("处方单不存在");
+        }
+        if (isPaid(prescription.getPayStatus()))
+        {
+            throw new ServiceException("该处方已缴费");
+        }
+
+        List<Map<String, Object>> items = prescriptionMapper.selectPrescriptionItemsById(prescriptionId);
+        if (items == null || items.isEmpty())
+        {
+            throw new ServiceException("该处方暂无药品明细");
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("prescriptionId", prescriptionId);
+        result.put("registerId", prescription.getRegisterId());
+        result.put("patientId", prescription.getPatientId());
+        result.put("prescriptionNo", prescription.getPrescriptionNo());
+        result.put("totalAmount", prescription.getTotalAmount() != null ? prescription.getTotalAmount() : BigDecimal.ZERO);
+        result.put("items", items);
+        return result;
+    }
+
+    @Override
+    public boolean markPrescriptionPaid(Long prescriptionId)
+    {
+        if (prescriptionId == null)
+        {
+            throw new ServiceException("处方单不能为空");
+        }
+        return prescriptionMapper.markPrescriptionPaid(prescriptionId) >= 0;
+    }
+
+    private boolean isPaid(String payStatus)
+    {
+        if (payStatus == null)
+        {
+            return false;
+        }
+        String value = payStatus.trim().toLowerCase();
+        return "paid".equals(value) || "1".equals(value) || "已支付".equals(value) || "已缴费".equals(value);
     }
 
     @Override

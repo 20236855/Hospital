@@ -12,6 +12,44 @@
       :chips="encounterDashboard.chips"
     />
 
+    <div class="consult-panel">
+      <div class="consult-head">
+        <div>
+          <div class="consult-title">联合会诊</div>
+          <div class="consult-desc">向目标科室医生发送线下会诊邀请，受邀医生接受后按地点前往。</div>
+        </div>
+        <div class="consult-actions">
+          <el-badge :value="consultUnreadCount" :hidden="consultUnreadCount === 0" type="danger">
+            <el-button :loading="consultLoading" @click="loadConsultInvitations">刷新邀请</el-button>
+          </el-badge>
+          <el-button type="primary" @click="openConsultDialog">
+            <el-icon><Connection /></el-icon>联合会诊
+          </el-button>
+        </div>
+      </div>
+      <div class="consult-list" v-if="consultInvitations.length">
+        <div v-for="item in consultInvitations" :key="item.invitationId" class="consult-item" :class="{ accepted: item.accepted }">
+          <div class="consult-main">
+            <div class="consult-line">
+              <span class="doctor">{{ item.senderDoctorName || '医生' }}</span>
+              <el-tag size="small" type="info">{{ formatDeptNames(item.targetDeptNames) }}</el-tag>
+              <el-tag v-if="item.accepted" size="small" type="success">已接受</el-tag>
+              <el-tag v-else size="small" type="warning">待接受</el-tag>
+            </div>
+            <div class="consult-meta">
+              <span>地点：{{ item.location || '-' }}</span>
+              <span>时间：{{ parseTime(item.createTime, '{m}-{d} {h}:{i}') }}</span>
+            </div>
+            <div class="consult-message" v-if="item.importantInfo">{{ item.importantInfo }}</div>
+          </div>
+          <el-button v-if="!item.accepted" type="primary" size="small" :loading="acceptingConsultId === item.invitationId" @click="handleAcceptConsult(item)">
+            <el-icon><CircleCheckFilled /></el-icon>接受
+          </el-button>
+        </div>
+      </div>
+      <div class="consult-empty" v-else>暂无本科室联合会诊邀请</div>
+    </div>
+
     <!-- ===== 搜索区域 ===== -->
     <div class="search-panel">
       <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
@@ -68,6 +106,29 @@
     </div>
 
     <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+
+    <el-dialog title="发起联合会诊" v-model="consultDialogOpen" width="640px" append-to-body>
+      <el-form ref="consultFormRef" :model="consultForm" :rules="consultRules" label-width="96px">
+        <el-form-item label="发起医生" prop="senderDoctorName">
+          <el-input v-model="consultForm.senderDoctorName" placeholder="请输入医生姓名" />
+        </el-form-item>
+        <el-form-item label="会诊地点" prop="location">
+          <el-input v-model="consultForm.location" placeholder="如：门诊三楼 2 诊室" />
+        </el-form-item>
+        <el-form-item label="会诊科室" prop="targetDeptIds">
+          <el-select v-model="consultForm.targetDeptIds" multiple filterable collapse-tags collapse-tags-tooltip placeholder="请选择科室" style="width:100%">
+            <el-option v-for="dept in deptOptions" :key="dept.deptId" :label="dept.deptName" :value="dept.deptId" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="重要信息" prop="importantInfo">
+          <el-input v-model="consultForm.importantInfo" type="textarea" :rows="4" maxlength="500" show-word-limit placeholder="填写病情摘要、注意事项或需要协助判断的问题" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="consultDialogOpen = false">取消</el-button>
+        <el-button type="primary" :loading="consultSubmitting" @click="submitConsultInvitation">发送邀请</el-button>
+      </template>
+    </el-dialog>
 
     <!-- ===== 新增/修改对话框 ===== -->
     <el-dialog :title="title" v-model="open" width="700px" append-to-body>
@@ -175,6 +236,21 @@
         </div>
 
         <!-- 快捷操作 -->
+        <div class="clinical-actions">
+          <button type="button" class="clinical-action prescription" @click="goPrescription">
+            <el-icon><Tickets /></el-icon>
+            <span>开处方</span>
+          </button>
+          <button type="button" class="clinical-action exam" @click="goExamApply">
+            <el-icon><Connection /></el-icon>
+            <span>检查检验</span>
+          </button>
+          <button type="button" class="clinical-action record" @click="openManualRecord">
+            <el-icon><EditPen /></el-icon>
+            <span>写病历</span>
+          </button>
+        </div>
+
         <div class="ai-quick-actions">
           <el-button size="small" @click="aiQuickAsk('请根据该患者的既往病历和当前主诉，给出鉴别诊断建议（按可能性排序）及推荐的辅助检查项目')">
             <el-icon><List /></el-icon>鉴别诊断
@@ -185,7 +261,7 @@
           <el-button size="small" @click="aiQuickAsk('请列出该患者需要重点关注的体格检查项目及可能的阳性体征')">
             <el-icon><Connection /></el-icon>体格检查
           </el-button>
-          <el-button size="small" type="success" :loading="generatingRecord" @click="aiGenerateFullRecord">
+          <el-button size="small" class="ai-gen-record-btn" :loading="generatingRecord" @click="aiGenerateFullRecord">
             <el-icon><MagicStick /></el-icon>一键生成病历
           </el-button>
         </div>
@@ -250,7 +326,7 @@
             @keydown.enter.exact="aiSend"
             resize="none"
           />
-          <el-button type="primary" :color="'#1A6B54'" :loading="aiThinking" @click="aiSend" class="ai-send-btn">
+          <el-button type="primary" :color="'#2563EB'" :loading="aiThinking" @click="aiSend" class="ai-send-btn">
             <el-icon><Position /></el-icon>发送
           </el-button>
         </div>
@@ -287,18 +363,22 @@
 
 <script setup name="Encounter">
 import { ref, reactive, toRefs, computed, getCurrentInstance, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { MagicStick, UserFilled, List, Connection, Document, Position, TrendCharts, Clock, CircleCheckFilled } from '@element-plus/icons-vue'
+import { MagicStick, UserFilled, List, Connection, Document, Position, TrendCharts, Clock, CircleCheckFilled, Tickets, EditPen } from '@element-plus/icons-vue'
 import DoctorInsightDashboard from '@/components/DoctorInsightDashboard/index.vue'
 import { listEncounter, getEncounter, delEncounter, addEncounter, updateEncounter } from "@/api/emr/encounter"
 import { saveRecord as saveRecordApi } from "@/api/emr/record"
+import { createConsultInvitation, listConsultInvitations, acceptConsultInvitation } from "@/api/emr/consultInvitation"
 import { listPatient } from "@/api/patient/patient"
 import { listRegister } from "@/api/register/register"
 import { getDoctorByUserId, getMyDoctorInfo } from "@/api/hisdoctor/doctor"
+import { listRegisterDeptAuth } from "@/api/system/dept"
 import { aiChat } from "@/api/ai/assistant"
 import useUserStore from "@/store/modules/user"
 
 const { proxy } = getCurrentInstance()
+const router = useRouter()
 const userStore = useUserStore()
 
 // ===== 接诊列表 =====
@@ -313,6 +393,26 @@ const total = ref(0)
 const title = ref("")
 const patientOptions = ref([])
 const registerOptions = ref([])
+const deptOptions = ref([])
+const consultDialogOpen = ref(false)
+const consultSubmitting = ref(false)
+const consultLoading = ref(false)
+const acceptingConsultId = ref(null)
+const consultInvitations = ref([])
+const currentDoctorInfo = ref({})
+const consultForm = reactive({
+  senderDoctorId: null,
+  senderDoctorName: '',
+  location: '',
+  importantInfo: '',
+  targetDeptIds: []
+})
+const consultRules = {
+  senderDoctorName: [{ required: true, message: '请填写发起医生', trigger: 'blur' }],
+  location: [{ required: true, message: '请填写会诊地点', trigger: 'blur' }],
+  targetDeptIds: [{ required: true, type: 'array', min: 1, message: '请选择会诊科室', trigger: 'change' }]
+}
+const consultUnreadCount = computed(() => consultInvitations.value.filter(item => !item.accepted).length)
 
 const isDoctorUser = computed(() => {
   return userStore.roles?.some(r => r === 'doctor' || r.roleKey === 'doctor' || r.roleId === 5) || false
@@ -363,6 +463,107 @@ function formatPatientLabel(item) { return item?.phone ? item.name + " / " + ite
 function formatRegisterLabel(item) { return item?.registerNo ? item.registerNo : item?.registerId || "" }
 function getPatientOptions() { listPatient({ pageNum: 1, pageSize: 1000 }).then(r => patientOptions.value = r.rows || []) }
 function getRegisterOptions() { listRegister({ pageNum: 1, pageSize: 1000, registerStatus: "registered" }).then(r => registerOptions.value = r.rows || []) }
+function getDeptOptions() {
+  return listRegisterDeptAuth()
+    .then(r => { deptOptions.value = r.data || [] })
+    .catch(error => {
+      if (!isSessionExpiredError(error)) {
+        console.error('[联合会诊] 科室列表加载失败:', error)
+      }
+    })
+}
+
+function isSessionExpiredError(error) {
+  return String(error || '').includes('无效的会话') || String(error?.message || '').includes('无效的会话')
+}
+
+function formatDeptNames(names) {
+  return Array.isArray(names) && names.length ? names.join('、') : '目标科室'
+}
+
+async function loadCurrentDoctorInfo() {
+  try {
+    const res = await getMyDoctorInfo()
+    currentDoctorInfo.value = res.data || {}
+    if (currentDoctorInfo.value?.doctorName) {
+      consultForm.senderDoctorName = currentDoctorInfo.value.doctorName
+      consultForm.senderDoctorId = currentDoctorInfo.value.doctorId || null
+    }
+  } catch {
+    currentDoctorInfo.value = {}
+  }
+}
+
+function resetConsultForm() {
+  consultForm.senderDoctorId = currentDoctorInfo.value?.doctorId || null
+  consultForm.senderDoctorName = currentDoctorInfo.value?.doctorName || userStore.nickName || userStore.name || ''
+  consultForm.location = ''
+  consultForm.importantInfo = ''
+  consultForm.targetDeptIds = []
+  nextTick(() => proxy.$refs["consultFormRef"]?.clearValidate())
+}
+
+function openConsultDialog() {
+  if (!deptOptions.value.length) getDeptOptions()
+  if (!currentDoctorInfo.value?.doctorName) loadCurrentDoctorInfo()
+  resetConsultForm()
+  consultDialogOpen.value = true
+}
+
+function submitConsultInvitation() {
+  proxy.$refs["consultFormRef"].validate(async valid => {
+    if (!valid) return
+    consultSubmitting.value = true
+    try {
+      await createConsultInvitation({
+        senderDoctorId: consultForm.senderDoctorId,
+        senderDoctorName: consultForm.senderDoctorName,
+        location: consultForm.location,
+        importantInfo: consultForm.importantInfo,
+        targetDeptIds: consultForm.targetDeptIds
+      })
+      ElMessage.success('联合会诊邀请已发送')
+      consultDialogOpen.value = false
+      loadConsultInvitations()
+    } catch (error) {
+      if (!isSessionExpiredError(error)) {
+        ElMessage.error(error?.message || '联合会诊邀请发送失败')
+      }
+    } finally {
+      consultSubmitting.value = false
+    }
+  })
+}
+
+async function loadConsultInvitations() {
+  consultLoading.value = true
+  try {
+    const res = await listConsultInvitations()
+    consultInvitations.value = res.data || []
+  } catch (error) {
+    if (!isSessionExpiredError(error)) {
+      console.error('[联合会诊] 邀请列表加载失败:', error)
+    }
+  } finally {
+    consultLoading.value = false
+  }
+}
+
+async function handleAcceptConsult(item) {
+  acceptingConsultId.value = item.invitationId
+  try {
+    await acceptConsultInvitation(item.invitationId)
+    ElMessage.success('已接受联合会诊邀请')
+    item.accepted = true
+    loadConsultInvitations()
+  } catch (error) {
+    if (!isSessionExpiredError(error)) {
+      ElMessage.error(error?.message || '接受联合会诊邀请失败')
+    }
+  } finally {
+    acceptingConsultId.value = null
+  }
+}
 
 function handleRegisterChange(id) {
   if (!id) return
@@ -455,6 +656,51 @@ function openAIAssistantFirst() {
   } else {
     ElMessage.info('暂无可接诊记录')
   }
+}
+
+function currentConsultQuery(extra = {}) {
+  const row = currentPatient.value || {}
+  return {
+    encounterId: row.encounterId,
+    registerId: row.registerId,
+    patientId: row.patientId,
+    doctorId: row.doctorId,
+    deptId: row.deptId,
+    patientName: row.patientName,
+    registerNo: row.registerNo,
+    ...extra
+  }
+}
+
+function goPrescription() {
+  if (!currentPatient.value?.encounterId) {
+    ElMessage.warning('当前接诊记录缺少接诊ID')
+    return
+  }
+  router.push({
+    path: '/hisprescription/prescription',
+    query: currentConsultQuery({ autoOpen: '1' })
+  })
+}
+
+function goExamApply() {
+  if (!currentPatient.value?.registerId) {
+    ElMessage.warning('当前接诊记录缺少挂号ID')
+    return
+  }
+  router.push({
+    path: '/hisexam/apply-detail',
+    query: currentConsultQuery({ autoOpen: '1', applyType: 'CHECK' })
+  })
+}
+
+function openManualRecord() {
+  if (!currentPatient.value?.encounterId) {
+    ElMessage.warning('当前接诊记录缺少接诊ID')
+    return
+  }
+  resetPreviewRecord(currentPatient.value.encounterId)
+  previewOpen.value = true
 }
 
 function aiQuickAsk(question) {
@@ -693,11 +939,101 @@ async function saveRecord() {
   } catch { ElMessage.error('保存失败') }
 }
 
-getList(); getPatientOptions()
+getList(); getPatientOptions(); loadCurrentDoctorInfo()
 </script>
 
 <style scoped lang="scss">
 .encounter-page {
+  .consult-panel {
+    margin-bottom: 14px;
+    padding: 16px;
+    border: 1px solid #BFDBFE;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 58%, #F8FAFC 100%);
+  }
+  .consult-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .consult-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1E3A8A;
+  }
+  .consult-desc {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #64748B;
+  }
+  .consult-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .consult-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .consult-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 104px;
+    padding: 12px;
+    border: 1px solid #DBEAFE;
+    border-radius: 10px;
+    background: #FFFFFF;
+    box-shadow: 0 8px 22px rgba(37, 99, 235, 0.08);
+    &.accepted {
+      background: #F8FAFC;
+      border-color: #E2E8F0;
+      box-shadow: none;
+    }
+  }
+  .consult-main {
+    min-width: 0;
+    flex: 1;
+  }
+  .consult-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    .doctor {
+      font-weight: 700;
+      color: #0F172A;
+    }
+  }
+  .consult-meta {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #475569;
+  }
+  .consult-message {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #334155;
+    word-break: break-word;
+  }
+  .consult-empty {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.72);
+    color: #64748B;
+    font-size: 13px;
+    text-align: center;
+  }
   .search-panel { background: #F8FAFC; border-radius: 12px; padding: 20px 16px 4px; margin-bottom: 14px; border: 1px solid #E2E8F0; }
   .table-wrap {
     border-radius: 12px; overflow: hidden; border: 1px solid #E2E8F0;
@@ -710,15 +1046,24 @@ getList(); getPatientOptions()
 }
 
 /* ===== AI 抽屉 ===== */
+:deep(.ai-drawer.el-drawer) {
+  background: #F8FAFC;
+}
+
 .ai-drawer {
-  :deep(.el-drawer__header) { margin-bottom: 0; padding: 16px 20px; border-bottom: 1px solid #F1F5F9; }
+  :deep(.el-drawer__header) {
+    margin-bottom: 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid #DBEAFE;
+    background: #FFFFFF;
+  }
   :deep(.el-drawer__body) { padding: 0; display: flex; flex-direction: column; height: calc(100% - 65px); }
 }
 
 .ai-drawer-header {
   display: flex; align-items: center; gap: 12px;
-  .ai-header-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #1A6B54, #0F4C3A); display: flex; align-items: center; justify-content: center; color: #fff; }
-  .ai-header-text { flex: 1; .ai-title { font-size: 17px; font-weight: 700; color: #1E293B; display: block; } .ai-subtitle { font-size: 12px; color: #94A3B8; } }
+  .ai-header-icon { width: 40px; height: 40px; border-radius: 8px; background: #2563EB; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 8px 18px rgba(37, 99, 235, 0.16); }
+  .ai-header-text { flex: 1; .ai-title { font-size: 17px; font-weight: 700; color: #0F172A; display: block; } .ai-subtitle { font-size: 12px; color: #64748B; } }
 }
 
 .ai-drawer-body {
@@ -727,63 +1072,124 @@ getList(); getPatientOptions()
 }
 
 .ai-patient-card {
-  display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: linear-gradient(135deg, #E8F3EF, #F8FAFC); border-bottom: 1px solid #F1F5F9;
-  .ai-patient-avatar { width: 44px; height: 44px; border-radius: 50%; background: #1A6B54; display: flex; align-items: center; justify-content: center; color: #fff; }
-  .ai-patient-name { font-size: 15px; font-weight: 600; color: #1E293B; display: flex; align-items: center; gap: 8px; }
+  display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: #EFF6FF; border-bottom: 1px solid #DBEAFE;
+  .ai-patient-avatar { width: 44px; height: 44px; border-radius: 50%; background: #1D4ED8; display: flex; align-items: center; justify-content: center; color: #fff; }
+  .ai-patient-name { font-size: 15px; font-weight: 600; color: #0F172A; display: flex; align-items: center; gap: 8px; }
   .ai-patient-meta { font-size: 12px; color: #64748B; margin-top: 2px; display: flex; gap: 16px; }
 }
 
+.clinical-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #F1F5F9;
+  background: #FFFFFF;
+}
+
+.clinical-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  height: 38px;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .18s ease;
+  .el-icon { font-size: 16px; }
+  &:hover {
+    border-color: #2563EB;
+    background: #DBEAFE;
+    color: #1E40AF;
+    transform: translateY(-1px);
+  }
+  &.prescription {
+    border-color: #BFDBFE;
+    background: #EFF6FF;
+    color: #1D4ED8;
+    &:hover { border-color: #2563EB; background: #DBEAFE; color: #1E40AF; }
+  }
+  &.exam {
+    border-color: #BFDBFE;
+    background: #EFF6FF;
+    color: #1D4ED8;
+  }
+  &.record {
+    border-color: #BFDBFE;
+    background: #EFF6FF;
+    color: #1D4ED8;
+    &:hover { border-color: #2563EB; background: #DBEAFE; color: #1E40AF; }
+  }
+}
+
 .ai-quick-actions {
-  display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; border-bottom: 1px solid #F1F5F9;
+  display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; border-bottom: 1px solid #DBEAFE; background: #FFFFFF;
+  :deep(.el-button) {
+    border-color: #DBEAFE;
+    color: #1D4ED8;
+  }
+}
+
+.ai-gen-record-btn {
+  background: #FFFFFF !important;
+  border-color: #DBEAFE !important;
+  color: #1D4ED8 !important;
 }
 
 .ai-chat-area {
   flex: 1; overflow-y: auto; padding: 16px 20px; background: #F8FAFC;
   &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
+  &::-webkit-scrollbar-thumb { background: #BFDBFE; border-radius: 2px; }
 }
 
-.ai-welcome { text-align: center; padding: 60px 20px; color: #94A3B8; .el-icon { margin-bottom: 12px; } p { margin: 0; &.hint { font-size: 12px; margin-top: 4px; } } }
+.ai-welcome { text-align: center; padding: 60px 20px; color: #64748B; .el-icon { margin-bottom: 12px; color: #2563EB; } p { margin: 0; &.hint { font-size: 12px; margin-top: 4px; color: #94A3B8; } } }
 
 .ai-message {
   display: flex; gap: 10px; margin-bottom: 16px;
   .msg-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  &.msg-user { flex-direction: row-reverse; .msg-avatar { background: #1A6B54; color: #fff; } .msg-body { align-items: flex-end; } }
-  &.msg-assistant { .msg-avatar { background: #E2E8F0; color: #475569; } }
+  &.msg-user { flex-direction: row-reverse; .msg-avatar { background: #2563EB; color: #fff; } .msg-body { align-items: flex-end; } }
+  &.msg-assistant { .msg-avatar { background: #DBEAFE; color: #1D4ED8; } }
 }
 
 .msg-body {
   display: flex; flex-direction: column; max-width: 85%;
-  .msg-content { background: #FFFFFF; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.6; color: #334155; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .msg-content { background: #FFFFFF; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; color: #334155; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
   .msg-time { font-size: 11px; color: #94A3B8; margin-top: 4px; }
 }
 
-.msg-user .msg-body .msg-content { background: #1A6B54; color: #FFFFFF; }
+.msg-user .msg-body .msg-content { background: #2563EB; color: #FFFFFF; border-color: #2563EB; }
 
 .msg-record-tip {
-  font-size: 11px; color: #1A6B54; background: #DCFCE7; padding: 4px 10px; border-radius: 6px; margin-top: 4px; display: inline-block;
+  font-size: 11px; color: #1D4ED8; background: #EFF6FF; padding: 4px 10px; border-radius: 6px; margin-top: 4px; display: inline-block;
 }
 
 .msg-thinking {
-  display: flex; gap: 6px; padding: 14px 20px; background: #FFF; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  span { width: 8px; height: 8px; border-radius: 50%; background: #CBD5E1; animation: bounce 1.4s ease-in-out infinite both; }
+  display: flex; gap: 6px; padding: 14px 20px; background: #FFF; border-radius: 10px; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  span { width: 8px; height: 8px; border-radius: 50%; background: #93C5FD; animation: bounce 1.4s ease-in-out infinite both; }
   span:nth-child(1) { animation-delay: -0.32s; } span:nth-child(2) { animation-delay: -0.16s; }
 }
 @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
 
 /* AI结果卡片 */
 .ai-result-card {
-  margin-top: 8px; padding: 12px; background: #F0FDF4; border-radius: 10px; border-left: 3px solid #1A6B54;
+  margin-top: 8px; padding: 12px; background: #EFF6FF; border-radius: 10px; border-left: 3px solid #2563EB;
   .result-urgent { margin-bottom: 8px; }
   .result-item { display: flex; gap: 8px; margin-bottom: 6px; &:last-child { margin-bottom: 0; } }
-  .r-label { font-size: 11px; font-weight: 700; color: #1A6B54; white-space: nowrap; padding-top: 2px; min-width: 56px; }
+  .r-label { font-size: 11px; font-weight: 700; color: #1D4ED8; white-space: nowrap; padding-top: 2px; min-width: 56px; }
   .r-val { font-size: 12px; color: #334155; line-height: 1.5; }
 }
 
 /* 输入区 */
 .ai-input-area {
-  padding: 12px 20px; border-top: 1px solid #F1F5F9; background: #FFF; display: flex; gap: 10px; align-items: flex-end;
-  :deep(.el-textarea__inner) { font-size: 13px; }
+  padding: 12px 20px; border-top: 1px solid #DBEAFE; background: #FFF; display: flex; gap: 10px; align-items: flex-end;
+  :deep(.el-textarea__inner) { font-size: 13px; border-color: #CBD5E1; box-shadow: none; }
+  :deep(.el-textarea__inner:focus) { border-color: #2563EB; box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12); }
   .ai-send-btn { flex-shrink: 0; }
 }
 </style>

@@ -27,6 +27,16 @@ public interface ISysNoticeService
     public List<SysNotice> selectNoticeList(SysNotice notice);
 
     /**
+     * 查询当前科室可见的联合会诊邀请
+     *
+     * @param userId 当前用户ID
+     * @param deptToken 科室匹配标记，例如 |101|
+     * @param limit 最多返回条数
+     * @return 联合会诊邀请集合
+     */
+    public List<SysNotice> selectConsultInvitationList(Long userId, String deptToken, int limit);
+
+    /**
      * 新增公告
      * 
      * @param notice 公告信息

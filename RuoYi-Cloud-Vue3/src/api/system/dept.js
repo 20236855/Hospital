@@ -20,6 +20,14 @@ export function listRegisterDept() {
   })
 }
 
+// 登录后查询启用科室列表（联合会诊等后台页面使用，需要携带token）
+export function listRegisterDeptAuth() {
+  return request({
+    url: '/system/dept/register/list',
+    method: 'get'
+  })
+}
+
 // 查询部门列表（排除节点）
 export function listDeptExcludeChild(deptId) {
   return request({

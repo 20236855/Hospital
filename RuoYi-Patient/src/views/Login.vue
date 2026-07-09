@@ -289,6 +289,8 @@ const handleLogin = async () => {
     localStorage.setItem('token', res.data.access_token)
     localStorage.setItem('username', loginForm.value.username)
     localStorage.setItem('userInfo', JSON.stringify(res.data))
+    localStorage.setItem('pendingPaymentReminderOnLogin', '1')
+    localStorage.removeItem('unpaidReminderShown')
     showToast('登录成功')
     await checkAndRedirect()
   } catch (error) {

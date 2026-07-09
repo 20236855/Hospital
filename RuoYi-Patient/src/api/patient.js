@@ -1,10 +1,11 @@
 import request from '@/utils/request'
 
-export function getPatientList(query) {
+export function getPatientList(query, config = {}) {
   return request({
     url: '/patient/patient/list',
     method: 'get',
-    params: query
+    params: query,
+    ...config
   })
 }
 
@@ -22,10 +23,11 @@ export function getPatientInfo() {
   })
 }
 
-export function getPatientByUserId(userId) {
+export function getPatientByUserId(userId, config = {}) {
   return request({
     url: '/patient/patient/userId/' + userId,
-    method: 'get'
+    method: 'get',
+    ...config
   })
 }
 

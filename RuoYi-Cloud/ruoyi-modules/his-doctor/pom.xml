@@ -88,6 +88,12 @@
             <artifactId>ruoyi-common-security</artifactId>
         </dependency>
 
+        <!-- RuoYi Common Redis -->
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-common-redis</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
