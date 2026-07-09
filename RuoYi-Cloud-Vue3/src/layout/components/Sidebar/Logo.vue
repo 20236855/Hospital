@@ -11,7 +11,6 @@
             <strong>云医智联</strong>
           </span>
         </span>
-        <small class="brand-desc">AI 驱动 · 温暖守护</small>
       </router-link>
     </transition>
   </div>
@@ -79,13 +78,6 @@ defineProps({
       letter-spacing: 0.5px;
       line-height: 1;
     }
-  }
-
-  .brand-desc {
-    color: rgba(191, 219, 254, 0.80);
-    font-size: 12px;
-    line-height: 1.4;
-    padding-left: 52px; /* logo宽度 + gap */
   }
 
   &.collapse {

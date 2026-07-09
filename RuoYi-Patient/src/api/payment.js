@@ -15,3 +15,11 @@ export function payExamByRegister(registerId, payType = '微信') {
     data: { payType }
   })
 }
+
+export function payPrescription(prescriptionId, payType = '微信') {
+  return request({
+    url: '/payment/payment/prescription/' + prescriptionId + '/pay',
+    method: 'post',
+    data: { payType }
+  })
+}

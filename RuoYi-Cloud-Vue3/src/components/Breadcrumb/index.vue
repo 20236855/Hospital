@@ -90,12 +90,12 @@ getBreadcrumb()
   line-height: 50px;
 
   .no-redirect {
-    color: #5b9d92;
+    color: #2563EB;
     cursor: text;
   }
 
   :deep(.el-breadcrumb__inner) {
-    color: #5b9d92;
+    color: #2563EB;
   }
 
   :deep(.el-breadcrumb__inner a),
@@ -105,7 +105,7 @@ getBreadcrumb()
   }
 
   :deep(.el-breadcrumb__separator) {
-    color: #b8ddd2;
+    color: #93c5fd;
   }
 }
 </style>

@@ -15,6 +15,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"       column="update_by"       />
         <result property="updateTime"     column="update_time"     />
         <result property="remark"         column="remark"          />
+        <result property="isRead"         column="isRead"          />
     </resultMap>
     
     <sql id="selectNoticeVo">
@@ -41,6 +42,29 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 			</if>
 		</where>
 		order by notice_id desc
+    </select>
+
+    <select id="selectConsultInvitationList" resultMap="SysNoticeResult">
+        select
+            n.notice_id,
+            n.notice_title,
+            n.notice_type,
+            cast(n.notice_content as char) as notice_content,
+            n.status,
+            n.create_by,
+            n.create_time,
+            n.update_by,
+            n.update_time,
+            n.remark,
+            case when r.notice_id is not null then true else false end as isRead
+        from sys_notice n
+        left join sys_notice_read r
+            on r.notice_id = n.notice_id and r.user_id = #{userId}
+        where n.status = '0'
+          and cast(n.notice_content as char) like '%"bizType":"CONSULT_INVITE"%'
+          and cast(n.notice_content as char) like concat('%', #{deptToken}, '%')
+        order by n.notice_id desc
+        limit #{limit}
     </select>
     
     <insert id="insertNotice" parameterType="SysNotice">

@@ -1,6 +1,14 @@
-$java = 'C:\Users\Admin\Desktop\实训\hosipital\tools\jdk17\jdk-17.0.19+10\bin\java.exe'
-$base = 'C:\Users\Admin\Desktop\实训\hosipital\code\RuoYi-Cloud'
-$log = 'C:\Users\Admin\Desktop\实训\hosipital\tools\logs'
+$repoRoot = $PSScriptRoot
+$base = Join-Path $repoRoot 'RuoYi-Cloud'
+$log = Join-Path $repoRoot 'run-logs\backend'
+$preferredJavaHome = 'D:\Tool\jdk-17\jdk-17'
+$java = if (Test-Path (Join-Path $preferredJavaHome 'bin\java.exe')) {
+  Join-Path $preferredJavaHome 'bin\java.exe'
+} elseif ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+  Join-Path $env:JAVA_HOME 'bin\java.exe'
+} else {
+  'java.exe'
+}
 
 New-Item -ItemType Directory -Path $log -Force | Out-Null
 
@@ -23,6 +31,11 @@ foreach ($service in $services) {
   $name = $service[0]
   $workDir = $service[1]
   $jar = $service[2]
+  $jarPath = Join-Path $workDir $jar
+  if (!(Test-Path -LiteralPath $jarPath)) {
+    Write-Warning "Skip $name, jar not found: $jarPath"
+    continue
+  }
   $args = @($commonArgs[0], $commonArgs[1], '-jar', $jar)
 
   Start-Process -FilePath $java `

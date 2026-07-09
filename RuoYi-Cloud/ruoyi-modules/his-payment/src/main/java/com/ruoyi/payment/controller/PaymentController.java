@@ -133,6 +133,16 @@ public class PaymentController extends BaseController
     }
 
     /**
+     * 支付处方费用（患者端使用）。
+     */
+    @PostMapping("/prescription/{prescriptionId}/pay")
+    public AjaxResult payPrescription(@PathVariable Long prescriptionId, @RequestBody(required = false) Payment payment)
+    {
+        String payType = payment != null ? payment.getPayType() : null;
+        return success(paymentService.payPrescription(prescriptionId, payType));
+    }
+
+    /**
      * 修改收费
      */
     @RequiresPermissions("payment:payment:edit")

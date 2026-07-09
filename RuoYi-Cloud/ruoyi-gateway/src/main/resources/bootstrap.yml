@@ -8,6 +8,11 @@ spring:
     name: ruoyi-gateway
   profiles:
     active: dev
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password:
   cloud:
     gateway:
       routes:
@@ -100,3 +105,15 @@ management:
       enabled: false
     sentinel:
       enabled: false
+
+security:
+  ignore:
+    whites:
+      - /auth/logout
+      - /auth/login
+      - /auth/register
+      - /auth/patient/login
+      - /code
+      - /*/v2/api-docs
+      - /*/v3/api-docs
+      - /csrf

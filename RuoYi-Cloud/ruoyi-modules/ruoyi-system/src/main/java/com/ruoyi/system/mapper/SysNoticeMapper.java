@@ -1,6 +1,7 @@
 package com.ruoyi.system.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.system.domain.SysNotice;
 
 /**
@@ -25,6 +26,16 @@ public interface SysNoticeMapper
      * @return 公告集合
      */
     public List<SysNotice> selectNoticeList(SysNotice notice);
+
+    /**
+     * 查询当前科室可见的联合会诊邀请
+     *
+     * @param userId 当前用户ID
+     * @param deptToken 科室匹配标记，例如 |101|
+     * @param limit 最多返回条数
+     * @return 联合会诊邀请集合
+     */
+    public List<SysNotice> selectConsultInvitationList(@Param("userId") Long userId, @Param("deptToken") String deptToken, @Param("limit") int limit);
 
     /**
      * 新增公告

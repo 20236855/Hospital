@@ -1,10 +1,11 @@
 import request from '@/utils/request'
 
-export function getRegisterList(query) {
+export function getRegisterList(query, config = {}) {
   return request({
     url: '/register/register/list',
     method: 'get',
-    params: query
+    params: query,
+    ...config
   })
 }
 
@@ -60,10 +61,11 @@ export function getOpenScheduleSlots(query) {
   })
 }
 
-export function getDeptList(query) {
+export function getDeptList(query, config = {}) {
   return request({
     url: '/system/dept/register/list',
     method: 'get',
-    params: query
+    params: query,
+    ...config
   })
 }

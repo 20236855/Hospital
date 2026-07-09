@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="resource-page">
     <header class="top-bar">
       <button class="back-btn" type="button" @click="goBack">
@@ -64,7 +64,7 @@
       </div>
 
       <div v-if="loading" class="loading-state">
-        <van-loading color="#2563eb" />
+        <van-loading color="#4A90E2" />
         <span>正在加载医生资源</span>
       </div>
 
@@ -269,60 +269,49 @@ onMounted(() => {
 <style scoped lang="scss">
 .resource-page {
   min-height: 100vh;
-  padding: 75px 14px 34px;
-  background:
-    linear-gradient(180deg, rgba(231, 242, 255, .9) 0%, rgba(247, 251, 255, 1) 44%),
-    #f4f9ff;
-  color: #1e3a5f;
+  padding: 14px 14px 34px;
+  background: var(--bg-gradient);
+  color: var(--text-primary);
 }
 
 .top-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 14px;
-  background: #1250af;
-  color: #fff;
+  padding: 6px 2px 12px;
 
   p {
-    margin: 0 0 1px;
-    font-size: 15px;
-    line-height: 1.2;
-    color: #fff;
+    margin: 0 0 2px;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-light);
+    letter-spacing: 0;
   }
 
   h1 {
     margin: 0;
-    font-size: 17px;
+    font-size: 24px;
     line-height: 1.2;
-    color: #fff;
+    color: var(--text-primary);
   }
 }
 
 .back-btn {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border: 0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, .18);
-  color: #fff;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 4px 12px rgba(15, 40, 80, .2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .86);
+  color: var(--primary-color);
+  box-shadow: 0 8px 22px rgba(74, 144, 226, .13);
 }
 
 .summary-panel {
   border-radius: 18px;
   padding: 16px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .76)),
-    linear-gradient(120deg, rgba(96, 165, 250, .18), rgba(59, 130, 246, .2));
-  border: 1px solid rgba(191, 219, 254, .9);
-  box-shadow: 0 18px 44px rgba(37, 99, 235, .13);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
 }
 
 .summary-copy {
@@ -336,8 +325,8 @@ onMounted(() => {
     width: fit-content;
     padding: 4px 8px;
     border-radius: 8px;
-    background: rgba(52, 123, 112, .1);
-    color: #2563eb;
+    background: var(--secondary-color);
+    color: var(--primary-color);
     font-size: 11px;
     font-weight: 800;
   }
@@ -346,12 +335,12 @@ onMounted(() => {
     margin-top: 10px;
     font-size: 18px;
     line-height: 1.35;
-    color: #1e3a5f;
+    color: var(--text-primary);
   }
 
   p {
     margin: 7px 0 0;
-    color: #64748b;
+    color: var(--text-regular);
     font-size: 13px;
     line-height: 1.55;
   }
@@ -367,13 +356,13 @@ onMounted(() => {
     min-height: 58px;
     border-radius: 12px;
     padding: 10px;
-    background: rgba(219, 234, 254, .72);
-    border: 1px solid rgba(191, 219, 254, .72);
+    background: var(--secondary-light);
+    border: 1px solid var(--card-border);
   }
 
   strong {
     display: block;
-    color: #1d4ed8;
+    color: var(--primary-color);
     font-size: 19px;
     line-height: 1;
   }
@@ -381,7 +370,7 @@ onMounted(() => {
   span {
     display: block;
     margin-top: 7px;
-    color: #64748b;
+    color: var(--text-regular);
     font-size: 11px;
     font-weight: 700;
   }
@@ -396,8 +385,8 @@ onMounted(() => {
 
   :deep(.van-search__content) {
     background: #fff;
-    border: 1px solid rgba(206, 232, 238, .8);
-    box-shadow: 0 10px 28px rgba(75, 132, 145, .1);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
   }
 }
 
@@ -416,17 +405,17 @@ onMounted(() => {
 .dept-chip {
   flex: 0 0 auto;
   height: 32px;
-  border: 1px solid rgba(206, 232, 238, .95);
+  border: 1px solid var(--card-border);
   border-radius: 999px;
   padding: 0 13px;
   background: #fff;
-  color: #475569;
+  color: var(--text-regular);
   font-size: 12px;
   font-weight: 800;
 
   &.active {
-    border-color: #2563eb;
-    background: #2563eb;
+    border-color: var(--primary-color);
+    background: var(--primary-color);
     color: #fff;
   }
 }
@@ -442,7 +431,7 @@ onMounted(() => {
   margin-bottom: 10px;
 
   span {
-    color: #64748b;
+    color: var(--text-light);
     font-size: 10px;
     font-weight: 800;
     letter-spacing: 0;
@@ -450,13 +439,13 @@ onMounted(() => {
 
   h2 {
     margin: 2px 0 0;
-    color: #1e3a5f;
+    color: var(--text-primary);
     font-size: 18px;
   }
 
   em {
     font-style: normal;
-    color: #2563eb;
+    color: var(--primary-color);
     font-size: 12px;
     font-weight: 800;
   }
@@ -469,14 +458,14 @@ onMounted(() => {
   padding: 14px;
   margin-bottom: 12px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, .94);
-  border: 1px solid rgba(211, 232, 237, .86);
-  box-shadow: 0 12px 30px rgba(75, 132, 145, .1);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
   transition: transform .18s ease, box-shadow .18s ease;
 
   &:active {
     transform: scale(.985);
-    box-shadow: 0 8px 20px rgba(75, 132, 145, .12);
+    box-shadow: 0 8px 20px rgba(74, 144, 226, .12);
   }
 }
 
@@ -485,10 +474,10 @@ onMounted(() => {
   height: 76px;
   border-radius: 14px;
   overflow: hidden;
-  background: linear-gradient(145deg, #dbeafe, #bfdbfe);
+  background: var(--secondary-color);
   display: grid;
   place-items: center;
-  color: #1d4ed8;
+  color: var(--primary-color);
   font-size: 25px;
   font-weight: 900;
   border: 1px solid rgba(255, 255, 255, .78);
@@ -512,14 +501,14 @@ onMounted(() => {
 
   h3 {
     margin: 0;
-    color: #1e3a5f;
+    color: var(--text-primary);
     font-size: 17px;
     line-height: 1.25;
   }
 
   p {
     margin: 4px 0 0;
-    color: #64748b;
+    color: var(--text-regular);
     font-size: 12px;
     line-height: 1.35;
   }
@@ -532,14 +521,14 @@ onMounted(() => {
   padding: 0 8px;
   display: inline-flex;
   align-items: center;
-  background: rgba(52, 123, 112, .1);
-  color: #2563eb;
+  background: var(--secondary-color);
+  color: var(--primary-color);
   font-size: 11px;
   font-weight: 900;
 
   &.off {
     background: rgba(151, 164, 170, .14);
-    color: #64748b;
+    color: var(--text-light);
   }
 }
 
@@ -554,8 +543,8 @@ onMounted(() => {
     min-height: 22px;
     border-radius: 7px;
     padding: 4px 7px;
-    background: #f0f5ff;
-    color: #64748b;
+    background: var(--secondary-light);
+    color: var(--text-regular);
     font-size: 11px;
     line-height: 1.2;
   }
@@ -564,7 +553,7 @@ onMounted(() => {
 .specialty,
 .intro {
   margin: 9px 0 0;
-  color: #334155;
+  color: var(--text-regular);
   font-size: 13px;
   line-height: 1.55;
   display: -webkit-box;
@@ -577,13 +566,13 @@ onMounted(() => {
 
   b {
     margin-right: 5px;
-    color: #d35f45;
+    color: var(--primary-color);
   }
 }
 
 .intro {
   -webkit-line-clamp: 2;
-  color: #64748b;
+  color: var(--text-light);
 }
 
 .card-footer {
@@ -592,7 +581,7 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 3px;
   margin-top: 10px;
-  color: #2563eb;
+  color: var(--primary-color);
   font-size: 12px;
   font-weight: 900;
 }
@@ -601,24 +590,24 @@ onMounted(() => {
 .empty-state {
   min-height: 190px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, .76);
-  border: 1px solid rgba(211, 232, 237, .86);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--text-regular);
   gap: 10px;
 }
 
 .empty-state {
   .van-icon {
-    color: #60a5fa;
+    color: var(--primary-light);
     font-size: 42px;
   }
 
   strong {
-    color: #1e3a5f;
+    color: var(--text-primary);
     font-size: 16px;
   }
 
@@ -636,7 +625,7 @@ onMounted(() => {
     border: 0;
     border-radius: 999px;
     padding: 0 22px;
-    background: #2563eb;
+    background: var(--primary-color);
     color: #fff;
     font-size: 13px;
     font-weight: 900;

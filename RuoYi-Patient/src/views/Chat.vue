@@ -1,8 +1,6 @@
 <template>
   <div class="chat-page">
     <div class="ambient-grid" aria-hidden="true"></div>
-    <div class="signal-wave signal-wave-a" aria-hidden="true"></div>
-    <div class="signal-wave signal-wave-b" aria-hidden="true"></div>
 
     <div class="chat-header">
       <button class="icon-btn header-left" type="button" aria-label="返回" @click="goBack">
@@ -145,7 +143,7 @@
                 <span class="thinking-dot"></span>
                 <span class="thinking-dot"></span>
                 <span class="thinking-dot"></span>
-                <span>正在分析症状...</span>
+                <span class="thinking-step-text">{{ thinkingStepText }}</span>
               </div>
             </div>
             <div v-if="message.role === 'user'" class="avatar user-avatar">
@@ -215,6 +213,15 @@ const textareaRef = ref(null)
 const messages = ref([])
 const inputMessage = ref('')
 const loading = ref(false)
+const thinkingStepIndex = ref(0)
+let thinkingTimer = null
+const thinkingSteps = [
+  '正在理解您的症状描述...',
+  '正在查阅相关医学知识库...',
+  '正在结合临床经验分析...',
+  '正在整合回答...'
+]
+const thinkingStepText = ref(thinkingSteps[0])
 const currentSessionId = ref('')
 const sessionList = ref([])
 const sidebarCollapsed = ref(true)
@@ -1146,6 +1153,21 @@ const sendMessage = async () => {
   adjustTextareaHeight()
   scrollToBottom()
 
+  const thinkingMessage = {
+    role: 'assistant',
+    content: '',
+    isThinking: true
+  }
+  messages.value.push(thinkingMessage)
+  scrollToBottom()
+
+  thinkingStepIndex.value = 0
+  thinkingStepText.value = thinkingSteps[0]
+  thinkingTimer = setInterval(() => {
+    thinkingStepIndex.value = (thinkingStepIndex.value + 1) % thinkingSteps.length
+    thinkingStepText.value = thinkingSteps[thinkingStepIndex.value]
+  }, 2000)
+
   try {
     if (registrationFlow.value.active || wantsRegistration(message)) {
       await handleRegistrationText(message)
@@ -1162,6 +1184,8 @@ const sendMessage = async () => {
 
     const response = await askBackendAi(message)
 
+    clearInterval(thinkingTimer)
+    thinkingTimer = null
     messages.value = messages.value.filter(m => !m.isThinking)
     messages.value.push({
       role: 'assistant',
@@ -1169,6 +1193,8 @@ const sendMessage = async () => {
     })
   } catch (error) {
     console.error('AI 咨询失败:', error)
+    clearInterval(thinkingTimer)
+    thinkingTimer = null
     messages.value = messages.value.filter(m => !m.isThinking)
 
     let errorMsg = '抱歉，我暂时无法为您提供服务，请稍后再试。如果您有紧急情况，请及时线下就医。'
@@ -1333,6 +1359,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopVoiceInput()
+  clearInterval(thinkingTimer)
 })
 </script>
 
@@ -1365,27 +1392,6 @@ $warm: #e88050;
   background-size: 28px 28px;
   mask-image: linear-gradient(to bottom, rgba(0,0,0,.55), rgba(0,0,0,.08));
   animation: gridDrift 16s linear infinite;
-}
-
-.signal-wave {
-  position: absolute;
-  left: -12%;
-  right: -12%;
-  height: 2px;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(74, 144, 226, .52), rgba(74, 144, 226, .34), transparent);
-  opacity: .55;
-  filter: blur(.2px);
-}
-
-.signal-wave-a {
-  top: 118px;
-  animation: signalSweep 4.8s ease-in-out infinite;
-}
-
-.signal-wave-b {
-  bottom: 116px;
-  animation: signalSweep 5.6s ease-in-out infinite reverse;
 }
 
 button {
@@ -2000,6 +2006,10 @@ button {
   }
 }
 
+.thinking-step-text {
+  transition: opacity .4s ease;
+}
+
 .chat-input-area {
   position: relative;
   z-index: 22;
@@ -2127,11 +2137,6 @@ textarea {
 @keyframes gridDrift {
   from { background-position: 0 0, 0 0; }
   to { background-position: 28px 28px, 28px 28px; }
-}
-
-@keyframes signalSweep {
-  0%, 100% { transform: translateX(-12%) scaleX(.84); opacity: .18; }
-  50% { transform: translateX(12%) scaleX(1); opacity: .58; }
 }
 
 @keyframes avatarPulse {

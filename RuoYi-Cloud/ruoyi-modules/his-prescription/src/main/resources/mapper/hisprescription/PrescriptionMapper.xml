@@ -106,4 +106,50 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             #{prescriptionId}
         </foreach>
     </delete>
+
+    <select id="selectPatientPrescriptionPayments" resultType="java.util.Map">
+        select p.prescription_id as prescriptionId,
+               p.register_id as registerId,
+               p.prescription_no as prescriptionNo,
+               p.total_amount as totalAmount,
+               case when lower(coalesce(p.pay_status, 'unpaid')) in ('paid', '1', '已支付', '已缴费') then 'paid' else 'unpaid' end as payStatus,
+               p.prescription_status as prescriptionStatus,
+               p.create_time as createTime,
+               d.doctor_name as doctorName,
+               sd.dept_name as deptName,
+               r.register_no as registerNo,
+               count(pi.item_id) as itemCount,
+               group_concat(pi.drug_name order by pi.item_id separator '、') as drugName
+        from prescription p
+        left join doctor d on p.doctor_id = d.doctor_id
+        left join sys_dept sd on p.dept_id = sd.dept_id
+        left join register r on p.register_id = r.register_id
+        left join prescription_item pi on pi.prescription_id = p.prescription_id
+        where p.patient_id = #{patientId}
+        group by p.prescription_id, p.register_id, p.prescription_no, p.total_amount,
+                 p.pay_status, p.prescription_status, p.create_time,
+                 d.doctor_name, sd.dept_name, r.register_no
+        order by p.create_time desc, p.prescription_id desc
+    </select>
+
+    <select id="selectPrescriptionItemsById" resultType="java.util.Map">
+        select pi.item_id as itemId,
+               pi.prescription_id as prescriptionId,
+               pi.drug_id as drugId,
+               pi.drug_name as drugName,
+               pi.drug_price as drugPrice,
+               pi.quantity as quantity
+        from prescription_item pi
+        where pi.prescription_id = #{prescriptionId}
+        order by pi.item_id asc
+    </select>
+
+    <update id="markPrescriptionPaid">
+        update prescription
+        set pay_status = 'paid',
+            prescription_status = '已发药',
+            update_time = sysdate()
+        where prescription_id = #{prescriptionId}
+          and lower(coalesce(pay_status, 'unpaid')) not in ('paid', '1', '已支付', '已缴费')
+    </update>
 </mapper>

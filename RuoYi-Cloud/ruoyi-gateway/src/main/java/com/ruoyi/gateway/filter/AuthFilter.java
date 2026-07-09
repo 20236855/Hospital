@@ -1,5 +1,6 @@
 package com.ruoyi.gateway.filter;
 
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,8 +47,8 @@ public class AuthFilter implements GlobalFilter, Ordered
         ServerHttpRequest.Builder mutate = request.mutate();
 
         String url = request.getURI().getPath();
-        // 跳过不需要验证的路径 - 包括我们新增的患者登录接口
-        if (StringUtils.matches(url, ignoreWhite.getWhites()) || "/auth/patient/login".equals(url))
+        // 跳过不需要验证的路径。基础登录/验证码路径在这里兜底，避免 Nacos 白名单未加载时登录也被拦截。
+        if (StringUtils.matches(url, ignoreWhite.getWhites()) || isBuiltinWhiteUrl(url))
         {
             return chain.filter(exchange);
         }
@@ -103,6 +104,16 @@ public class AuthFilter implements GlobalFilter, Ordered
     {
         log.error("[鉴权异常处理]请求路径:{},错误信息:{}", exchange.getRequest().getPath(), msg);
         return ServletUtils.webFluxResponseWriter(exchange.getResponse(), msg, HttpStatus.UNAUTHORIZED);
+    }
+
+    private boolean isBuiltinWhiteUrl(String url)
+    {
+        return "/auth/login".equals(url)
+            || "/auth/register".equals(url)
+            || "/auth/patient/login".equals(url)
+            || "/code".equals(url)
+            || "/csrf".equals(url)
+            || StringUtils.matches(url, List.of("/*/v2/api-docs", "/*/v3/api-docs"));
     }
 
     /**

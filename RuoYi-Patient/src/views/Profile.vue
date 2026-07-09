@@ -341,7 +341,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: #4A90E2;
+    background: #68c7a9;
     border-radius: 8px;
   }
 
@@ -443,35 +443,35 @@ onMounted(() => {
 }
 
 .profile-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.92) 100%);
-  border-radius: 14px;
-  padding: 18px;
-  border: 1px solid rgba(184, 211, 242, 0.72);
-  box-shadow: 0 8px 24px rgba(74, 144, 226, 0.1);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(194, 228, 236, 0.72);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(8px);
 }
 
 .profile-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 14px;
+  margin-bottom: 20px;
 }
 
 .user-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #4A90E2, #8FB9EA);
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #68c7a9, #89dbc1);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 18px rgba(74, 144, 226, 0.22);
+  box-shadow: 0 8px 20px rgba(104, 199, 169, 0.3);
   flex-shrink: 0;
 }
 
 .avatar-text {
-  font-size: 23px;
+  font-size: 28px;
   font-weight: 700;
   color: white;
 }
@@ -482,7 +482,7 @@ onMounted(() => {
 }
 
 .user-name {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: #4f7380;
   margin: 0 0 4px;
@@ -491,27 +491,26 @@ onMounted(() => {
 .patient-status {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  margin-bottom: 5px;
-  border: 1px solid rgba(74, 144, 226, 0.24);
-  background: rgba(74, 144, 226, 0.09);
-  color: #357ABD;
+  padding: 3px 8px;
+  margin-bottom: 6px;
+  border: 1px solid rgba(104, 199, 169, 0.32);
+  background: rgba(104, 199, 169, 0.1);
+  color: #4a9f87;
   font-size: 12px;
   font-weight: 700;
-  border-radius: 999px;
 }
 
 .user-id {
-  font-size: 13px;
+  font-size: 14px;
   color: #8e9fa8;
   margin: 0;
 }
 
 .edit-btn {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
-  background: rgba(74, 144, 226, 0.1);
+  background: rgba(104, 199, 169, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -520,39 +519,38 @@ onMounted(() => {
 
   &:active {
     transform: scale(0.96);
-    background: rgba(74, 144, 226, 0.16);
+    background: rgba(104, 199, 169, 0.15);
   }
 
   .van-icon {
-    color: #4A90E2;
-    font-size: 17px;
+    color: #68c7a9;
+    font-size: 18px;
   }
 }
 
 .profile-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .profile-detail-item {
-  min-height: 48px;
-  padding: 10px 12px;
-  border: 1px solid rgba(218, 231, 246, 0.9);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.68);
+  min-height: 58px;
+  padding: 12px;
+  border: 1px solid rgba(213, 237, 243, 0.82);
+  background: rgba(255, 255, 255, 0.62);
 
   span {
     display: block;
-    margin-bottom: 3px;
+    margin-bottom: 5px;
     color: #8e9fa8;
     font-size: 12px;
   }
 
   strong {
     color: #4f7380;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
   }
 }
@@ -561,8 +559,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding-top: 14px;
-  border-top: 1px solid rgba(218, 231, 246, 0.76);
+  padding-top: 20px;
+  border-top: 1px solid rgba(213, 237, 243, 0.6);
 }
 
 .stat-item {
@@ -573,22 +571,22 @@ onMounted(() => {
 }
 
 .stat-value {
-  font-size: 21px;
+  font-size: 24px;
   font-weight: 700;
-  color: #4A90E2;
+  color: #68c7a9;
   line-height: 1;
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 13px;
   color: #8e9fa8;
   font-weight: 500;
 }
 
 .stat-divider {
   width: 1px;
-  height: 28px;
-  background: rgba(218, 231, 246, 0.9);
+  height: 32px;
+  background: rgba(213, 237, 243, 0.8);
 }
 
 .menu-card {
@@ -631,8 +629,8 @@ onMounted(() => {
   button {
     border: none;
     padding: 6px 12px;
-    background: rgba(74, 144, 226, 0.1);
-    color: #357ABD;
+    background: rgba(104, 199, 169, 0.12);
+    color: #4a9f87;
     font-weight: 700;
     cursor: pointer;
   }
@@ -694,7 +692,7 @@ onMounted(() => {
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(74, 144, 226, 0.06);
+    background: rgba(104, 199, 169, 0.06);
   }
 
   &:active {
@@ -717,9 +715,9 @@ onMounted(() => {
 }
 
 .icon-info {
-  background: linear-gradient(135deg, rgba(74, 144, 226, 0.15), rgba(74, 144, 226, 0.08));
+  background: linear-gradient(135deg, rgba(104, 199, 169, 0.15), rgba(104, 199, 169, 0.08));
   .van-icon {
-    color: #4A90E2;
+    color: #68c7a9;
   }
 }
 

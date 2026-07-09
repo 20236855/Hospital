@@ -23,8 +23,11 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   response => {
     const res = response.data
+    const hideErrorToast = response.config?.hideErrorToast
     if (res.code !== 200) {
-      showToast(res.msg || '请求失败')
+      if (!hideErrorToast) {
+        showToast(res.msg || '请求失败')
+      }
       if (res.code === 401) {
         localStorage.removeItem('token')
         window.location.href = '#/login'
@@ -35,6 +38,7 @@ request.interceptors.response.use(
   },
   error => {
     console.error('请求错误:', error)
+    const hideErrorToast = error.config?.hideErrorToast
     let message = '网络错误'
     if (error.response) {
       // 服务器返回错误
@@ -53,7 +57,9 @@ request.interceptors.response.use(
     } else if (error.message) {
       message = error.message
     }
-    showToast(message)
+    if (!hideErrorToast) {
+      showToast(message || '请求失败')
+    }
     return Promise.reject(new Error(message))
   }
 )
