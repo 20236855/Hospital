@@ -339,8 +339,8 @@ getCode()
   height: 48px;
   flex: 0 0 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #15a884, #168ba1);
-  box-shadow: 0 10px 24px rgba(21, 151, 139, 0.26);
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.26);
 
   span {
     width: 22px;
@@ -393,7 +393,7 @@ getCode()
     padding: 12px;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.82);
-    border: 1px solid rgba(22, 139, 161, 0.12);
+    border: 1px solid rgba(37, 99, 235, 0.12);
   }
 
   span {

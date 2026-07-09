@@ -341,7 +341,7 @@ onMounted(() => {
   &::after {
     content: "";
     position: absolute;
-    background: #68c7a9;
+    background: #1250af;
     border-radius: 8px;
   }
 
@@ -462,7 +462,7 @@ onMounted(() => {
   width: 72px;
   height: 72px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #68c7a9, #89dbc1);
+  background: linear-gradient(135deg, #1250af, #4a90d9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -493,9 +493,9 @@ onMounted(() => {
   align-items: center;
   padding: 3px 8px;
   margin-bottom: 6px;
-  border: 1px solid rgba(104, 199, 169, 0.32);
-  background: rgba(104, 199, 169, 0.1);
-  color: #4a9f87;
+  border: 1px solid rgba(18, 80, 175, 0.32);
+  background: rgba(18, 80, 175, 0.1);
+  color: #1250af;
   font-size: 12px;
   font-weight: 700;
 }
@@ -510,7 +510,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: rgba(104, 199, 169, 0.1);
+  background: rgba(18, 80, 175, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -519,11 +519,11 @@ onMounted(() => {
 
   &:active {
     transform: scale(0.96);
-    background: rgba(104, 199, 169, 0.15);
+    background: rgba(18, 80, 175, 0.15);
   }
 
   .van-icon {
-    color: #68c7a9;
+    color: #1250af;
     font-size: 18px;
   }
 }
@@ -573,7 +573,7 @@ onMounted(() => {
 .stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #68c7a9;
+  color: #1250af;
   line-height: 1;
 }
 
@@ -629,8 +629,8 @@ onMounted(() => {
   button {
     border: none;
     padding: 6px 12px;
-    background: rgba(104, 199, 169, 0.12);
-    color: #4a9f87;
+    background: rgba(18, 80, 175, 0.12);
+    color: #1250af;
     font-weight: 700;
     cursor: pointer;
   }
@@ -692,7 +692,7 @@ onMounted(() => {
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(104, 199, 169, 0.06);
+    background: rgba(18, 80, 175, 0.06);
   }
 
   &:active {
@@ -715,9 +715,9 @@ onMounted(() => {
 }
 
 .icon-info {
-  background: linear-gradient(135deg, rgba(104, 199, 169, 0.15), rgba(104, 199, 169, 0.08));
+  background: linear-gradient(135deg, rgba(18, 80, 175, 0.15), rgba(18, 80, 175, 0.08));
   .van-icon {
-    color: #68c7a9;
+    color: #1250af;
   }
 }
 

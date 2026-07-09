@@ -21,23 +21,23 @@
     <svg class="medical-art" viewBox="0 0 640 560" role="img" aria-label="医疗主题插画">
       <defs>
         <linearGradient id="cloudGradient" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stop-color="#f8fdff" />
-          <stop offset="1" stop-color="#dff4fb" />
+          <stop offset="0" stop-color="#eef6fc" />
+          <stop offset="1" stop-color="#d6ebfb" />
         </linearGradient>
         <linearGradient id="mintGradient" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stop-color="#a8ead7" />
-          <stop offset="1" stop-color="#73d2b7" />
+          <stop offset="0" stop-color="#a8d4f7" />
+          <stop offset="1" stop-color="#7eb8f0" />
         </linearGradient>
         <linearGradient id="blueGradient" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stop-color="#bfefff" />
-          <stop offset="1" stop-color="#8ed6f2" />
+          <stop offset="0" stop-color="#c9e4f9" />
+          <stop offset="1" stop-color="#8fc5f0" />
         </linearGradient>
         <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#8cc9dd" flood-opacity=".22" />
+          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#7eb8f0" flood-opacity=".2" />
         </filter>
       </defs>
 
-      <g class="wave-lines" fill="none" stroke="#ccecf5" stroke-linecap="round" stroke-width="3">
+      <g class="wave-lines" fill="none" stroke="#c9e4f9" stroke-linecap="round" stroke-width="3">
         <path d="M34 380 C 148 332, 230 430, 330 374 S 522 328, 608 390" />
         <path d="M60 418 C 176 370, 238 448, 342 406 S 510 380, 586 432" />
         <path d="M80 456 C 188 422, 250 470, 360 440 S 502 420, 566 466" />
@@ -51,53 +51,53 @@
       </g>
 
       <g class="floating icon-card form-card" filter="url(#softShadow)">
-        <rect x="82" y="225" width="112" height="130" rx="24" fill="#fffaf4" />
-        <rect x="112" y="248" width="52" height="14" rx="7" fill="#acdbe9" />
-        <rect x="108" y="282" width="68" height="10" rx="5" fill="#d9edf2" />
-        <rect x="108" y="306" width="58" height="10" rx="5" fill="#d9edf2" />
-        <path d="M126 334h28" stroke="#82d7bf" stroke-width="12" stroke-linecap="round" />
+        <rect x="82" y="225" width="112" height="130" rx="24" fill="#eef6fc" />
+        <rect x="112" y="248" width="52" height="14" rx="7" fill="#a8d4f7" />
+        <rect x="108" y="282" width="68" height="10" rx="5" fill="#d6ebfb" />
+        <rect x="108" y="306" width="58" height="10" rx="5" fill="#d6ebfb" />
+        <path d="M126 334h28" stroke="#7eb8f0" stroke-width="12" stroke-linecap="round" />
       </g>
 
       <g class="floating icon-card med-kit" filter="url(#softShadow)">
-        <rect x="438" y="180" width="120" height="96" rx="22" fill="#fff7f1" />
-        <path d="M472 180v-22c0-8 7-15 15-15h22c8 0 15 7 15 15v22" fill="none" stroke="#8ed6f2" stroke-width="10" stroke-linecap="round" />
+        <rect x="438" y="180" width="120" height="96" rx="22" fill="#eef6fc" />
+        <path d="M472 180v-22c0-8 7-15 15-15h22c8 0 15 7 15 15v22" fill="none" stroke="#8fc5f0" stroke-width="10" stroke-linecap="round" />
         <path d="M498 206v46M475 229h46" stroke="#f0a5b8" stroke-width="12" stroke-linecap="round" />
       </g>
 
-      <g class="floating stethoscope" fill="none" stroke="#6fbacb" stroke-linecap="round" stroke-width="10">
+      <g class="floating stethoscope" fill="none" stroke="#7eb8f0" stroke-linecap="round" stroke-width="10">
         <path d="M402 338v48c0 38-28 70-64 70s-64-32-64-70v-28" />
         <path d="M248 338v38c0 24-18 44-40 44s-40-20-40-44v-38" />
-        <circle cx="402" cy="332" r="14" fill="#fffaf4" />
+        <circle cx="402" cy="332" r="14" fill="#eef6fc" />
       </g>
 
       <g class="heart-pulse" fill="none" stroke="#ef8fa9" stroke-linecap="round" stroke-linejoin="round" stroke-width="8">
-        <path d="M306 140c-22-25-62-9-62 26 0 35 62 70 62 70s62-35 62-70c0-35-40-51-62-26Z" fill="#fff5f7" />
+        <path d="M306 140c-22-25-62-9-62 26 0 35 62 70 62 70s62-35 62-70c0-35-40-51-62-26Z" fill="#f8f4f6" />
         <path class="pulse-line" d="M252 182h35l12-24 20 48 14-28h39" />
       </g>
 
       <g class="pill pill-a">
-        <rect x="210" y="130" width="86" height="34" rx="17" fill="#fffaf4" transform="rotate(-18 253 147)" />
-        <path d="M253 130v34" stroke="#a9e5d2" stroke-width="4" transform="rotate(-18 253 147)" />
+        <rect x="210" y="130" width="86" height="34" rx="17" fill="#eef6fc" transform="rotate(-18 253 147)" />
+        <path d="M253 130v34" stroke="#7eb8f0" stroke-width="4" transform="rotate(-18 253 147)" />
       </g>
       <g class="pill pill-b">
-        <rect x="484" y="360" width="76" height="30" rx="15" fill="#e6f6fb" transform="rotate(23 522 375)" />
+        <rect x="484" y="360" width="76" height="30" rx="15" fill="#d6ebfb" transform="rotate(23 522 375)" />
         <path d="M522 360v30" stroke="#efb2c1" stroke-width="4" transform="rotate(23 522 375)" />
       </g>
 
       <g class="hospital" filter="url(#softShadow)">
-        <path d="M146 494h388c18 0 32-14 32-32v-24H114v24c0 18 14 32 32 32Z" fill="#d8eef4" />
-        <rect x="174" y="284" width="292" height="210" rx="26" fill="#fffdf8" />
-        <rect x="238" y="224" width="164" height="270" rx="28" fill="#f6fbfd" />
+        <path d="M146 494h388c18 0 32-14 32-32v-24H114v24c0 18 14 32 32 32Z" fill="#d6ebfb" />
+        <rect x="174" y="284" width="292" height="210" rx="26" fill="#eef6fc" />
+        <rect x="238" y="224" width="164" height="270" rx="28" fill="#eef6fc" />
         <rect x="274" y="254" width="92" height="68" rx="18" fill="url(#blueGradient)" />
-        <path d="M320 268v38M301 287h38" stroke="#fffdf8" stroke-width="12" stroke-linecap="round" />
-        <g fill="#b9e8f4">
+        <path d="M320 268v38M301 287h38" stroke="#eef6fc" stroke-width="12" stroke-linecap="round" />
+        <g fill="#a8d4f7">
           <rect x="208" y="326" width="42" height="38" rx="10" />
           <rect x="208" y="386" width="42" height="38" rx="10" />
           <rect x="410" y="326" width="42" height="38" rx="10" />
           <rect x="410" y="386" width="42" height="38" rx="10" />
         </g>
         <rect x="290" y="382" width="80" height="112" rx="18" fill="url(#mintGradient)" />
-        <path d="M330 382v112" stroke="#ecfff8" stroke-width="5" />
+        <path d="M330 382v112" stroke="#d6ebfb" stroke-width="5" />
       </g>
 
       <g class="plant plant-left">
@@ -110,7 +110,7 @@
         <path d="M522 434c24-10 42-27 52-52-30-2-55 13-66 42Z" fill="#b9e1cd" />
       </g>
 
-      <g class="tiny-crosses" fill="none" stroke="#8fd6c5" stroke-linecap="round" stroke-width="5">
+      <g class="tiny-crosses" fill="none" stroke="#8fc5f0" stroke-linecap="round" stroke-width="5">
         <path d="M132 92v24M120 104h24" />
         <path d="M516 150v22M505 161h22" />
         <path d="M76 405v18M67 414h18" />
@@ -127,9 +127,10 @@
   overflow: hidden;
   border-radius: 32px 0 0 32px;
   background:
-    linear-gradient(135deg, #fffdf8, #e0f6fc),
-    repeating-linear-gradient(110deg, rgba(148, 211, 225, .12) 0 1px, transparent 1px 34px);
+    linear-gradient(135deg, #eef6fc, #d0e7fb),
+    repeating-linear-gradient(110deg, rgba(127, 184, 240, .12) 0 1px, transparent 1px 34px);
 }
+
 
 .visual-copy {
   position: absolute;
@@ -141,7 +142,8 @@
   .visual-kicker {
     display: block;
     margin-bottom: 12px;
-    color: #7bbfd3;
+    color: #6da0d0;
+
     font-size: 13px;
     font-weight: 700;
     letter-spacing: .08em;
@@ -173,7 +175,8 @@
 .orbit {
   position: absolute;
   z-index: 2;
-  border: 1px solid rgba(139, 214, 226, .42);
+  border: 1px solid rgba(126, 184, 240, .4);
+
   border-radius: 50%;
   animation: orbitFloat 16s linear infinite;
 
@@ -187,7 +190,7 @@
       position: absolute;
       content: "";
       border-radius: 8px;
-      background: rgba(130, 215, 191, .84);
+      background: rgba(126, 184, 240, .6);
     }
 
     &::before {
