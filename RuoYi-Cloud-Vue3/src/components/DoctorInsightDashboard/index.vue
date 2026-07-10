@@ -64,7 +64,7 @@ const props = defineProps({
   chips: { type: Array, default: () => [] }
 })
 
-const palette = ['#0876C9', '#37A9EA', '#3D5AB8', '#7EA7D8', '#94A3B8']
+const palette = ['rgba(96,165,250,.78)', 'rgba(129,199,250,.75)', 'rgba(72,130,212,.72)', 'rgba(147,197,253,.70)', 'rgba(156,192,230,.68)']
 
 function toNumber(value) {
   const n = Number(value)
@@ -97,7 +97,7 @@ const totalText = computed(() => {
 
 const donutStyle = computed(() => {
   if (!distributionItems.value.length || total.value === 0) {
-    return { background: '#eef3f8' }
+    return { background: 'rgba(235,245,255,.5)' }
   }
   let start = 0
   const segments = distributionItems.value.map((item, index) => {
@@ -115,20 +115,22 @@ const donutStyle = computed(() => {
 
 <style scoped lang="scss">
 .doctor-insight {
-  --primary: #0876C9;
-  --primary-soft: #E9F8FF;
-  --primary-line: #BFE7FF;
-  --line: #DCEAF5;
-  --track: #EAF3FA;
-  --text: #102A43;
-  --muted: #64748B;
+  --primary: #4a8fd4;
+  --primary-soft: rgba(240,248,255,.7);
+  --primary-line: rgba(186,216,248,.55);
+  --line: rgba(200,220,240,.45);
+  --track: rgba(220,236,250,.5);
+  --text: #1e3a5f;
+  --muted: #607895;
   margin-bottom: 18px;
   padding: 22px 24px 24px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, .98) 0%, rgba(246, 251, 255, .98) 52%, rgba(233, 248, 255, .92) 100%);
-  box-shadow: 0 16px 36px rgba(8, 118, 201, .08), 0 1px 0 rgba(255, 255, 255, .9) inset;
+    linear-gradient(135deg, rgba(255,255,255,.72) 0%, rgba(240,248,255,.68) 52%, rgba(224,240,252,.6) 100%);
+  box-shadow: 0 16px 36px rgba(60,110,170,.06), 0 1px 0 rgba(255,255,255,.7) inset;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   color: var(--text);
   position: relative;
   overflow: hidden;
@@ -173,7 +175,7 @@ h2 {
   line-height: 1.25;
   font-weight: 800;
   letter-spacing: 0;
-  color: #0F2537;
+  color: #1e3a5f;
 }
 
 p {
@@ -287,7 +289,7 @@ p {
   gap: 6px;
 
   strong {
-    color: #0A4F8E;
+    color: #2a66b8;
     font-size: 31px;
     line-height: 1;
     font-weight: 850;
@@ -295,7 +297,7 @@ p {
   }
 
   em {
-    color: #6B7F93;
+    color: #7089a2;
     font-size: 12px;
     font-style: normal;
     font-weight: 700;
@@ -340,7 +342,7 @@ p {
     width: 10px;
     height: 10px;
     border-radius: 3px;
-    box-shadow: 0 0 0 3px rgba(8, 118, 201, .08);
+    box-shadow: 0 0 0 3px rgba(96,165,250,.12);
   }
 }
 
@@ -371,7 +373,7 @@ p {
     display: block;
     height: 100%;
     border-radius: inherit;
-    box-shadow: 0 0 12px rgba(8, 118, 201, .22);
+    box-shadow: 0 0 12px rgba(96,165,250,.18);
     transition: width .45s ease;
   }
 }
@@ -402,7 +404,7 @@ p {
     font-variant-numeric: tabular-nums;
   }
 
-  &.success { border-color: #A9DDF7; background: #F0FAFF; color: #0876C9; }
+  &.success { border-color: rgba(147,197,253,.6); background: rgba(240,248,255,.6); color: #4a8fd4; }
   &.warning { border-color: #F7D58A; background: #FFFBEB; color: #9A6A08; }
   &.danger { border-color: #F3B7B7; background: #FFF5F5; color: #B42318; }
 }
