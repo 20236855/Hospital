@@ -69,7 +69,7 @@
                 <svg v-if="result && result.hasMole && result.boxes" class="detection-overlay">
                   <rect v-for="(box, i) in result.boxes" :key="i"
                     :x="box.x" :y="box.y" :width="box.w" :height="box.h"
-                    fill="none" stroke="#00e676" stroke-width="2" />
+                    fill="none" stroke="#4a90d9" stroke-width="2" />
                 </svg>
               </div>
               <div class="preview-actions">
@@ -114,7 +114,7 @@
                 保存标注结果为检测图像
               </el-button>
               <span v-if="savedSliceImageUrl" class="saved-tip">
-                <el-icon color="#67C23A"><CircleCheck /></el-icon> 已保存，将随诊断结果一起提交
+                <el-icon color="#4a90d9"><CircleCheck /></el-icon> 已保存，将随诊断结果一起提交
               </span>
             </div>
           </div>
@@ -657,7 +657,7 @@ onMounted(async () => {
 }
 .save-annotated-bar {
   margin-top: 12px; display: flex; align-items: center; gap: 10px; justify-content: center;
-  .saved-tip { display: flex; align-items: center; gap: 4px; color: #16A34A; font-size: 12px; }
+  .saved-tip { display: flex; align-items: center; gap: 4px; color: #2563eb; font-size: 12px; }
 }
 
 .diagnosis-panel {
@@ -669,7 +669,7 @@ onMounted(async () => {
   .chat-msg {
     margin-bottom: 10px; padding: 10px; border-radius: 8px; font-size: 13px;
     &.user { background: #ecf5ff; }
-    &.assistant { background: #f0f9eb; }
+    &.assistant { background: #eff6ff; }
     p { margin: 4px 0 0; }
   }
 }
@@ -688,7 +688,7 @@ onMounted(async () => {
   .chat-msg {
     margin-bottom: 12px; padding: 10px; border-radius: 8px;
     &.user { background: #ecf5ff; }
-    &.assistant { background: #f0f9eb; }
+    &.assistant { background: #eff6ff; }
     p { margin: 4px 0 0; font-size: 13px; }
   }
 }

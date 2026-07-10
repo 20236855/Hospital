@@ -153,7 +153,7 @@
                 保存当前切片为检测结果
               </el-button>
               <span v-if="savedSliceImageUrl" class="saved-tip">
-                <el-icon color="#67C23A"><CircleCheck /></el-icon> 已保存，将随诊断结果一起提交
+                <el-icon color="#4a90d9"><CircleCheck /></el-icon> 已保存，将随诊断结果一起提交
               </span>
             </div>
           </div>
@@ -356,7 +356,7 @@
           <div class="annotation-panel heme-panel">
             <div class="annotation-panel-header">
               <div class="panel-label-group">
-                <span class="color-dot" style="background:#22C55E; box-shadow:0 0 6px #22C55E;"></span>
+                <span class="color-dot" style="background:#60a5fa; box-shadow:0 0 6px #60a5fa;"></span>
                 <span>颅内出血标注</span>
                 <el-tag 
                   v-if="artifactResult?.stats?.hemorrhageCount > 0" 
@@ -397,8 +397,8 @@
               </div>
             </div>
             <div class="annotation-legend">
-              <span class="legend-dot" style="background:#22C55E;"></span> 脑出血区域
-              <span class="legend-status" v-if="artifactResult?.stats?.hemorrhageCount > 0" style="color:#10B981">
+              <span class="legend-dot" style="background:#60a5fa;"></span> 脑出血区域
+              <span class="legend-status" v-if="artifactResult?.stats?.hemorrhageCount > 0" style="color:#3b82f6">
                 ✓ {{ artifactResult.stats.hemorrhageTotalArea }}px · {{ artifactResult.stats.slicesWithHemorrhage }}层
               </span>
             </div>
@@ -1145,7 +1145,7 @@ onMounted(loadApplyDetail)
       font-size: 14px;
 
       &:hover {
-        color: #16614D;
+        color: #2a66b8;
       }
     }
 
@@ -1158,7 +1158,7 @@ onMounted(loadApplyDetail)
       .title-badge {
         flex: 0 0 auto;
         padding: 4px 10px;
-        background: #16614D;
+        background: #2a66b8;
         color: #FFFFFF;
         border-radius: 4px;
         font-size: 12px;
@@ -1298,7 +1298,7 @@ onMounted(loadApplyDetail)
           font-weight: 700;
 
           .el-icon {
-            color: #16614D;
+            color: #2a66b8;
           }
         }
 
@@ -1375,7 +1375,7 @@ onMounted(loadApplyDetail)
 
             &:hover {
               background: rgba(22, 97, 77, .18);
-              border-color: #34D399;
+              border-color: #60a5fa;
             }
 
             p {
@@ -1399,7 +1399,7 @@ onMounted(loadApplyDetail)
 
           .is-loading {
             margin-bottom: 16px;
-            color: #34D399;
+            color: #60a5fa;
             animation: rotating 1.5s linear infinite;
           }
 
@@ -1516,14 +1516,14 @@ onMounted(loadApplyDetail)
       align-items: center;
       gap: 10px;
       padding: 10px 14px;
-      background: #F0FDF4;
-      border-top: 1px solid #BBF7D0;
+      background: #eff6ff;
+      border-top: 1px solid #c4dafa;
 
       .saved-tip {
         display: flex;
         align-items: center;
         gap: 4px;
-        color: #16A34A;
+        color: #2563eb;
         font-size: 12px;
       }
     }
@@ -1569,7 +1569,7 @@ onMounted(loadApplyDetail)
             color: #0F172A;
             font-size: 13px;
             font-weight: 700;
-            border-left: 3px solid #16614D;
+            border-left: 3px solid #2a66b8;
           }
 
           .findings-list {
@@ -1590,8 +1590,8 @@ onMounted(loadApplyDetail)
 
               &.active,
               &:hover {
-                background: #EDF8F4;
-                border-color: #66BFA4;
+                background: #eff3fa;
+                border-color: #6da8d8;
               }
 
               .finding-icon {
@@ -1644,7 +1644,7 @@ onMounted(loadApplyDetail)
               }
 
               .finding-conf {
-                color: #16614D;
+                color: #2a66b8;
                 font-size: 12px;
                 font-weight: 700;
                 min-width: 40px;
@@ -1655,8 +1655,8 @@ onMounted(loadApplyDetail)
 
           .suggestion-box {
             padding: 12px;
-            background: #EDF8F4;
-            border-left: 4px solid #16614D;
+            background: #eff3fa;
+            border-left: 4px solid #2a66b8;
             border-radius: 0 6px 6px 0;
 
             p {
@@ -1742,19 +1742,19 @@ onMounted(loadApplyDetail)
       flex-wrap: wrap;
       gap: 12px;
       padding: 14px 16px;
-      background: linear-gradient(135deg, #E8F3EF 0%, #F7FBF9 100%);
-      border-bottom: 1px solid #CFE5DC;
+      background: linear-gradient(135deg, #edf2f9 0%, #f5f8fc 100%);
+      border-bottom: 1px solid #cddaf2;
 
       .annotation-title {
         display: flex;
         align-items: center;
         gap: 10px;
-        color: #145744;
+        color: #1e3a5f;
         font-size: 16px;
         font-weight: 700;
 
         .el-icon {
-          color: #16614D;
+          color: #2a66b8;
         }
       }
 
@@ -1771,7 +1771,7 @@ onMounted(loadApplyDetail)
           min-width: 88px;
           padding: 6px 10px;
           background: rgba(255, 255, 255, .72);
-          border: 1px solid #CFE5DC;
+          border: 1px solid #cddaf2;
           border-radius: 6px;
 
           .badge-num {
@@ -1787,7 +1787,7 @@ onMounted(loadApplyDetail)
           }
 
           &.hemorrhage {
-            color: #14804A;
+            color: #2563eb;
           }
 
           &.artifact {
@@ -1795,11 +1795,11 @@ onMounted(loadApplyDetail)
           }
 
           &.metal {
-            color: #0F766E;
+            color: #3b82f6;
           }
 
           &.info {
-            color: #16614D;
+            color: #2a66b8;
           }
         }
 
@@ -2279,7 +2279,7 @@ onMounted(loadApplyDetail)
     display: inline-block;
     margin-right: 8px;
     font-weight: 700;
-    color: #0f766e;
+    color: #3b82f6;
   }
 }
 

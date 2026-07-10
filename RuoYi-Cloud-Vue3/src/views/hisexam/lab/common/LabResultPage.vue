@@ -379,18 +379,18 @@ onMounted(() => {
 .lab-page {
   min-height: 100vh;
   padding: 18px;
-  background: #f4f7f8;
-  color: #10201c;
+  background: #f0f5fa;
+  color: #1e3a5f;
 }
 
 .lab-header,
 .patient-strip,
 .workflow,
 .panel {
-  border: 1px solid #dfe8e5;
+  border: 1px solid #d0dae8;
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(16, 32, 28, .05);
+  box-shadow: 0 8px 24px rgba(30, 64, 95, .05);
 }
 
 .lab-header {
@@ -413,11 +413,11 @@ onMounted(() => {
   }
 
   .back-btn {
-    color: #5f746e;
+    color: #5c7085;
   }
 
   .eyebrow {
-    color: #5f746e;
+    color: #5c7085;
     font-size: 12px;
     font-weight: 700;
   }
@@ -439,13 +439,13 @@ onMounted(() => {
   .strip-item {
     min-width: 0;
     padding: 10px;
-    background: #f8fbfa;
-    border: 1px solid #edf2f1;
+    background: #f5f8fc;
+    border: 1px solid #e8edf4;
     border-radius: 6px;
 
     span {
       display: block;
-      color: #6b7f79;
+      color: #6b7a90;
       font-size: 12px;
     }
 
@@ -472,10 +472,10 @@ onMounted(() => {
     align-items: center;
     gap: 10px;
     padding: 10px;
-    color: #75857f;
+    color: #708090;
 
     &.active {
-      color: #125f4a;
+      color: #2a66b8;
     }
 
     .step-dot {
@@ -565,7 +565,7 @@ onMounted(() => {
     gap: 10px;
     min-height: 170px;
     padding: 24px;
-    color: #78918a;
+    color: #708090;
     text-align: center;
   }
 }

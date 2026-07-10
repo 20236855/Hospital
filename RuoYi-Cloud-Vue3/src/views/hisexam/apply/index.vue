@@ -1193,8 +1193,8 @@ getList()
         display: inline-block;
         padding: 2px 8px;
         border-radius: 4px;
-        background: #E8F3EF;
-        color: #1A6B54;
+        background: #edf2f9;
+        color: #2a66b8;
         font-size: 12px;
         font-weight: 600;
       }
