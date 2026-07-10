@@ -41,6 +41,7 @@ import com.ruoyi.emr.mapper.AiChatRecordMapper;
 import com.ruoyi.emr.service.IAiChatService;
 import com.ruoyi.emr.service.IEncounterService;
 import com.ruoyi.emr.service.IMedicalRecordService;
+import com.ruoyi.emr.service.ChromaRetriever;
 import com.ruoyi.his.api.RemotePatientService;
 import com.ruoyi.his.api.RemoteRegisterService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,6 +104,9 @@ public class AiChatServiceImpl implements IAiChatService
     @Autowired
     private RemoteRegisterService remoteRegisterService;
 
+    @Autowired
+    private ChromaRetriever chromaRetriever;
+
     /**
      * 判断是否需要查询病历
      */
@@ -126,6 +130,79 @@ public class AiChatServiceImpl implements IAiChatService
             }
         }
         return false;
+    }
+
+    /**
+     * 判断问题是否属于医院资源/政策类，需要走 RAG 知识库检索。
+     * 命中个人病历/检查记录类问法时不进入 RAG，仍走原有病历逻辑。
+     */
+    private boolean shouldUseRag(String message)
+    {
+        if (StringUtils.isBlank(message))
+        {
+            return false;
+        }
+        // 个人病历/检查记录类问法不进入 RAG，避免与个人病历查询冲突
+        String[] personal = { "我的", "病历", "记录", "上次", "之前", "历史", "我做过", "检查结果", "我的检查" };
+        for (String p : personal)
+        {
+            if (message.contains(p))
+            {
+                return false;
+            }
+        }
+        String[] kb = {
+            "医院", "云医智联", "地址", "在哪", "位置", "院长", "副院长",
+            "检查项目", "做哪些检查", "医院检查", "能做什么检查", "有哪些检查",
+            "CT", "皮肤病变", "肺部", "颅脑",
+            "报告", "多久出", "几天出", "报告查询", "报告怎么",
+            "政策", "三年行动", "医疗质量", "医保", "报销", "隐私条款", "免责"
+        };
+        for (String k : kb)
+        {
+            if (message.contains(k))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 构造 RAG 场景的对话消息：把知识库检索结果拼进 system prompt。
+     */
+    private JSONArray buildRagMessages(String knowledge,
+                                       List<AiChatRecord> longMemories,
+                                       List<AiChatRecord> recentRecords,
+                                       String message,
+                                       String mode)
+    {
+        String systemPrompt = "doctor".equals(mode) ? DOCTOR_SYSTEM_PROMPT : PATIENT_SYSTEM_PROMPT;
+        JSONArray messages = new JSONArray();
+        StringBuilder ctx = new StringBuilder();
+        if (StringUtils.isNotEmpty(knowledge))
+        {
+            ctx.append("【医院知识库检索结果】以下为本院官方信息，请仅依据这些内容回答；若知识库未覆盖，请如实说明无法回答并建议咨询院方：\n")
+                    .append(knowledge).append("\n");
+        }
+        if (longMemories != null && !longMemories.isEmpty())
+        {
+            ctx.append("\n长期记忆:\n");
+            for (AiChatRecord memory : longMemories)
+            {
+                ctx.append("- ").append(limit(memory.getContent(), 300)).append("\n");
+            }
+        }
+        messages.add(chatMessage("system", systemPrompt + "\n\n" + ctx.toString()));
+        for (AiChatRecord record : recentRecords)
+        {
+            if (StringUtils.isNotEmpty(record.getRole()) && StringUtils.isNotEmpty(record.getContent()))
+            {
+                messages.add(chatMessage(record.getRole(), record.getContent()));
+            }
+        }
+        messages.add(chatMessage("user", message));
+        return messages;
     }
 
     @Override
@@ -168,7 +245,28 @@ public class AiChatServiceImpl implements IAiChatService
             apiKey = resolveApiKeyFromFile();
         }
         System.out.println("最终使用的 API Key: " + (StringUtils.isBlank(apiKey) ? "空" : "已配置"));
-        
+
+        // RAG 分支：仅当问题属于医院资源/政策类时，检索 Chroma 知识库后作答
+        if (shouldUseRag(request.getMessage()))
+        {
+            System.out.println("命中医院知识库 RAG 分支");
+            String knowledge = chromaRetriever.retrieve(request.getMessage(), 8);
+            // 检索无结果（知识库不可达或未命中）时，给出可控兜底，避免模型凭空编造
+            if (StringUtils.isBlank(knowledge))
+            {
+                String fallback = "抱歉，我暂时无法连接医院知识库来获取这类政策或服务信息。"
+                        + "您可以稍后重试，或前往院务公开栏 / 官网查看最新介绍。";
+                insertRecord(userId, patientId, sessionId, "user", request.getMessage(), "short");
+                insertRecord(userId, patientId, sessionId, "assistant", fallback, "short");
+                return buildChatResponse(sessionId, fallback, patientId, false);
+            }
+            String mode = StringUtils.isBlank(request.getMode()) ? "patient" : request.getMode();
+            String reply = callDeepSeek(buildRagMessages(knowledge, longMemories, recentRecords, request.getMessage(), mode));
+            insertRecord(userId, patientId, sessionId, "user", request.getMessage(), "short");
+            insertRecord(userId, patientId, sessionId, "assistant", reply, "short");
+            return buildChatResponse(sessionId, reply, patientId, false);
+        }
+
         // 关键词拦截：判断是否需要查询病历
         List<MedicalRecord> medicalRecords = new java.util.ArrayList<>();
         List<EncounterVo> encounters = new java.util.ArrayList<>();
@@ -317,7 +415,9 @@ public class AiChatServiceImpl implements IAiChatService
         {
             return false;
         }
-        String[] keywords = { "挂号", "预约", "号源", "排班", "可挂", "医生有哪些", "帮我挂", "我要挂" };
+        // 覆盖“想挂个号 / 挂个号 / 去挂号 / 约个号 / 看医生 / 就诊”等自然说法
+        String[] keywords = { "挂号", "挂个号", "挂门诊", "预约", "号源", "排班", "可挂",
+                "医生有哪些", "帮我挂", "我要挂", "想挂", "去挂", "约个号", "看医生", "就诊" };
         for (String keyword : keywords)
         {
             if (message.contains(keyword))

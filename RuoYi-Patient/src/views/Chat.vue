@@ -532,7 +532,30 @@ const resetRegistrationFlow = () => {
 }
 
 const wantsRegistration = (message) => {
-  return /(挂号|预约挂号|预约医生|约号|帮.*预约|帮.*挂|想.*看医生|我要看医生|安排.*门诊)/.test(message)
+  const m = String(message || '')
+  if (!m) return false
+  // 排除“查询/查看挂号记录”这类只想看历史、并非要新挂号的说法
+  if (/(查询|查看|看下|看看|记录|历史).*(挂号|预约)|挂号.*(记录|查询|历史)|预约.*(记录|查询|历史)/.test(m)) {
+    return false
+  }
+  // 覆盖“想挂个号 / 挂个号 / 去挂号 / 帮我约”等自然说法
+  return /(挂号|挂个号|挂门诊|预约挂号|预约医生|预约门诊|约号|约个号|开个号|排号|取号|号源|帮.*(挂|预约)|想.*(挂|预约)|我要(挂|预约)|去(挂|预约)|安排.*门诊|看个?医生|看门诊|就诊|挂.*看看|帮我约)/.test(m)
+}
+
+// 汇总最近若干条用户消息，作为症状推断的上下文。
+// 解决“上一轮描述症状、这一轮只说‘帮我挂号’”时症状上下文丢失、只能列科室列表的问题。
+const getRecentUserMessages = (limit = 6) => {
+  return messages.value
+    .filter(item => item && item.role === 'user')
+    .map(item => String(item.content || ''))
+    .filter(Boolean)
+    .slice(-limit)
+}
+
+const buildRegistrationContext = (currentMessage) => {
+  const parts = getRecentUserMessages()
+  if (currentMessage) parts.push(String(currentMessage))
+  return parts.join(' ')
 }
 
 const normalizeText = (text) => String(text || '').replace(/\s+/g, '')
@@ -554,7 +577,7 @@ const symptomDeptRules = [
     reason: '腹痛、腹泻、反酸等更适合先由消化内科或内科门诊判断。'
   },
   {
-    keywords: ['心慌', '心悸', '胸痛', '胸口痛', '血压高', '高血压'],
+    keywords: ['心慌', '心悸', '胸痛', '胸口痛', '血压', '血压高', '高血压'],
     deptNames: ['心血管内科', '心内科', '内科门诊', '内科'],
     reason: '心慌、胸痛、血压异常建议优先选择心血管内科或内科门诊。'
   },
@@ -582,6 +605,11 @@ const symptomDeptRules = [
     keywords: ['骨折', '扭伤', '腰痛', '腰疼', '关节', '膝盖', '颈椎', '肩膀', '腿疼'],
     deptNames: ['骨科'],
     reason: '骨折、扭伤、关节或颈肩腰腿痛建议挂骨科。'
+  },
+  {
+    keywords: ['外伤', '受伤', '割伤', '划伤', '烫伤', '砸伤', '撞伤', '肿块', '包块', '疝气', '阑尾炎', '胆囊', '痔疮', '伤口', '缝合'],
+    deptNames: ['外科', '普外科'],
+    reason: '外伤、肿块或需要手术处理的情况，建议优先挂外科。'
   },
   {
     keywords: ['怀孕', '孕妇', '产检', '月经', '妇科', '白带', '痛经'],
@@ -810,7 +838,6 @@ const askRecommendedDepartment = (message) => {
   registrationFlow.value.recommendations = recommendations
 
   if (!recommendations.length) {
-    askDepartment('我还不能根据这些描述准确推荐科室。请再补充主要症状，或直接选择一个科室：')
     return false
   }
 
@@ -953,7 +980,9 @@ const startRegistrationFlow = async (message) => {
     return
   }
 
-  if (askRecommendedDepartment(message)) {
+  // 结合历史对话中的症状描述来推荐科室，而不是只看当前这一条消息
+  const symptomContext = buildRegistrationContext(message)
+  if (askRecommendedDepartment(symptomContext)) {
     return
   }
 
@@ -978,7 +1007,8 @@ const handleRegistrationText = async (message) => {
       await selectRegistrationDepartment(dept)
       return
     }
-    if (askRecommendedDepartment(message)) {
+    // 结合历史对话中的症状描述来推荐科室
+    if (askRecommendedDepartment(buildRegistrationContext(message))) {
       return
     }
     askDepartment('我还没有匹配到具体科室。您可以补充主要症状，或从下面选择一个科室：')
@@ -1153,27 +1183,19 @@ const sendMessage = async () => {
   adjustTextareaHeight()
   scrollToBottom()
 
-  const thinkingMessage = {
-    role: 'assistant',
-    content: '',
-    isThinking: true
-  }
-  messages.value.push(thinkingMessage)
-  scrollToBottom()
-
-  thinkingStepIndex.value = 0
-  thinkingStepText.value = thinkingSteps[0]
-  thinkingTimer = setInterval(() => {
-    thinkingStepIndex.value = (thinkingStepIndex.value + 1) % thinkingSteps.length
-    thinkingStepText.value = thinkingSteps[thinkingStepIndex.value]
-  }, 2000)
+  // 先清理上一次可能残留的“思考中”占位与轮播定时器，避免重复发送导致泄漏卡死
+  clearInterval(thinkingTimer)
+  thinkingTimer = null
+  messages.value = messages.value.filter(m => !m.isThinking)
 
   try {
+    // 挂号引导流程自带分步回复，不需要通用“思考中”占位，避免定时器泄漏
     if (registrationFlow.value.active || wantsRegistration(message)) {
       await handleRegistrationText(message)
       return
     }
 
+    // 普通问答：显示思考占位 + 步骤轮播
     const thinkingMessage = {
       role: 'assistant',
       content: '',
@@ -1181,6 +1203,13 @@ const sendMessage = async () => {
     }
     messages.value.push(thinkingMessage)
     scrollToBottom()
+
+    thinkingStepIndex.value = 0
+    thinkingStepText.value = thinkingSteps[0]
+    thinkingTimer = setInterval(() => {
+      thinkingStepIndex.value = (thinkingStepIndex.value + 1) % thinkingSteps.length
+      thinkingStepText.value = thinkingSteps[thinkingStepIndex.value]
+    }, 2000)
 
     const response = await askBackendAi(message)
 
